@@ -1,0 +1,343 @@
+.rate-limit-edge {
+  stroke: #ff4d4f;
+  stroke-width: 2;
+  animation: flowAnimation 1s infinite;
+}
+
+@keyframes flowAnimation {
+  from {
+    stroke-dashoffset: 10;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.config-graph {
+    position: relative;
+    width: 100%;
+    height: 400px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.config-graph svg {
+    width: 100%;
+    height: 100%;
+}
+
+.config-graph .node circle {
+    stroke: white;
+    stroke-width: 2px;
+}
+
+.config-graph .node-circuit-breaker .cb-shape {
+    fill: #fa8c16;
+    stroke: white;
+    stroke-width: 2px;
+}
+
+.config-graph .node text {
+    font-size: 12px;
+    font-family: 'Inter', sans-serif;
+}
+
+.config-graph .link {
+    stroke-opacity: 0.6;
+}
+
+.config-graph .link-rateLimit {
+    stroke: #ff4d4f;
+    stroke-width: 2;
+    stroke-dasharray: 5,5;
+}
+
+.config-graph .link-subset {
+    stroke: #2ca02c;
+    stroke-width: 2;
+}
+
+.config-graph .link-config {
+    stroke: #722ed1;
+    stroke-width: 2;
+}
+
+.config-graph .link-circuit-breaker {
+    stroke: #fa8c16;
+    stroke-width: 2;
+    stroke-dasharray: 3,3;
+}
+
+.config-graph .link-circuit-breaker-subset {
+    stroke: #fa8c16;
+    stroke-width: 1.5;
+    stroke-dasharray: 2,2;
+}
+
+.config-graph .node-service circle {
+    fill: #4a90e2;
+}
+
+.config-graph .node-source circle {
+    fill: #52c41a;
+}
+
+.config-graph .node-config circle {
+    fill: #722ed1;
+}
+
+.config-graph .arrow-rateLimit {
+    fill: #ff4d4f;
+}
+
+.config-graph .arrow-subset {
+    fill: #2ca02c;
+}
+
+.config-graph .arrow-circuit-breaker {
+    fill: #fa8c16;
+}
+
+.config-graph .arrow-circuit-breaker-subset {
+    fill: #fa8c16;
+}
+
+.config-graph .link-label {
+    font-size: 12px;
+    fill: #666;
+    font-weight: 500;
+    text-anchor: middle;
+    dominant-baseline: text-after-edge;
+    background: white;
+    padding: 2px 4px;
+}
+
+.config-graph .node-subset circle {
+    stroke: white;
+    stroke-width: 2px;
+}
+
+/* 为不同类型的标签添加不同的样式 */
+.config-graph .link-group:has(.link-rateLimit) .link-label {
+    fill: #ff4d4f;
+}
+
+.config-graph .link-group:has(.link-subset) .link-label {
+    fill: #2ca02c;
+}
+
+.config-graph .link-group:has(.link-config) .link-label {
+    fill: #722ed1;
+}
+
+.config-graph .link-group:has(.link-circuit-breaker) .link-label,
+.config-graph .link-group:has(.link-circuit-breaker-subset) .link-label {
+    fill: #fa8c16;
+}
+
+.data-plane-graph {
+  margin-top: 30px;
+  padding: 15px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  background-color: #fafafa;
+}
+
+.data-plane-graph h3 {
+  font-size: 18px;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.data-plane-graph svg {
+  background-color: white;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  color: #666;
+}
+
+.legend-item svg {
+  margin-right: 5px;
+  border: none;
+}
+
+.service-details h3 {
+  font-size: 20px;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.service-details h4 {
+  font-size: 16px;
+  margin: 15px 0;
+  color: #444;
+}
+
+.control-plane-section, 
+.data-plane-section {
+  margin-bottom: 30px;
+}
+
+.config-details {
+  margin-top: 20px;
+}
+
+.config-section {
+  margin-bottom: 20px;
+  padding: 15px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  background-color: #fafafa;
+}
+
+.config-item {
+  margin-top: 10px;
+}
+
+.config-item pre {
+  background-color: #f5f5f5;
+  padding: 10px;
+  border-radius: 4px;
+  overflow: auto;
+  font-size: 12px;
+}
+
+.version-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.version-item {
+  padding: 8px 0;
+  display: flex;
+  align-items: center;
+}
+
+.version-badge {
+  background-color: #2ca02c;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  margin-right: 10px;
+}
+
+.rate-limit-info {
+  margin-bottom: 15px;
+  padding: 10px;
+  background-color: #f8f8f8;
+  border-radius: 4px;
+  border-left: 3px solid #ff7f0e;
+}
+
+.rate-limit-basic {
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.rate-limit-condition {
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  color: #666;
+  margin-top: 5px;
+}
+
+.condition-label {
+  margin-right: 8px;
+  color: #999;
+}
+
+.detail-panel {
+  max-height: 100vh;
+  overflow-y: auto;
+}
+
+.circuit-breaker-info {
+  margin-top: 20px;
+  background-color: #fff7e6;
+  border: 1px solid #ffe7ba;
+  border-left: 4px solid #fa8c16;
+}
+
+.circuit-breaker-info h4 {
+  color: #d46b08;
+  border-bottom: 1px solid #ffe7ba;
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+}
+
+.circuit-breaker-section {
+  margin-bottom: 16px;
+}
+
+.circuit-breaker-section h5 {
+  font-size: 14px;
+  color: #d46b08;
+  margin-bottom: 8px;
+}
+
+.circuit-breaker-section h6 {
+  font-size: 13px;
+  color: #d46b08;
+  margin: 8px 0;
+}
+
+.cb-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.cb-http, .cb-tcp {
+  flex: 1;
+  min-width: 200px;
+  background-color: rgba(250, 140, 22, 0.05);
+  padding: 8px;
+  border-radius: 4px;
+}
+
+.cb-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.cb-list li {
+  padding: 4px 0;
+  font-size: 13px;
+  color: #333;
+}
+
+.cb-value {
+  color: #d46b08;
+  font-weight: 500;
+}
+
+.cb-subset {
+  margin: 12px 0;
+  padding: 8px;
+  background-color: rgba(250, 140, 22, 0.05);
+  border-radius: 4px;
+  border-left: 3px solid #fa8c16;
+}
+
+.subset-name {
+  color: #d46b08;
+  margin-bottom: 8px;
+} 

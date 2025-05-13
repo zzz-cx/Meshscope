@@ -1,0 +1,9 @@
+{
+  "apiVersion": "networking.istio.io/v1alpha3",
+  "items": [],
+  "kind": "SidecarList",
+  "metadata": {
+    "continue": "",
+    "resourceVersion": "1753252"
+  }
+}

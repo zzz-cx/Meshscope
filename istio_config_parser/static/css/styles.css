@@ -1,0 +1,321 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  background: white;
+}
+
+.topology-container {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.main-graph {
+  flex: 2;
+  background: white;
+  padding: 20px;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.main-graph svg {
+  width: 100%;
+  height: calc(100vh - 150px);
+  border: 1px solid #eee;
+}
+
+.legend {
+  margin-bottom: 20px;
+  display: flex;
+  gap: 20px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: black;
+}
+
+.node text {
+  font-size: 12px;
+  fill: #333;
+}
+
+.link {
+  stroke-opacity: 0.6;
+}
+
+#main-graph {
+  background: white;
+}
+
+.error-boundary {
+  padding: 20px;
+  margin: 20px;
+  border: 1px solid #ff4d4f;
+  border-radius: 4px;
+  background-color: #fff2f0;
+}
+
+.error-boundary pre {
+  margin: 10px 0;
+  padding: 10px;
+  background-color: #fff;
+  border: 1px solid #ffa39e;
+  border-radius: 2px;
+  overflow-x: auto;
+}
+
+#root:empty:before {
+  content: 'Loading...';
+  display: block;
+  padding: 20px;
+  color: #666;
+}
+
+.detail-panel {
+  flex: 1;
+  min-width: 300px;
+  max-width: 400px;
+  background: white;
+  padding: 20px;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.detail-header h3 {
+  margin: 0;
+  color: #2c3e50;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #666;
+  cursor: pointer;
+  padding: 0 8px;
+  line-height: 1;
+}
+
+.close-button:hover {
+  color: #333;
+}
+
+.node.service:hover {
+  cursor: pointer;
+}
+
+.node.service:hover path,
+.node.service:hover circle {
+  filter: brightness(1.2);
+  transform: scale(1.1);
+}
+
+.node text {
+  font-size: 12px;
+  fill: #333;
+  pointer-events: none;
+}
+
+.data-plane-graph {
+  background: white;
+  padding: 20px;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.data-plane-graph svg {
+  background: white;
+}
+
+.data-plane-graph.expanded {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80vw;
+  height: 80vh;
+  z-index: 1000;
+  background: white;
+  box-shadow: 0 0 20px rgba(0,0,0,0.2);
+  padding: 20px;
+}
+
+.data-plane-graph .node circle {
+  transition: all 0.3s;
+}
+
+.data-plane-graph .node:hover circle {
+  stroke: #333;
+  stroke-width: 2px;
+}
+
+.data-plane-graph .link {
+  stroke-opacity: 0.8;
+}
+
+.data-plane-graph .weight-label {
+  font-weight: bold;
+}
+
+.graph-header {
+  margin-bottom: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.expand-button {
+  padding: 5px 10px;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.expand-button:hover {
+  background: #e5e5e5;
+}
+
+.legend {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 15px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.color-box {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.node circle {
+  transition: r 0.2s;
+}
+
+.node:hover circle {
+  r: 28;
+}
+
+.link {
+  transition: stroke-width 0.2s;
+}
+
+.link.diff {
+  pointer-events: none;
+  stroke-dasharray: 5,5;
+}
+
+.weight-label, .weight-label-diff {
+  pointer-events: none;
+  user-select: none;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  font-family: Arial, sans-serif;
+  font-weight: bold;
+}
+
+.weight-label {
+  fill: #666;
+}
+
+.weight-label-diff {
+  fill: #ff4444;
+}
+
+.link.diff {
+  pointer-events: none;
+  stroke-dasharray: 5,5;
+  stroke: #ff4444;
+}
+
+.config-compare {
+  background: white;
+  border-radius: 4px;
+  padding: 20px;
+  margin-top: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.config-compare h4 {
+  margin: 0 0 20px 0;
+  color: #2c3e50;
+}
+
+.no-differences {
+  padding: 20px;
+  text-align: center;
+  color: #666;
+  background: #f9f9f9;
+  border-radius: 4px;
+}
+
+.differences-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.difference-item {
+  padding: 15px;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  background: #f9f9f9;
+}
+
+.difference-item h5 {
+  margin: 0 0 10px 0;
+  color: #e74c3c;
+}
+
+.diff-details {
+  display: flex;
+  gap: 20px;
+}
+
+.data-plane {
+  color: #3498db;
+}
+
+.control-plane {
+  color: #2ecc71;
+}
+
+.route-diff p {
+  margin: 0;
+  color: #666;
+}
+
+.node circle {
+  stroke: #fff;
+  stroke-width: 2px;
+}
+
+.node text {
+  pointer-events: none;
+  user-select: none;
+}
+
+.legend text {
+  fill: #333;
+} 

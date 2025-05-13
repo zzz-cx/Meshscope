@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: '{"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"labels":{"app":"paymentservice"},"name":"paymentservice","namespace":"online-boutique"},"spec":{"ports":[{"name":"grpc","port":50051,"targetPort":50051}],"selector":{"app":"paymentservice"},"type":"ClusterIP"}}
+
+      '
+  labels:
+    app: paymentservice
+  name: paymentservice
+  namespace: online-boutique
+spec:
+  clusterIP: 10.97.47.225
+  ports:
+  - name: grpc
+    port: 50051
+    protocol: TCP
+    targetPort: 50051
+  selector:
+    app: paymentservice
+  sessionAffinity: None
+  type: ClusterIP

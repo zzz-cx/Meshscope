@@ -1,0 +1,47 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: '{"apiVersion":"networking.istio.io/v1alpha3","kind":"VirtualService","metadata":{"annotations":{},"name":"productpage","namespace":"default"},"spec":{"gateways":["bookinfo-gateway"],"hosts":["*"],"http":[{"route":[{"destination":{"host":"productpage.default.svc.cluster.local","port":{"number":80},"subset":"original"},"weight":70},{"destination":{"host":"productpage.default.svc.cluster.local","port":{"number":80},"subset":"v1"},"weight":30}]}]}}
+
+      '
+  creationTimestamp: '2025-04-03T07:34:07Z'
+  generation: 8
+  managedFields:
+  - apiVersion: networking.istio.io/v1alpha3
+    fieldsType: FieldsV1
+    fieldsV1:
+      f:metadata:
+        f:annotations:
+          .: {}
+          f:kubectl.kubernetes.io/last-applied-configuration: {}
+      f:spec: {}
+    manager: kubectl-client-side-apply
+    operation: Update
+    time: '2025-04-03T07:34:07Z'
+  - apiVersion: networking.istio.io/v1
+    fieldsType: FieldsV1
+    fieldsV1:
+      f:spec:
+        f:hosts: {}
+        f:http: {}
+    manager: kiali
+    operation: Update
+    time: '2025-04-03T08:04:10Z'
+  name: productpage
+  namespace: default
+  resourceVersion: '1488473'
+  uid: 52a95919-49c9-4cce-a65c-c6edf7e6b287
+spec:
+  hosts:
+  - productpage
+  http:
+  - route:
+    - destination:
+        host: productpage
+        subset: v1
+      weight: 70
+    - destination:
+        host: productpage
+        subset: v2
+      weight: 30

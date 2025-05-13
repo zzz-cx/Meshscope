@@ -1,0 +1,16 @@
+{
+  "scripts": {
+    "build": "vite build"
+  },
+  "name": "istio_check",
+  "version": "1.0.0",
+  "main": "vite.config.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^6.0.7"
+  }
+}

@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: '{"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"labels":{"app":"jaeger"},"name":"tracing","namespace":"istio-system"},"spec":{"ports":[{"name":"http-query","port":80,"protocol":"TCP","targetPort":16686},{"name":"grpc-query","port":16685,"protocol":"TCP","targetPort":16685}],"selector":{"app":"jaeger"},"type":"ClusterIP"}}
+
+      '
+  labels:
+    app: jaeger
+  name: tracing
+  namespace: istio-system
+spec:
+  clusterIP: 10.96.226.208
+  ports:
+  - name: http-query
+    port: 80
+    protocol: TCP
+    targetPort: 16686
+  - name: grpc-query
+    port: 16685
+    protocol: TCP
+    targetPort: 16685
+  selector:
+    app: jaeger
+  sessionAffinity: None
+  type: ClusterIP

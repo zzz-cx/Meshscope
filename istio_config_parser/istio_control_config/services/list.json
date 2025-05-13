@@ -1,0 +1,9 @@
+[
+  {
+    "api_version": null,
+    "kind": null,
+    "metadata": {
+      "annotations": {
+        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"details\",\"service\":\"details\"},\"name\":\"details\",\"namespace\":\"default\"},\"spec\":{\"ports\":[{\"name\":\"http\",\"port\":9080}],\"selector\":{\"app\":\"details\"}}}\n"
+      },
+      "creation_timestamp": 

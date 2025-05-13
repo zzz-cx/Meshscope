@@ -1,0 +1,9 @@
+{
+  "apiVersion": "security.istio.io/v1beta1",
+  "items": [],
+  "kind": "AuthorizationPolicyList",
+  "metadata": {
+    "continue": "",
+    "resourceVersion": "1753251"
+  }
+}

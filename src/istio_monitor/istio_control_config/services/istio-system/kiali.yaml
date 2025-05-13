@@ -1,0 +1,34 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: '{"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"labels":{"app":"kiali","app.kubernetes.io/instance":"kiali","app.kubernetes.io/managed-by":"Helm","app.kubernetes.io/name":"kiali","app.kubernetes.io/part-of":"kiali","app.kubernetes.io/version":"v2.0.0","helm.sh/chart":"kiali-server-2.0.0","version":"v2.0.0"},"name":"kiali","namespace":"istio-system"},"spec":{"ports":[{"appProtocol":"http","name":"http","port":20001,"protocol":"TCP"},{"appProtocol":"http","name":"http-metrics","port":9090,"protocol":"TCP"}],"selector":{"app.kubernetes.io/instance":"kiali","app.kubernetes.io/name":"kiali"}}}
+
+      '
+  labels:
+    app: kiali
+    app.kubernetes.io/instance: kiali
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: kiali
+    app.kubernetes.io/part-of: kiali
+    app.kubernetes.io/version: v2.0.0
+    helm.sh/chart: kiali-server-2.0.0
+    version: v2.0.0
+  name: kiali
+  namespace: istio-system
+spec:
+  clusterIP: 10.105.162.47
+  ports:
+  - name: http
+    port: 20001
+    protocol: TCP
+    targetPort: 20001
+  - name: http-metrics
+    port: 9090
+    protocol: TCP
+    targetPort: 9090
+  selector:
+    app.kubernetes.io/instance: kiali
+    app.kubernetes.io/name: kiali
+  sessionAffinity: None
+  type: NodePort

@@ -1,0 +1,3623 @@
+[
+  {
+    "api_version": null,
+    "kind": null,
+    "metadata": {
+      "annotations": {
+        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"details\",\"service\":\"details\"},\"name\":\"details\",\"namespace\":\"default\"},\"spec\":{\"ports\":[{\"name\":\"http\",\"port\":9080}],\"selector\":{\"app\":\"details\"}}}\n"
+      },
+      "creation_timestamp": "2024-12-05T06:48:35+00:00",
+      "deletion_grace_period_seconds": null,
+      "deletion_timestamp": null,
+      "finalizers": null,
+      "generate_name": null,
+      "generation": null,
+      "labels": {
+        "app": "details",
+        "service": "details"
+      },
+      "managed_fields": [
+        {
+          "api_version": "v1",
+          "fields_type": "FieldsV1",
+          "fields_v1": {
+            "f:metadata": {
+              "f:annotations": {
+                ".": {},
+                "f:kubectl.kubernetes.io/last-applied-configuration": {}
+              },
+              "f:labels": {
+                ".": {},
+                "f:app": {},
+                "f:service": {}
+              }
+            },
+            "f:spec": {
+              "f:internalTrafficPolicy": {},
+              "f:ports": {
+                ".": {},
+                "k:{\"port\":9080,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                }
+              },
+              "f:selector": {},
+              "f:sessionAffinity": {},
+              "f:type": {}
+            }
+          },
+          "manager": "kubectl-client-side-apply",
+          "operation": "Update",
+          "subresource": null,
+          "time": "2024-12-05T06:48:35+00:00"
+        }
+      ],
+      "name": "details",
+      "namespace": "default",
+      "owner_references": null,
+      "resource_version": "80650",
+      "self_link": null,
+      "uid": "c8f2879a-32e7-4fd9-a651-4e36d364b3b8"
+    },
+    "spec": {
+      "allocate_load_balancer_node_ports": null,
+      "cluster_ip": "10.110.24.236",
+      "cluster_i_ps": [
+        "10.110.24.236"
+      ],
+      "external_i_ps": null,
+      "external_name": null,
+      "external_traffic_policy": null,
+      "health_check_node_port": null,
+      "internal_traffic_policy": "Cluster",
+      "ip_families": [
+        "IPv4"
+      ],
+      "ip_family_policy": "SingleStack",
+      "load_balancer_class": null,
+      "load_balancer_ip": null,
+      "load_balancer_source_ranges": null,
+      "ports": [
+        {
+          "app_protocol": null,
+          "name": "http",
+          "node_port": null,
+          "port": 9080,
+          "protocol": "TCP",
+          "target_port": 9080
+        }
+      ],
+      "publish_not_ready_addresses": null,
+      "selector": {
+        "app": "details"
+      },
+      "session_affinity": "None",
+      "session_affinity_config": null,
+      "traffic_distribution": null,
+      "type": "ClusterIP"
+    },
+    "status": {
+      "conditions": null,
+      "load_balancer": {
+        "ingress": null
+      }
+    }
+  },
+  {
+    "api_version": null,
+    "kind": null,
+    "metadata": {
+      "annotations": null,
+      "creation_timestamp": "2024-11-29T08:43:57+00:00",
+      "deletion_grace_period_seconds": null,
+      "deletion_timestamp": null,
+      "finalizers": null,
+      "generate_name": null,
+      "generation": null,
+      "labels": {
+        "component": "apiserver",
+        "provider": "kubernetes"
+      },
+      "managed_fields": [
+        {
+          "api_version": "v1",
+          "fields_type": "FieldsV1",
+          "fields_v1": {
+            "f:metadata": {
+              "f:labels": {
+                ".": {},
+                "f:component": {},
+                "f:provider": {}
+              }
+            },
+            "f:spec": {
+              "f:clusterIP": {},
+              "f:internalTrafficPolicy": {},
+              "f:ipFamilyPolicy": {},
+              "f:ports": {
+                ".": {},
+                "k:{\"port\":443,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                }
+              },
+              "f:sessionAffinity": {},
+              "f:type": {}
+            }
+          },
+          "manager": "kube-apiserver",
+          "operation": "Update",
+          "subresource": null,
+          "time": "2024-11-29T08:43:57+00:00"
+        }
+      ],
+      "name": "kubernetes",
+      "namespace": "default",
+      "owner_references": null,
+      "resource_version": "230",
+      "self_link": null,
+      "uid": "8c94fd87-2d45-4bba-9984-f2ae5b0e18aa"
+    },
+    "spec": {
+      "allocate_load_balancer_node_ports": null,
+      "cluster_ip": "10.96.0.1",
+      "cluster_i_ps": [
+        "10.96.0.1"
+      ],
+      "external_i_ps": null,
+      "external_name": null,
+      "external_traffic_policy": null,
+      "health_check_node_port": null,
+      "internal_traffic_policy": "Cluster",
+      "ip_families": [
+        "IPv4"
+      ],
+      "ip_family_policy": "SingleStack",
+      "load_balancer_class": null,
+      "load_balancer_ip": null,
+      "load_balancer_source_ranges": null,
+      "ports": [
+        {
+          "app_protocol": null,
+          "name": "https",
+          "node_port": null,
+          "port": 443,
+          "protocol": "TCP",
+          "target_port": 6443
+        }
+      ],
+      "publish_not_ready_addresses": null,
+      "selector": null,
+      "session_affinity": "None",
+      "session_affinity_config": null,
+      "traffic_distribution": null,
+      "type": "ClusterIP"
+    },
+    "status": {
+      "conditions": null,
+      "load_balancer": {
+        "ingress": null
+      }
+    }
+  },
+  {
+    "api_version": null,
+    "kind": null,
+    "metadata": {
+      "annotations": {
+        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"productpage\",\"service\":\"productpage\"},\"name\":\"productpage\",\"namespace\":\"default\"},\"spec\":{\"ports\":[{\"name\":\"http\",\"port\":9080}],\"selector\":{\"app\":\"productpage\"}}}\n"
+      },
+      "creation_timestamp": "2024-12-05T06:48:35+00:00",
+      "deletion_grace_period_seconds": null,
+      "deletion_timestamp": null,
+      "finalizers": null,
+      "generate_name": null,
+      "generation": null,
+      "labels": {
+        "app": "productpage",
+        "service": "productpage"
+      },
+      "managed_fields": [
+        {
+          "api_version": "v1",
+          "fields_type": "FieldsV1",
+          "fields_v1": {
+            "f:metadata": {
+              "f:annotations": {
+                ".": {},
+                "f:kubectl.kubernetes.io/last-applied-configuration": {}
+              },
+              "f:labels": {
+                ".": {},
+                "f:app": {},
+                "f:service": {}
+              }
+            },
+            "f:spec": {
+              "f:internalTrafficPolicy": {},
+              "f:ports": {
+                ".": {},
+                "k:{\"port\":9080,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                }
+              },
+              "f:selector": {},
+              "f:sessionAffinity": {},
+              "f:type": {}
+            }
+          },
+          "manager": "kubectl-client-side-apply",
+          "operation": "Update",
+          "subresource": null,
+          "time": "2024-12-05T06:48:35+00:00"
+        }
+      ],
+      "name": "productpage",
+      "namespace": "default",
+      "owner_references": null,
+      "resource_version": "80729",
+      "self_link": null,
+      "uid": "0eb8f00a-ea07-42fe-b0d8-72577fefbbc1"
+    },
+    "spec": {
+      "allocate_load_balancer_node_ports": null,
+      "cluster_ip": "10.99.214.49",
+      "cluster_i_ps": [
+        "10.99.214.49"
+      ],
+      "external_i_ps": null,
+      "external_name": null,
+      "external_traffic_policy": null,
+      "health_check_node_port": null,
+      "internal_traffic_policy": "Cluster",
+      "ip_families": [
+        "IPv4"
+      ],
+      "ip_family_policy": "SingleStack",
+      "load_balancer_class": null,
+      "load_balancer_ip": null,
+      "load_balancer_source_ranges": null,
+      "ports": [
+        {
+          "app_protocol": null,
+          "name": "http",
+          "node_port": null,
+          "port": 9080,
+          "protocol": "TCP",
+          "target_port": 9080
+        }
+      ],
+      "publish_not_ready_addresses": null,
+      "selector": {
+        "app": "productpage"
+      },
+      "session_affinity": "None",
+      "session_affinity_config": null,
+      "traffic_distribution": null,
+      "type": "ClusterIP"
+    },
+    "status": {
+      "conditions": null,
+      "load_balancer": {
+        "ingress": null
+      }
+    }
+  },
+  {
+    "api_version": null,
+    "kind": null,
+    "metadata": {
+      "annotations": {
+        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"ratings\",\"service\":\"ratings\"},\"name\":\"ratings\",\"namespace\":\"default\"},\"spec\":{\"ports\":[{\"name\":\"http\",\"port\":9080}],\"selector\":{\"app\":\"ratings\"}}}\n"
+      },
+      "creation_timestamp": "2024-12-05T06:48:35+00:00",
+      "deletion_grace_period_seconds": null,
+      "deletion_timestamp": null,
+      "finalizers": null,
+      "generate_name": null,
+      "generation": null,
+      "labels": {
+        "app": "ratings",
+        "service": "ratings"
+      },
+      "managed_fields": [
+        {
+          "api_version": "v1",
+          "fields_type": "FieldsV1",
+          "fields_v1": {
+            "f:metadata": {
+              "f:annotations": {
+                ".": {},
+                "f:kubectl.kubernetes.io/last-applied-configuration": {}
+              },
+              "f:labels": {
+                ".": {},
+                "f:app": {},
+                "f:service": {}
+              }
+            },
+            "f:spec": {
+              "f:internalTrafficPolicy": {},
+              "f:ports": {
+                ".": {},
+                "k:{\"port\":9080,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                }
+              },
+              "f:selector": {},
+              "f:sessionAffinity": {},
+              "f:type": {}
+            }
+          },
+          "manager": "kubectl-client-side-apply",
+          "operation": "Update",
+          "subresource": null,
+          "time": "2024-12-05T06:48:35+00:00"
+        }
+      ],
+      "name": "ratings",
+      "namespace": "default",
+      "owner_references": null,
+      "resource_version": "80659",
+      "self_link": null,
+      "uid": "a0a39a38-a6a0-4a25-a6eb-289041e9f0aa"
+    },
+    "spec": {
+      "allocate_load_balancer_node_ports": null,
+      "cluster_ip": "10.107.200.90",
+      "cluster_i_ps": [
+        "10.107.200.90"
+      ],
+      "external_i_ps": null,
+      "external_name": null,
+      "external_traffic_policy": null,
+      "health_check_node_port": null,
+      "internal_traffic_policy": "Cluster",
+      "ip_families": [
+        "IPv4"
+      ],
+      "ip_family_policy": "SingleStack",
+      "load_balancer_class": null,
+      "load_balancer_ip": null,
+      "load_balancer_source_ranges": null,
+      "ports": [
+        {
+          "app_protocol": null,
+          "name": "http",
+          "node_port": null,
+          "port": 9080,
+          "protocol": "TCP",
+          "target_port": 9080
+        }
+      ],
+      "publish_not_ready_addresses": null,
+      "selector": {
+        "app": "ratings"
+      },
+      "session_affinity": "None",
+      "session_affinity_config": null,
+      "traffic_distribution": null,
+      "type": "ClusterIP"
+    },
+    "status": {
+      "conditions": null,
+      "load_balancer": {
+        "ingress": null
+      }
+    }
+  },
+  {
+    "api_version": null,
+    "kind": null,
+    "metadata": {
+      "annotations": {
+        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"reviews\",\"service\":\"reviews\"},\"name\":\"reviews\",\"namespace\":\"default\"},\"spec\":{\"ports\":[{\"name\":\"http\",\"port\":9080}],\"selector\":{\"app\":\"reviews\"}}}\n"
+      },
+      "creation_timestamp": "2024-12-05T06:48:35+00:00",
+      "deletion_grace_period_seconds": null,
+      "deletion_timestamp": null,
+      "finalizers": null,
+      "generate_name": null,
+      "generation": null,
+      "labels": {
+        "app": "reviews",
+        "service": "reviews"
+      },
+      "managed_fields": [
+        {
+          "api_version": "v1",
+          "fields_type": "FieldsV1",
+          "fields_v1": {
+            "f:metadata": {
+              "f:annotations": {
+                ".": {},
+                "f:kubectl.kubernetes.io/last-applied-configuration": {}
+              },
+              "f:labels": {
+                ".": {},
+                "f:app": {},
+                "f:service": {}
+              }
+            },
+            "f:spec": {
+              "f:internalTrafficPolicy": {},
+              "f:ports": {
+                ".": {},
+                "k:{\"port\":9080,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                }
+              },
+              "f:selector": {},
+              "f:sessionAffinity": {},
+              "f:type": {}
+            }
+          },
+          "manager": "kubectl-client-side-apply",
+          "operation": "Update",
+          "subresource": null,
+          "time": "2024-12-05T06:48:35+00:00"
+        }
+      ],
+      "name": "reviews",
+      "namespace": "default",
+      "owner_references": null,
+      "resource_version": "80673",
+      "self_link": null,
+      "uid": "f6443091-df07-4128-8298-6b6d530a9e7d"
+    },
+    "spec": {
+      "allocate_load_balancer_node_ports": null,
+      "cluster_ip": "10.98.130.95",
+      "cluster_i_ps": [
+        "10.98.130.95"
+      ],
+      "external_i_ps": null,
+      "external_name": null,
+      "external_traffic_policy": null,
+      "health_check_node_port": null,
+      "internal_traffic_policy": "Cluster",
+      "ip_families": [
+        "IPv4"
+      ],
+      "ip_family_policy": "SingleStack",
+      "load_balancer_class": null,
+      "load_balancer_ip": null,
+      "load_balancer_source_ranges": null,
+      "ports": [
+        {
+          "app_protocol": null,
+          "name": "http",
+          "node_port": null,
+          "port": 9080,
+          "protocol": "TCP",
+          "target_port": 9080
+        }
+      ],
+      "publish_not_ready_addresses": null,
+      "selector": {
+        "app": "reviews"
+      },
+      "session_affinity": "None",
+      "session_affinity_config": null,
+      "traffic_distribution": null,
+      "type": "ClusterIP"
+    },
+    "status": {
+      "conditions": null,
+      "load_balancer": {
+        "ingress": null
+      }
+    }
+  },
+  {
+    "api_version": null,
+    "kind": null,
+    "metadata": {
+      "annotations": {
+        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app.kubernetes.io/instance\":\"grafana\",\"app.kubernetes.io/managed-by\":\"Helm\",\"app.kubernetes.io/name\":\"grafana\",\"app.kubernetes.io/version\":\"11.2.2-security-01\",\"helm.sh/chart\":\"grafana-8.5.8\"},\"name\":\"grafana\",\"namespace\":\"istio-system\"},\"spec\":{\"ports\":[{\"name\":\"service\",\"port\":3000,\"protocol\":\"TCP\",\"targetPort\":3000}],\"selector\":{\"app.kubernetes.io/instance\":\"grafana\",\"app.kubernetes.io/name\":\"grafana\"},\"type\":\"ClusterIP\"}}\n"
+      },
+      "creation_timestamp": "2024-12-09T09:32:05+00:00",
+      "deletion_grace_period_seconds": null,
+      "deletion_timestamp": null,
+      "finalizers": null,
+      "generate_name": null,
+      "generation": null,
+      "labels": {
+        "app.kubernetes.io/instance": "grafana",
+        "app.kubernetes.io/managed-by": "Helm",
+        "app.kubernetes.io/name": "grafana",
+        "app.kubernetes.io/version": "11.2.2-security-01",
+        "helm.sh/chart": "grafana-8.5.8"
+      },
+      "managed_fields": [
+        {
+          "api_version": "v1",
+          "fields_type": "FieldsV1",
+          "fields_v1": {
+            "f:metadata": {
+              "f:annotations": {
+                ".": {},
+                "f:kubectl.kubernetes.io/last-applied-configuration": {}
+              },
+              "f:labels": {
+                ".": {},
+                "f:app.kubernetes.io/instance": {},
+                "f:app.kubernetes.io/managed-by": {},
+                "f:app.kubernetes.io/name": {},
+                "f:app.kubernetes.io/version": {},
+                "f:helm.sh/chart": {}
+              }
+            },
+            "f:spec": {
+              "f:internalTrafficPolicy": {},
+              "f:ports": {
+                ".": {},
+                "k:{\"port\":3000,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                }
+              },
+              "f:selector": {},
+              "f:sessionAffinity": {},
+              "f:type": {}
+            }
+          },
+          "manager": "kubectl-client-side-apply",
+          "operation": "Update",
+          "subresource": null,
+          "time": "2024-12-09T09:32:05+00:00"
+        }
+      ],
+      "name": "grafana",
+      "namespace": "istio-system",
+      "owner_references": null,
+      "resource_version": "159306",
+      "self_link": null,
+      "uid": "a642d4d6-106b-40de-bc01-db0897d6d284"
+    },
+    "spec": {
+      "allocate_load_balancer_node_ports": null,
+      "cluster_ip": "10.102.211.204",
+      "cluster_i_ps": [
+        "10.102.211.204"
+      ],
+      "external_i_ps": null,
+      "external_name": null,
+      "external_traffic_policy": null,
+      "health_check_node_port": null,
+      "internal_traffic_policy": "Cluster",
+      "ip_families": [
+        "IPv4"
+      ],
+      "ip_family_policy": "SingleStack",
+      "load_balancer_class": null,
+      "load_balancer_ip": null,
+      "load_balancer_source_ranges": null,
+      "ports": [
+        {
+          "app_protocol": null,
+          "name": "service",
+          "node_port": null,
+          "port": 3000,
+          "protocol": "TCP",
+          "target_port": 3000
+        }
+      ],
+      "publish_not_ready_addresses": null,
+      "selector": {
+        "app.kubernetes.io/instance": "grafana",
+        "app.kubernetes.io/name": "grafana"
+      },
+      "session_affinity": "None",
+      "session_affinity_config": null,
+      "traffic_distribution": null,
+      "type": "ClusterIP"
+    },
+    "status": {
+      "conditions": null,
+      "load_balancer": {
+        "ingress": null
+      }
+    }
+  },
+  {
+    "api_version": null,
+    "kind": null,
+    "metadata": {
+      "annotations": {
+        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"istio-egressgateway\",\"app.kubernetes.io/instance\":\"istio\",\"app.kubernetes.io/managed-by\":\"Helm\",\"app.kubernetes.io/name\":\"istio-egressgateway\",\"app.kubernetes.io/part-of\":\"istio\",\"app.kubernetes.io/version\":\"1.24.0\",\"helm.sh/chart\":\"istio-egress-1.24.0\",\"install.operator.istio.io/owning-resource\":\"unknown\",\"istio\":\"egressgateway\",\"istio.io/rev\":\"default\",\"operator.istio.io/component\":\"EgressGateways\",\"release\":\"istio\"},\"name\":\"istio-egressgateway\",\"namespace\":\"istio-system\"},\"spec\":{\"ports\":[{\"name\":\"http2\",\"port\":80,\"protocol\":\"TCP\",\"targetPort\":8080},{\"name\":\"https\",\"port\":443,\"protocol\":\"TCP\",\"targetPort\":8443}],\"selector\":{\"app\":\"istio-egressgateway\",\"istio\":\"egressgateway\"},\"type\":\"ClusterIP\"}}\n"
+      },
+      "creation_timestamp": "2024-12-05T04:10:22+00:00",
+      "deletion_grace_period_seconds": null,
+      "deletion_timestamp": null,
+      "finalizers": null,
+      "generate_name": null,
+      "generation": null,
+      "labels": {
+        "app": "istio-egressgateway",
+        "app.kubernetes.io/instance": "istio",
+        "app.kubernetes.io/managed-by": "Helm",
+        "app.kubernetes.io/name": "istio-egressgateway",
+        "app.kubernetes.io/part-of": "istio",
+        "app.kubernetes.io/version": "1.24.0",
+        "helm.sh/chart": "istio-egress-1.24.0",
+        "install.operator.istio.io/owning-resource": "unknown",
+        "istio": "egressgateway",
+        "istio.io/rev": "default",
+        "operator.istio.io/component": "EgressGateways",
+        "release": "istio"
+      },
+      "managed_fields": [
+        {
+          "api_version": "v1",
+          "fields_type": "FieldsV1",
+          "fields_v1": {
+            "f:metadata": {
+              "f:annotations": {
+                ".": {},
+                "f:kubectl.kubernetes.io/last-applied-configuration": {}
+              },
+              "f:labels": {
+                ".": {},
+                "f:app": {},
+                "f:app.kubernetes.io/instance": {},
+                "f:app.kubernetes.io/managed-by": {},
+                "f:app.kubernetes.io/name": {},
+                "f:app.kubernetes.io/part-of": {},
+                "f:app.kubernetes.io/version": {},
+                "f:helm.sh/chart": {},
+                "f:install.operator.istio.io/owning-resource": {},
+                "f:istio": {},
+                "f:istio.io/rev": {},
+                "f:operator.istio.io/component": {},
+                "f:release": {}
+              }
+            },
+            "f:spec": {
+              "f:internalTrafficPolicy": {},
+              "f:ports": {
+                ".": {},
+                "k:{\"port\":80,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                },
+                "k:{\"port\":443,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                }
+              },
+              "f:selector": {},
+              "f:sessionAffinity": {},
+              "f:type": {}
+            }
+          },
+          "manager": "kubectl-client-side-apply",
+          "operation": "Update",
+          "subresource": null,
+          "time": "2024-12-05T04:10:22+00:00"
+        }
+      ],
+      "name": "istio-egressgateway",
+      "namespace": "istio-system",
+      "owner_references": null,
+      "resource_version": "60139",
+      "self_link": null,
+      "uid": "3b452770-475e-4746-bae2-7c194cb45522"
+    },
+    "spec": {
+      "allocate_load_balancer_node_ports": null,
+      "cluster_ip": "10.106.107.217",
+      "cluster_i_ps": [
+        "10.106.107.217"
+      ],
+      "external_i_ps": null,
+      "external_name": null,
+      "external_traffic_policy": null,
+      "health_check_node_port": null,
+      "internal_traffic_policy": "Cluster",
+      "ip_families": [
+        "IPv4"
+      ],
+      "ip_family_policy": "SingleStack",
+      "load_balancer_class": null,
+      "load_balancer_ip": null,
+      "load_balancer_source_ranges": null,
+      "ports": [
+        {
+          "app_protocol": null,
+          "name": "http2",
+          "node_port": null,
+          "port": 80,
+          "protocol": "TCP",
+          "target_port": 8080
+        },
+        {
+          "app_protocol": null,
+          "name": "https",
+          "node_port": null,
+          "port": 443,
+          "protocol": "TCP",
+          "target_port": 8443
+        }
+      ],
+      "publish_not_ready_addresses": null,
+      "selector": {
+        "app": "istio-egressgateway",
+        "istio": "egressgateway"
+      },
+      "session_affinity": "None",
+      "session_affinity_config": null,
+      "traffic_distribution": null,
+      "type": "ClusterIP"
+    },
+    "status": {
+      "conditions": null,
+      "load_balancer": {
+        "ingress": null
+      }
+    }
+  },
+  {
+    "api_version": null,
+    "kind": null,
+    "metadata": {
+      "annotations": {
+        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{\"metallb.universe.tf/ip-allocated-from-pool\":\"first-pool\"},\"creationTimestamp\":\"2024-12-05T04:10:22Z\",\"labels\":{\"app\":\"istio-ingressgateway\",\"app.kubernetes.io/instance\":\"istio\",\"app.kubernetes.io/managed-by\":\"Helm\",\"app.kubernetes.io/name\":\"istio-ingressgateway\",\"app.kubernetes.io/part-of\":\"istio\",\"app.kubernetes.io/version\":\"1.24.0\",\"helm.sh/chart\":\"istio-ingress-1.24.0\",\"install.operator.istio.io/owning-resource\":\"unknown\",\"istio\":\"ingressgateway\",\"istio.io/rev\":\"default\",\"operator.istio.io/component\":\"IngressGateways\",\"release\":\"istio\"},\"name\":\"istio-ingressgateway\",\"namespace\":\"istio-system\",\"resourceVersion\":\"552581\",\"uid\":\"dfad83c0-fd6a-4141-91e4-0815b1411fb3\"},\"spec\":{\"allocateLoadBalancerNodePorts\":true,\"clusterIP\":\"10.96.191.30\",\"clusterIPs\":[\"10.96.191.30\"],\"externalTrafficPolicy\":\"Cluster\",\"internalTrafficPolicy\":\"Cluster\",\"ipFamilies\":[\"IPv4\"],\"ipFamilyPolicy\":\"SingleStack\",\"ports\":[{\"name\":\"status-port\",\"nodePort\":30625,\"port\":15021,\"protocol\":\"TCP\",\"targetPort\":15021},{\"name\":\"http2\",\"nodePort\":30476,\"port\":80,\"protocol\":\"TCP\",\"targetPort\":8080},{\"name\":\"https\",\"nodePort\":31060,\"port\":443,\"protocol\":\"TCP\",\"targetPort\":8443},{\"name\":\"tcp\",\"nodePort\":30107,\"port\":31400,\"protocol\":\"TCP\",\"targetPort\":31400},{\"name\":\"tls\",\"nodePort\":31688,\"port\":15443,\"protocol\":\"TCP\",\"targetPort\":15443}],\"selector\":{\"app\":\"istio-ingressgateway\",\"istio\":\"ingressgateway\"},\"sessionAffinity\":\"None\",\"type\":\"NodePort\"}}\n",
+        "metallb.universe.tf/ip-allocated-from-pool": "first-pool"
+      },
+      "creation_timestamp": "2024-12-05T04:10:22+00:00",
+      "deletion_grace_period_seconds": null,
+      "deletion_timestamp": null,
+      "finalizers": null,
+      "generate_name": null,
+      "generation": null,
+      "labels": {
+        "app": "istio-ingressgateway",
+        "app.kubernetes.io/instance": "istio",
+        "app.kubernetes.io/managed-by": "Helm",
+        "app.kubernetes.io/name": "istio-ingressgateway",
+        "app.kubernetes.io/part-of": "istio",
+        "app.kubernetes.io/version": "1.24.0",
+        "helm.sh/chart": "istio-ingress-1.24.0",
+        "install.operator.istio.io/owning-resource": "unknown",
+        "istio": "ingressgateway",
+        "istio.io/rev": "default",
+        "operator.istio.io/component": "IngressGateways",
+        "release": "istio"
+      },
+      "managed_fields": [
+        {
+          "api_version": "v1",
+          "fields_type": "FieldsV1",
+          "fields_v1": {
+            "f:metadata": {
+              "f:annotations": {
+                ".": {},
+                "f:kubectl.kubernetes.io/last-applied-configuration": {}
+              },
+              "f:labels": {
+                ".": {},
+                "f:app": {},
+                "f:app.kubernetes.io/instance": {},
+                "f:app.kubernetes.io/managed-by": {},
+                "f:app.kubernetes.io/name": {},
+                "f:app.kubernetes.io/part-of": {},
+                "f:app.kubernetes.io/version": {},
+                "f:helm.sh/chart": {},
+                "f:install.operator.istio.io/owning-resource": {},
+                "f:istio": {},
+                "f:istio.io/rev": {},
+                "f:operator.istio.io/component": {},
+                "f:release": {}
+              }
+            },
+            "f:spec": {
+              "f:externalTrafficPolicy": {},
+              "f:internalTrafficPolicy": {},
+              "f:ports": {
+                ".": {},
+                "k:{\"port\":80,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                },
+                "k:{\"port\":443,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                },
+                "k:{\"port\":15021,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                },
+                "k:{\"port\":15443,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                },
+                "k:{\"port\":31400,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                }
+              },
+              "f:selector": {},
+              "f:sessionAffinity": {}
+            }
+          },
+          "manager": "kubectl-client-side-apply",
+          "operation": "Update",
+          "subresource": null,
+          "time": "2025-02-12T08:10:35+00:00"
+        },
+        {
+          "api_version": "v1",
+          "fields_type": "FieldsV1",
+          "fields_v1": {
+            "f:metadata": {
+              "f:annotations": {
+                "f:metallb.universe.tf/ip-allocated-from-pool": {}
+              }
+            },
+            "f:status": {
+              "f:loadBalancer": {
+                "f:ingress": {}
+              }
+            }
+          },
+          "manager": "controller",
+          "operation": "Update",
+          "subresource": "status",
+          "time": "2025-03-20T09:51:48+00:00"
+        },
+        {
+          "api_version": "v1",
+          "fields_type": "FieldsV1",
+          "fields_v1": {
+            "f:spec": {
+              "f:allocateLoadBalancerNodePorts": {},
+              "f:ports": {
+                "k:{\"port\":80,\"protocol\":\"TCP\"}": {
+                  "f:name": {}
+                }
+              },
+              "f:type": {}
+            }
+          },
+          "manager": "kubectl-edit",
+          "operation": "Update",
+          "subresource": null,
+          "time": "2025-03-20T09:51:48+00:00"
+        }
+      ],
+      "name": "istio-ingressgateway",
+      "namespace": "istio-system",
+      "owner_references": null,
+      "resource_version": "1347327",
+      "self_link": null,
+      "uid": "dfad83c0-fd6a-4141-91e4-0815b1411fb3"
+    },
+    "spec": {
+      "allocate_load_balancer_node_ports": true,
+      "cluster_ip": "10.96.191.30",
+      "cluster_i_ps": [
+        "10.96.191.30"
+      ],
+      "external_i_ps": null,
+      "external_name": null,
+      "external_traffic_policy": "Cluster",
+      "health_check_node_port": null,
+      "internal_traffic_policy": "Cluster",
+      "ip_families": [
+        "IPv4"
+      ],
+      "ip_family_policy": "SingleStack",
+      "load_balancer_class": null,
+      "load_balancer_ip": null,
+      "load_balancer_source_ranges": null,
+      "ports": [
+        {
+          "app_protocol": null,
+          "name": "status-port",
+          "node_port": 30625,
+          "port": 15021,
+          "protocol": "TCP",
+          "target_port": 15021
+        },
+        {
+          "app_protocol": null,
+          "name": "http",
+          "node_port": 30476,
+          "port": 80,
+          "protocol": "TCP",
+          "target_port": 8080
+        },
+        {
+          "app_protocol": null,
+          "name": "https",
+          "node_port": 31060,
+          "port": 443,
+          "protocol": "TCP",
+          "target_port": 8443
+        },
+        {
+          "app_protocol": null,
+          "name": "tcp",
+          "node_port": 30107,
+          "port": 31400,
+          "protocol": "TCP",
+          "target_port": 31400
+        },
+        {
+          "app_protocol": null,
+          "name": "tls",
+          "node_port": 31688,
+          "port": 15443,
+          "protocol": "TCP",
+          "target_port": 15443
+        }
+      ],
+      "publish_not_ready_addresses": null,
+      "selector": {
+        "app": "istio-ingressgateway",
+        "istio": "ingressgateway"
+      },
+      "session_affinity": "None",
+      "session_affinity_config": null,
+      "traffic_distribution": null,
+      "type": "LoadBalancer"
+    },
+    "status": {
+      "conditions": null,
+      "load_balancer": {
+        "ingress": [
+          {
+            "hostname": null,
+            "ip": "192.168.92.131",
+            "ip_mode": null,
+            "ports": null
+          }
+        ]
+      }
+    }
+  },
+  {
+    "api_version": null,
+    "kind": null,
+    "metadata": {
+      "annotations": {
+        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"istiod\",\"app.kubernetes.io/instance\":\"istio\",\"app.kubernetes.io/managed-by\":\"Helm\",\"app.kubernetes.io/name\":\"istiod\",\"app.kubernetes.io/part-of\":\"istio\",\"app.kubernetes.io/version\":\"1.24.0\",\"helm.sh/chart\":\"istiod-1.24.0\",\"install.operator.istio.io/owning-resource\":\"unknown\",\"istio\":\"pilot\",\"istio.io/rev\":\"default\",\"operator.istio.io/component\":\"Pilot\",\"release\":\"istio\"},\"name\":\"istiod\",\"namespace\":\"istio-system\"},\"spec\":{\"ports\":[{\"name\":\"grpc-xds\",\"port\":15010,\"protocol\":\"TCP\"},{\"name\":\"https-dns\",\"port\":15012,\"protocol\":\"TCP\"},{\"name\":\"https-webhook\",\"port\":443,\"protocol\":\"TCP\",\"targetPort\":15017},{\"name\":\"http-monitoring\",\"port\":15014,\"protocol\":\"TCP\"}],\"selector\":{\"app\":\"istiod\",\"istio\":\"pilot\"}}}\n"
+      },
+      "creation_timestamp": "2024-12-05T04:10:16+00:00",
+      "deletion_grace_period_seconds": null,
+      "deletion_timestamp": null,
+      "finalizers": null,
+      "generate_name": null,
+      "generation": null,
+      "labels": {
+        "app": "istiod",
+        "app.kubernetes.io/instance": "istio",
+        "app.kubernetes.io/managed-by": "Helm",
+        "app.kubernetes.io/name": "istiod",
+        "app.kubernetes.io/part-of": "istio",
+        "app.kubernetes.io/version": "1.24.0",
+        "helm.sh/chart": "istiod-1.24.0",
+        "install.operator.istio.io/owning-resource": "unknown",
+        "install.operator.istio.io/owning-resource-namespace": "istio-system",
+        "istio": "pilot",
+        "istio.io/rev": "default",
+        "operator.istio.io/component": "Pilot",
+        "operator.istio.io/managed": "Reconcile",
+        "operator.istio.io/version": "1.24.0",
+        "release": "istio"
+      },
+      "managed_fields": [
+        {
+          "api_version": "v1",
+          "fields_type": "FieldsV1",
+          "fields_v1": {
+            "f:metadata": {
+              "f:labels": {
+                "f:app": {},
+                "f:app.kubernetes.io/instance": {},
+                "f:app.kubernetes.io/managed-by": {},
+                "f:app.kubernetes.io/name": {},
+                "f:app.kubernetes.io/part-of": {},
+                "f:app.kubernetes.io/version": {},
+                "f:helm.sh/chart": {},
+                "f:install.operator.istio.io/owning-resource": {},
+                "f:install.operator.istio.io/owning-resource-namespace": {},
+                "f:istio": {},
+                "f:istio.io/rev": {},
+                "f:operator.istio.io/component": {},
+                "f:operator.istio.io/managed": {},
+                "f:operator.istio.io/version": {},
+                "f:release": {}
+              }
+            },
+            "f:spec": {
+              "f:ports": {
+                "k:{\"port\":443,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                },
+                "k:{\"port\":15010,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {}
+                },
+                "k:{\"port\":15012,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {}
+                },
+                "k:{\"port\":15014,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {}
+                }
+              },
+              "f:selector": {}
+            }
+          },
+          "manager": "istio-operator",
+          "operation": "Apply",
+          "subresource": null,
+          "time": "2024-12-05T04:10:16+00:00"
+        },
+        {
+          "api_version": "v1",
+          "fields_type": "FieldsV1",
+          "fields_v1": {
+            "f:metadata": {
+              "f:annotations": {
+                ".": {},
+                "f:kubectl.kubernetes.io/last-applied-configuration": {}
+              }
+            }
+          },
+          "manager": "kubectl-client-side-apply",
+          "operation": "Update",
+          "subresource": null,
+          "time": "2024-12-05T04:10:22+00:00"
+        }
+      ],
+      "name": "istiod",
+      "namespace": "istio-system",
+      "owner_references": null,
+      "resource_version": "60151",
+      "self_link": null,
+      "uid": "9de759db-39ef-45ea-b093-f826c013bee7"
+    },
+    "spec": {
+      "allocate_load_balancer_node_ports": null,
+      "cluster_ip": "10.111.172.136",
+      "cluster_i_ps": [
+        "10.111.172.136"
+      ],
+      "external_i_ps": null,
+      "external_name": null,
+      "external_traffic_policy": null,
+      "health_check_node_port": null,
+      "internal_traffic_policy": "Cluster",
+      "ip_families": [
+        "IPv4"
+      ],
+      "ip_family_policy": "SingleStack",
+      "load_balancer_class": null,
+      "load_balancer_ip": null,
+      "load_balancer_source_ranges": null,
+      "ports": [
+        {
+          "app_protocol": null,
+          "name": "grpc-xds",
+          "node_port": null,
+          "port": 15010,
+          "protocol": "TCP",
+          "target_port": 15010
+        },
+        {
+          "app_protocol": null,
+          "name": "https-dns",
+          "node_port": null,
+          "port": 15012,
+          "protocol": "TCP",
+          "target_port": 15012
+        },
+        {
+          "app_protocol": null,
+          "name": "https-webhook",
+          "node_port": null,
+          "port": 443,
+          "protocol": "TCP",
+          "target_port": 15017
+        },
+        {
+          "app_protocol": null,
+          "name": "http-monitoring",
+          "node_port": null,
+          "port": 15014,
+          "protocol": "TCP",
+          "target_port": 15014
+        }
+      ],
+      "publish_not_ready_addresses": null,
+      "selector": {
+        "app": "istiod",
+        "istio": "pilot"
+      },
+      "session_affinity": "None",
+      "session_affinity_config": null,
+      "traffic_distribution": null,
+      "type": "ClusterIP"
+    },
+    "status": {
+      "conditions": null,
+      "load_balancer": {
+        "ingress": null
+      }
+    }
+  },
+  {
+    "api_version": null,
+    "kind": null,
+    "metadata": {
+      "annotations": {
+        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"jaeger\"},\"name\":\"jaeger-collector\",\"namespace\":\"istio-system\"},\"spec\":{\"ports\":[{\"name\":\"jaeger-collector-http\",\"port\":14268,\"protocol\":\"TCP\",\"targetPort\":14268},{\"name\":\"jaeger-collector-grpc\",\"port\":14250,\"protocol\":\"TCP\",\"targetPort\":14250},{\"name\":\"http-zipkin\",\"port\":9411,\"targetPort\":9411},{\"name\":\"grpc-otel\",\"port\":4317},{\"name\":\"http-otel\",\"port\":4318}],\"selector\":{\"app\":\"jaeger\"},\"type\":\"ClusterIP\"}}\n"
+      },
+      "creation_timestamp": "2024-12-09T09:32:05+00:00",
+      "deletion_grace_period_seconds": null,
+      "deletion_timestamp": null,
+      "finalizers": null,
+      "generate_name": null,
+      "generation": null,
+      "labels": {
+        "app": "jaeger"
+      },
+      "managed_fields": [
+        {
+          "api_version": "v1",
+          "fields_type": "FieldsV1",
+          "fields_v1": {
+            "f:metadata": {
+              "f:annotations": {
+                ".": {},
+                "f:kubectl.kubernetes.io/last-applied-configuration": {}
+              },
+              "f:labels": {
+                ".": {},
+                "f:app": {}
+              }
+            },
+            "f:spec": {
+              "f:internalTrafficPolicy": {},
+              "f:ports": {
+                ".": {},
+                "k:{\"port\":4317,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                },
+                "k:{\"port\":4318,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                },
+                "k:{\"port\":9411,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                },
+                "k:{\"port\":14250,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                },
+                "k:{\"port\":14268,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                }
+              },
+              "f:selector": {},
+              "f:sessionAffinity": {},
+              "f:type": {}
+            }
+          },
+          "manager": "kubectl-client-side-apply",
+          "operation": "Update",
+          "subresource": null,
+          "time": "2024-12-09T09:32:05+00:00"
+        }
+      ],
+      "name": "jaeger-collector",
+      "namespace": "istio-system",
+      "owner_references": null,
+      "resource_version": "159346",
+      "self_link": null,
+      "uid": "aa5ab5fc-2367-47fe-8f41-4881aca42f22"
+    },
+    "spec": {
+      "allocate_load_balancer_node_ports": null,
+      "cluster_ip": "10.111.121.135",
+      "cluster_i_ps": [
+        "10.111.121.135"
+      ],
+      "external_i_ps": null,
+      "external_name": null,
+      "external_traffic_policy": null,
+      "health_check_node_port": null,
+      "internal_traffic_policy": "Cluster",
+      "ip_families": [
+        "IPv4"
+      ],
+      "ip_family_policy": "SingleStack",
+      "load_balancer_class": null,
+      "load_balancer_ip": null,
+      "load_balancer_source_ranges": null,
+      "ports": [
+        {
+          "app_protocol": null,
+          "name": "jaeger-collector-http",
+          "node_port": null,
+          "port": 14268,
+          "protocol": "TCP",
+          "target_port": 14268
+        },
+        {
+          "app_protocol": null,
+          "name": "jaeger-collector-grpc",
+          "node_port": null,
+          "port": 14250,
+          "protocol": "TCP",
+          "target_port": 14250
+        },
+        {
+          "app_protocol": null,
+          "name": "http-zipkin",
+          "node_port": null,
+          "port": 9411,
+          "protocol": "TCP",
+          "target_port": 9411
+        },
+        {
+          "app_protocol": null,
+          "name": "grpc-otel",
+          "node_port": null,
+          "port": 4317,
+          "protocol": "TCP",
+          "target_port": 4317
+        },
+        {
+          "app_protocol": null,
+          "name": "http-otel",
+          "node_port": null,
+          "port": 4318,
+          "protocol": "TCP",
+          "target_port": 4318
+        }
+      ],
+      "publish_not_ready_addresses": null,
+      "selector": {
+        "app": "jaeger"
+      },
+      "session_affinity": "None",
+      "session_affinity_config": null,
+      "traffic_distribution": null,
+      "type": "ClusterIP"
+    },
+    "status": {
+      "conditions": null,
+      "load_balancer": {
+        "ingress": null
+      }
+    }
+  },
+  {
+    "api_version": null,
+    "kind": null,
+    "metadata": {
+      "annotations": {
+        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"kiali\",\"app.kubernetes.io/instance\":\"kiali\",\"app.kubernetes.io/managed-by\":\"Helm\",\"app.kubernetes.io/name\":\"kiali\",\"app.kubernetes.io/part-of\":\"kiali\",\"app.kubernetes.io/version\":\"v2.0.0\",\"helm.sh/chart\":\"kiali-server-2.0.0\",\"version\":\"v2.0.0\"},\"name\":\"kiali\",\"namespace\":\"istio-system\"},\"spec\":{\"ports\":[{\"appProtocol\":\"http\",\"name\":\"http\",\"port\":20001,\"protocol\":\"TCP\"},{\"appProtocol\":\"http\",\"name\":\"http-metrics\",\"port\":9090,\"protocol\":\"TCP\"}],\"selector\":{\"app.kubernetes.io/instance\":\"kiali\",\"app.kubernetes.io/name\":\"kiali\"}}}\n"
+      },
+      "creation_timestamp": "2024-12-09T09:32:06+00:00",
+      "deletion_grace_period_seconds": null,
+      "deletion_timestamp": null,
+      "finalizers": null,
+      "generate_name": null,
+      "generation": null,
+      "labels": {
+        "app": "kiali",
+        "app.kubernetes.io/instance": "kiali",
+        "app.kubernetes.io/managed-by": "Helm",
+        "app.kubernetes.io/name": "kiali",
+        "app.kubernetes.io/part-of": "kiali",
+        "app.kubernetes.io/version": "v2.0.0",
+        "helm.sh/chart": "kiali-server-2.0.0",
+        "version": "v2.0.0"
+      },
+      "managed_fields": [
+        {
+          "api_version": "v1",
+          "fields_type": "FieldsV1",
+          "fields_v1": {
+            "f:metadata": {
+              "f:annotations": {
+                ".": {},
+                "f:kubectl.kubernetes.io/last-applied-configuration": {}
+              },
+              "f:labels": {
+                ".": {},
+                "f:app": {},
+                "f:app.kubernetes.io/instance": {},
+                "f:app.kubernetes.io/managed-by": {},
+                "f:app.kubernetes.io/name": {},
+                "f:app.kubernetes.io/part-of": {},
+                "f:app.kubernetes.io/version": {},
+                "f:helm.sh/chart": {},
+                "f:version": {}
+              }
+            },
+            "f:spec": {
+              "f:internalTrafficPolicy": {},
+              "f:ports": {
+                ".": {},
+                "k:{\"port\":9090,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:appProtocol": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                },
+                "k:{\"port\":20001,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:appProtocol": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                }
+              },
+              "f:selector": {},
+              "f:sessionAffinity": {}
+            }
+          },
+          "manager": "kubectl-client-side-apply",
+          "operation": "Update",
+          "subresource": null,
+          "time": "2024-12-09T09:32:06+00:00"
+        },
+        {
+          "api_version": "v1",
+          "fields_type": "FieldsV1",
+          "fields_v1": {
+            "f:spec": {
+              "f:externalTrafficPolicy": {},
+              "f:type": {}
+            }
+          },
+          "manager": "kubectl-edit",
+          "operation": "Update",
+          "subresource": null,
+          "time": "2024-12-09T09:56:10+00:00"
+        }
+      ],
+      "name": "kiali",
+      "namespace": "istio-system",
+      "owner_references": null,
+      "resource_version": "162953",
+      "self_link": null,
+      "uid": "c714e80c-866f-4997-a27f-adeb8023a440"
+    },
+    "spec": {
+      "allocate_load_balancer_node_ports": null,
+      "cluster_ip": "10.105.162.47",
+      "cluster_i_ps": [
+        "10.105.162.47"
+      ],
+      "external_i_ps": null,
+      "external_name": null,
+      "external_traffic_policy": "Cluster",
+      "health_check_node_port": null,
+      "internal_traffic_policy": "Cluster",
+      "ip_families": [
+        "IPv4"
+      ],
+      "ip_family_policy": "SingleStack",
+      "load_balancer_class": null,
+      "load_balancer_ip": null,
+      "load_balancer_source_ranges": null,
+      "ports": [
+        {
+          "app_protocol": "http",
+          "name": "http",
+          "node_port": 32480,
+          "port": 20001,
+          "protocol": "TCP",
+          "target_port": 20001
+        },
+        {
+          "app_protocol": "http",
+          "name": "http-metrics",
+          "node_port": 30642,
+          "port": 9090,
+          "protocol": "TCP",
+          "target_port": 9090
+        }
+      ],
+      "publish_not_ready_addresses": null,
+      "selector": {
+        "app.kubernetes.io/instance": "kiali",
+        "app.kubernetes.io/name": "kiali"
+      },
+      "session_affinity": "None",
+      "session_affinity_config": null,
+      "traffic_distribution": null,
+      "type": "NodePort"
+    },
+    "status": {
+      "conditions": null,
+      "load_balancer": {
+        "ingress": null
+      }
+    }
+  },
+  {
+    "api_version": null,
+    "kind": null,
+    "metadata": {
+      "annotations": {
+        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app.kubernetes.io/instance\":\"loki\",\"app.kubernetes.io/managed-by\":\"Helm\",\"app.kubernetes.io/name\":\"loki\",\"app.kubernetes.io/version\":\"3.2.0\",\"helm.sh/chart\":\"loki-6.18.0\"},\"name\":\"loki\",\"namespace\":\"istio-system\"},\"spec\":{\"ports\":[{\"name\":\"http-metrics\",\"port\":3100,\"protocol\":\"TCP\",\"targetPort\":\"http-metrics\"},{\"name\":\"grpc\",\"port\":9095,\"protocol\":\"TCP\",\"targetPort\":\"grpc\"}],\"selector\":{\"app.kubernetes.io/component\":\"single-binary\",\"app.kubernetes.io/instance\":\"loki\",\"app.kubernetes.io/name\":\"loki\"},\"type\":\"ClusterIP\"}}\n"
+      },
+      "creation_timestamp": "2024-12-09T09:32:06+00:00",
+      "deletion_grace_period_seconds": null,
+      "deletion_timestamp": null,
+      "finalizers": null,
+      "generate_name": null,
+      "generation": null,
+      "labels": {
+        "app.kubernetes.io/instance": "loki",
+        "app.kubernetes.io/managed-by": "Helm",
+        "app.kubernetes.io/name": "loki",
+        "app.kubernetes.io/version": "3.2.0",
+        "helm.sh/chart": "loki-6.18.0"
+      },
+      "managed_fields": [
+        {
+          "api_version": "v1",
+          "fields_type": "FieldsV1",
+          "fields_v1": {
+            "f:metadata": {
+              "f:annotations": {
+                ".": {},
+                "f:kubectl.kubernetes.io/last-applied-configuration": {}
+              },
+              "f:labels": {
+                ".": {},
+                "f:app.kubernetes.io/instance": {},
+                "f:app.kubernetes.io/managed-by": {},
+                "f:app.kubernetes.io/name": {},
+                "f:app.kubernetes.io/version": {},
+                "f:helm.sh/chart": {}
+              }
+            },
+            "f:spec": {
+              "f:internalTrafficPolicy": {},
+              "f:ports": {
+                ".": {},
+                "k:{\"port\":3100,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                },
+                "k:{\"port\":9095,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                }
+              },
+              "f:selector": {},
+              "f:sessionAffinity": {},
+              "f:type": {}
+            }
+          },
+          "manager": "kubectl-client-side-apply",
+          "operation": "Update",
+          "subresource": null,
+          "time": "2024-12-09T09:32:06+00:00"
+        }
+      ],
+      "name": "loki",
+      "namespace": "istio-system",
+      "owner_references": null,
+      "resource_version": "159382",
+      "self_link": null,
+      "uid": "8978658b-03e8-4d66-8b10-e0277fe3b879"
+    },
+    "spec": {
+      "allocate_load_balancer_node_ports": null,
+      "cluster_ip": "10.97.147.235",
+      "cluster_i_ps": [
+        "10.97.147.235"
+      ],
+      "external_i_ps": null,
+      "external_name": null,
+      "external_traffic_policy": null,
+      "health_check_node_port": null,
+      "internal_traffic_policy": "Cluster",
+      "ip_families": [
+        "IPv4"
+      ],
+      "ip_family_policy": "SingleStack",
+      "load_balancer_class": null,
+      "load_balancer_ip": null,
+      "load_balancer_source_ranges": null,
+      "ports": [
+        {
+          "app_protocol": null,
+          "name": "http-metrics",
+          "node_port": null,
+          "port": 3100,
+          "protocol": "TCP",
+          "target_port": "http-metrics"
+        },
+        {
+          "app_protocol": null,
+          "name": "grpc",
+          "node_port": null,
+          "port": 9095,
+          "protocol": "TCP",
+          "target_port": "grpc"
+        }
+      ],
+      "publish_not_ready_addresses": null,
+      "selector": {
+        "app.kubernetes.io/component": "single-binary",
+        "app.kubernetes.io/instance": "loki",
+        "app.kubernetes.io/name": "loki"
+      },
+      "session_affinity": "None",
+      "session_affinity_config": null,
+      "traffic_distribution": null,
+      "type": "ClusterIP"
+    },
+    "status": {
+      "conditions": null,
+      "load_balancer": {
+        "ingress": null
+      }
+    }
+  },
+  {
+    "api_version": null,
+    "kind": null,
+    "metadata": {
+      "annotations": {
+        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app.kubernetes.io/instance\":\"loki\",\"app.kubernetes.io/managed-by\":\"Helm\",\"app.kubernetes.io/name\":\"loki\",\"app.kubernetes.io/version\":\"3.2.0\",\"helm.sh/chart\":\"loki-6.18.0\",\"prometheus.io/service-monitor\":\"false\",\"variant\":\"headless\"},\"name\":\"loki-headless\",\"namespace\":\"istio-system\"},\"spec\":{\"clusterIP\":\"None\",\"ports\":[{\"name\":\"http-metrics\",\"port\":3100,\"protocol\":\"TCP\",\"targetPort\":\"http-metrics\"}],\"selector\":{\"app.kubernetes.io/instance\":\"loki\",\"app.kubernetes.io/name\":\"loki\"}}}\n"
+      },
+      "creation_timestamp": "2024-12-09T09:32:06+00:00",
+      "deletion_grace_period_seconds": null,
+      "deletion_timestamp": null,
+      "finalizers": null,
+      "generate_name": null,
+      "generation": null,
+      "labels": {
+        "app.kubernetes.io/instance": "loki",
+        "app.kubernetes.io/managed-by": "Helm",
+        "app.kubernetes.io/name": "loki",
+        "app.kubernetes.io/version": "3.2.0",
+        "helm.sh/chart": "loki-6.18.0",
+        "prometheus.io/service-monitor": "false",
+        "variant": "headless"
+      },
+      "managed_fields": [
+        {
+          "api_version": "v1",
+          "fields_type": "FieldsV1",
+          "fields_v1": {
+            "f:metadata": {
+              "f:annotations": {
+                ".": {},
+                "f:kubectl.kubernetes.io/last-applied-configuration": {}
+              },
+              "f:labels": {
+                ".": {},
+                "f:app.kubernetes.io/instance": {},
+                "f:app.kubernetes.io/managed-by": {},
+                "f:app.kubernetes.io/name": {},
+                "f:app.kubernetes.io/version": {},
+                "f:helm.sh/chart": {},
+                "f:prometheus.io/service-monitor": {},
+                "f:variant": {}
+              }
+            },
+            "f:spec": {
+              "f:clusterIP": {},
+              "f:internalTrafficPolicy": {},
+              "f:ports": {
+                ".": {},
+                "k:{\"port\":3100,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                }
+              },
+              "f:selector": {},
+              "f:sessionAffinity": {},
+              "f:type": {}
+            }
+          },
+          "manager": "kubectl-client-side-apply",
+          "operation": "Update",
+          "subresource": null,
+          "time": "2024-12-09T09:32:06+00:00"
+        }
+      ],
+      "name": "loki-headless",
+      "namespace": "istio-system",
+      "owner_references": null,
+      "resource_version": "159378",
+      "self_link": null,
+      "uid": "80922307-2d80-418c-9534-c6cbf1e94fbf"
+    },
+    "spec": {
+      "allocate_load_balancer_node_ports": null,
+      "cluster_ip": "None",
+      "cluster_i_ps": [
+        "None"
+      ],
+      "external_i_ps": null,
+      "external_name": null,
+      "external_traffic_policy": null,
+      "health_check_node_port": null,
+      "internal_traffic_policy": "Cluster",
+      "ip_families": [
+        "IPv4"
+      ],
+      "ip_family_policy": "SingleStack",
+      "load_balancer_class": null,
+      "load_balancer_ip": null,
+      "load_balancer_source_ranges": null,
+      "ports": [
+        {
+          "app_protocol": null,
+          "name": "http-metrics",
+          "node_port": null,
+          "port": 3100,
+          "protocol": "TCP",
+          "target_port": "http-metrics"
+        }
+      ],
+      "publish_not_ready_addresses": null,
+      "selector": {
+        "app.kubernetes.io/instance": "loki",
+        "app.kubernetes.io/name": "loki"
+      },
+      "session_affinity": "None",
+      "session_affinity_config": null,
+      "traffic_distribution": null,
+      "type": "ClusterIP"
+    },
+    "status": {
+      "conditions": null,
+      "load_balancer": {
+        "ingress": null
+      }
+    }
+  },
+  {
+    "api_version": null,
+    "kind": null,
+    "metadata": {
+      "annotations": {
+        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app.kubernetes.io/instance\":\"loki\",\"app.kubernetes.io/managed-by\":\"Helm\",\"app.kubernetes.io/name\":\"loki\",\"app.kubernetes.io/version\":\"3.2.0\",\"helm.sh/chart\":\"loki-6.18.0\"},\"name\":\"loki-memberlist\",\"namespace\":\"istio-system\"},\"spec\":{\"clusterIP\":\"None\",\"ports\":[{\"name\":\"tcp\",\"port\":7946,\"protocol\":\"TCP\",\"targetPort\":\"http-memberlist\"}],\"selector\":{\"app.kubernetes.io/instance\":\"loki\",\"app.kubernetes.io/name\":\"loki\",\"app.kubernetes.io/part-of\":\"memberlist\"},\"type\":\"ClusterIP\"}}\n"
+      },
+      "creation_timestamp": "2024-12-09T09:32:06+00:00",
+      "deletion_grace_period_seconds": null,
+      "deletion_timestamp": null,
+      "finalizers": null,
+      "generate_name": null,
+      "generation": null,
+      "labels": {
+        "app.kubernetes.io/instance": "loki",
+        "app.kubernetes.io/managed-by": "Helm",
+        "app.kubernetes.io/name": "loki",
+        "app.kubernetes.io/version": "3.2.0",
+        "helm.sh/chart": "loki-6.18.0"
+      },
+      "managed_fields": [
+        {
+          "api_version": "v1",
+          "fields_type": "FieldsV1",
+          "fields_v1": {
+            "f:metadata": {
+              "f:annotations": {
+                ".": {},
+                "f:kubectl.kubernetes.io/last-applied-configuration": {}
+              },
+              "f:labels": {
+                ".": {},
+                "f:app.kubernetes.io/instance": {},
+                "f:app.kubernetes.io/managed-by": {},
+                "f:app.kubernetes.io/name": {},
+                "f:app.kubernetes.io/version": {},
+                "f:helm.sh/chart": {}
+              }
+            },
+            "f:spec": {
+              "f:clusterIP": {},
+              "f:internalTrafficPolicy": {},
+              "f:ports": {
+                ".": {},
+                "k:{\"port\":7946,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                }
+              },
+              "f:selector": {},
+              "f:sessionAffinity": {},
+              "f:type": {}
+            }
+          },
+          "manager": "kubectl-client-side-apply",
+          "operation": "Update",
+          "subresource": null,
+          "time": "2024-12-09T09:32:06+00:00"
+        }
+      ],
+      "name": "loki-memberlist",
+      "namespace": "istio-system",
+      "owner_references": null,
+      "resource_version": "159375",
+      "self_link": null,
+      "uid": "c346f0dd-0bfb-4c51-8301-10222ec966b2"
+    },
+    "spec": {
+      "allocate_load_balancer_node_ports": null,
+      "cluster_ip": "None",
+      "cluster_i_ps": [
+        "None"
+      ],
+      "external_i_ps": null,
+      "external_name": null,
+      "external_traffic_policy": null,
+      "health_check_node_port": null,
+      "internal_traffic_policy": "Cluster",
+      "ip_families": [
+        "IPv4"
+      ],
+      "ip_family_policy": "SingleStack",
+      "load_balancer_class": null,
+      "load_balancer_ip": null,
+      "load_balancer_source_ranges": null,
+      "ports": [
+        {
+          "app_protocol": null,
+          "name": "tcp",
+          "node_port": null,
+          "port": 7946,
+          "protocol": "TCP",
+          "target_port": "http-memberlist"
+        }
+      ],
+      "publish_not_ready_addresses": null,
+      "selector": {
+        "app.kubernetes.io/instance": "loki",
+        "app.kubernetes.io/name": "loki",
+        "app.kubernetes.io/part-of": "memberlist"
+      },
+      "session_affinity": "None",
+      "session_affinity_config": null,
+      "traffic_distribution": null,
+      "type": "ClusterIP"
+    },
+    "status": {
+      "conditions": null,
+      "load_balancer": {
+        "ingress": null
+      }
+    }
+  },
+  {
+    "api_version": null,
+    "kind": null,
+    "metadata": {
+      "annotations": {
+        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app.kubernetes.io/component\":\"server\",\"app.kubernetes.io/instance\":\"prometheus\",\"app.kubernetes.io/managed-by\":\"Helm\",\"app.kubernetes.io/name\":\"prometheus\",\"app.kubernetes.io/part-of\":\"prometheus\",\"app.kubernetes.io/version\":\"v2.54.1\",\"helm.sh/chart\":\"prometheus-25.27.0\"},\"name\":\"prometheus\",\"namespace\":\"istio-system\"},\"spec\":{\"ports\":[{\"name\":\"http\",\"port\":9090,\"protocol\":\"TCP\",\"targetPort\":9090}],\"selector\":{\"app.kubernetes.io/component\":\"server\",\"app.kubernetes.io/instance\":\"prometheus\",\"app.kubernetes.io/name\":\"prometheus\"},\"sessionAffinity\":\"None\",\"type\":\"ClusterIP\"}}\n"
+      },
+      "creation_timestamp": "2024-12-09T09:32:06+00:00",
+      "deletion_grace_period_seconds": null,
+      "deletion_timestamp": null,
+      "finalizers": null,
+      "generate_name": null,
+      "generation": null,
+      "labels": {
+        "app.kubernetes.io/component": "server",
+        "app.kubernetes.io/instance": "prometheus",
+        "app.kubernetes.io/managed-by": "Helm",
+        "app.kubernetes.io/name": "prometheus",
+        "app.kubernetes.io/part-of": "prometheus",
+        "app.kubernetes.io/version": "v2.54.1",
+        "helm.sh/chart": "prometheus-25.27.0"
+      },
+      "managed_fields": [
+        {
+          "api_version": "v1",
+          "fields_type": "FieldsV1",
+          "fields_v1": {
+            "f:metadata": {
+              "f:annotations": {
+                ".": {},
+                "f:kubectl.kubernetes.io/last-applied-configuration": {}
+              },
+              "f:labels": {
+                ".": {},
+                "f:app.kubernetes.io/component": {},
+                "f:app.kubernetes.io/instance": {},
+                "f:app.kubernetes.io/managed-by": {},
+                "f:app.kubernetes.io/name": {},
+                "f:app.kubernetes.io/part-of": {},
+                "f:app.kubernetes.io/version": {},
+                "f:helm.sh/chart": {}
+              }
+            },
+            "f:spec": {
+              "f:internalTrafficPolicy": {},
+              "f:ports": {
+                ".": {},
+                "k:{\"port\":9090,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                }
+              },
+              "f:selector": {},
+              "f:sessionAffinity": {},
+              "f:type": {}
+            }
+          },
+          "manager": "kubectl-client-side-apply",
+          "operation": "Update",
+          "subresource": null,
+          "time": "2024-12-09T09:32:06+00:00"
+        }
+      ],
+      "name": "prometheus",
+      "namespace": "istio-system",
+      "owner_references": null,
+      "resource_version": "159403",
+      "self_link": null,
+      "uid": "4c7a03de-6d00-45e3-becb-289497597220"
+    },
+    "spec": {
+      "allocate_load_balancer_node_ports": null,
+      "cluster_ip": "10.102.156.241",
+      "cluster_i_ps": [
+        "10.102.156.241"
+      ],
+      "external_i_ps": null,
+      "external_name": null,
+      "external_traffic_policy": null,
+      "health_check_node_port": null,
+      "internal_traffic_policy": "Cluster",
+      "ip_families": [
+        "IPv4"
+      ],
+      "ip_family_policy": "SingleStack",
+      "load_balancer_class": null,
+      "load_balancer_ip": null,
+      "load_balancer_source_ranges": null,
+      "ports": [
+        {
+          "app_protocol": null,
+          "name": "http",
+          "node_port": null,
+          "port": 9090,
+          "protocol": "TCP",
+          "target_port": 9090
+        }
+      ],
+      "publish_not_ready_addresses": null,
+      "selector": {
+        "app.kubernetes.io/component": "server",
+        "app.kubernetes.io/instance": "prometheus",
+        "app.kubernetes.io/name": "prometheus"
+      },
+      "session_affinity": "None",
+      "session_affinity_config": null,
+      "traffic_distribution": null,
+      "type": "ClusterIP"
+    },
+    "status": {
+      "conditions": null,
+      "load_balancer": {
+        "ingress": null
+      }
+    }
+  },
+  {
+    "api_version": null,
+    "kind": null,
+    "metadata": {
+      "annotations": {
+        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"jaeger\"},\"name\":\"tracing\",\"namespace\":\"istio-system\"},\"spec\":{\"ports\":[{\"name\":\"http-query\",\"port\":80,\"protocol\":\"TCP\",\"targetPort\":16686},{\"name\":\"grpc-query\",\"port\":16685,\"protocol\":\"TCP\",\"targetPort\":16685}],\"selector\":{\"app\":\"jaeger\"},\"type\":\"ClusterIP\"}}\n"
+      },
+      "creation_timestamp": "2024-12-09T09:32:05+00:00",
+      "deletion_grace_period_seconds": null,
+      "deletion_timestamp": null,
+      "finalizers": null,
+      "generate_name": null,
+      "generation": null,
+      "labels": {
+        "app": "jaeger"
+      },
+      "managed_fields": [
+        {
+          "api_version": "v1",
+          "fields_type": "FieldsV1",
+          "fields_v1": {
+            "f:metadata": {
+              "f:annotations": {
+                ".": {},
+                "f:kubectl.kubernetes.io/last-applied-configuration": {}
+              },
+              "f:labels": {
+                ".": {},
+                "f:app": {}
+              }
+            },
+            "f:spec": {
+              "f:internalTrafficPolicy": {},
+              "f:ports": {
+                ".": {},
+                "k:{\"port\":80,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                },
+                "k:{\"port\":16685,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                }
+              },
+              "f:selector": {},
+              "f:sessionAffinity": {},
+              "f:type": {}
+            }
+          },
+          "manager": "kubectl-client-side-apply",
+          "operation": "Update",
+          "subresource": null,
+          "time": "2024-12-09T09:32:05+00:00"
+        }
+      ],
+      "name": "tracing",
+      "namespace": "istio-system",
+      "owner_references": null,
+      "resource_version": "159335",
+      "self_link": null,
+      "uid": "ad90b987-7449-4522-967b-93e5a8b55039"
+    },
+    "spec": {
+      "allocate_load_balancer_node_ports": null,
+      "cluster_ip": "10.96.226.208",
+      "cluster_i_ps": [
+        "10.96.226.208"
+      ],
+      "external_i_ps": null,
+      "external_name": null,
+      "external_traffic_policy": null,
+      "health_check_node_port": null,
+      "internal_traffic_policy": "Cluster",
+      "ip_families": [
+        "IPv4"
+      ],
+      "ip_family_policy": "SingleStack",
+      "load_balancer_class": null,
+      "load_balancer_ip": null,
+      "load_balancer_source_ranges": null,
+      "ports": [
+        {
+          "app_protocol": null,
+          "name": "http-query",
+          "node_port": null,
+          "port": 80,
+          "protocol": "TCP",
+          "target_port": 16686
+        },
+        {
+          "app_protocol": null,
+          "name": "grpc-query",
+          "node_port": null,
+          "port": 16685,
+          "protocol": "TCP",
+          "target_port": 16685
+        }
+      ],
+      "publish_not_ready_addresses": null,
+      "selector": {
+        "app": "jaeger"
+      },
+      "session_affinity": "None",
+      "session_affinity_config": null,
+      "traffic_distribution": null,
+      "type": "ClusterIP"
+    },
+    "status": {
+      "conditions": null,
+      "load_balancer": {
+        "ingress": null
+      }
+    }
+  },
+  {
+    "api_version": null,
+    "kind": null,
+    "metadata": {
+      "annotations": {
+        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"name\":\"zipkin\"},\"name\":\"zipkin\",\"namespace\":\"istio-system\"},\"spec\":{\"ports\":[{\"name\":\"http-query\",\"port\":9411,\"targetPort\":9411}],\"selector\":{\"app\":\"jaeger\"}}}\n"
+      },
+      "creation_timestamp": "2024-12-09T09:32:05+00:00",
+      "deletion_grace_period_seconds": null,
+      "deletion_timestamp": null,
+      "finalizers": null,
+      "generate_name": null,
+      "generation": null,
+      "labels": {
+        "name": "zipkin"
+      },
+      "managed_fields": [
+        {
+          "api_version": "v1",
+          "fields_type": "FieldsV1",
+          "fields_v1": {
+            "f:metadata": {
+              "f:annotations": {
+                ".": {},
+                "f:kubectl.kubernetes.io/last-applied-configuration": {}
+              },
+              "f:labels": {
+                ".": {},
+                "f:name": {}
+              }
+            },
+            "f:spec": {
+              "f:internalTrafficPolicy": {},
+              "f:ports": {
+                ".": {},
+                "k:{\"port\":9411,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                }
+              },
+              "f:selector": {},
+              "f:sessionAffinity": {},
+              "f:type": {}
+            }
+          },
+          "manager": "kubectl-client-side-apply",
+          "operation": "Update",
+          "subresource": null,
+          "time": "2024-12-09T09:32:05+00:00"
+        }
+      ],
+      "name": "zipkin",
+      "namespace": "istio-system",
+      "owner_references": null,
+      "resource_version": "159342",
+      "self_link": null,
+      "uid": "c9775a8f-dc69-4585-9a55-6ada3d1c303a"
+    },
+    "spec": {
+      "allocate_load_balancer_node_ports": null,
+      "cluster_ip": "10.110.81.206",
+      "cluster_i_ps": [
+        "10.110.81.206"
+      ],
+      "external_i_ps": null,
+      "external_name": null,
+      "external_traffic_policy": null,
+      "health_check_node_port": null,
+      "internal_traffic_policy": "Cluster",
+      "ip_families": [
+        "IPv4"
+      ],
+      "ip_family_policy": "SingleStack",
+      "load_balancer_class": null,
+      "load_balancer_ip": null,
+      "load_balancer_source_ranges": null,
+      "ports": [
+        {
+          "app_protocol": null,
+          "name": "http-query",
+          "node_port": null,
+          "port": 9411,
+          "protocol": "TCP",
+          "target_port": 9411
+        }
+      ],
+      "publish_not_ready_addresses": null,
+      "selector": {
+        "app": "jaeger"
+      },
+      "session_affinity": "None",
+      "session_affinity_config": null,
+      "traffic_distribution": null,
+      "type": "ClusterIP"
+    },
+    "status": {
+      "conditions": null,
+      "load_balancer": {
+        "ingress": null
+      }
+    }
+  },
+  {
+    "api_version": null,
+    "kind": null,
+    "metadata": {
+      "annotations": {
+        "prometheus.io/port": "9153",
+        "prometheus.io/scrape": "true"
+      },
+      "creation_timestamp": "2024-11-29T08:43:59+00:00",
+      "deletion_grace_period_seconds": null,
+      "deletion_timestamp": null,
+      "finalizers": null,
+      "generate_name": null,
+      "generation": null,
+      "labels": {
+        "k8s-app": "kube-dns",
+        "kubernetes.io/cluster-service": "true",
+        "kubernetes.io/name": "CoreDNS"
+      },
+      "managed_fields": [
+        {
+          "api_version": "v1",
+          "fields_type": "FieldsV1",
+          "fields_v1": {
+            "f:metadata": {
+              "f:annotations": {
+                ".": {},
+                "f:prometheus.io/port": {},
+                "f:prometheus.io/scrape": {}
+              },
+              "f:labels": {
+                ".": {},
+                "f:k8s-app": {},
+                "f:kubernetes.io/cluster-service": {},
+                "f:kubernetes.io/name": {}
+              }
+            },
+            "f:spec": {
+              "f:clusterIP": {},
+              "f:internalTrafficPolicy": {},
+              "f:ports": {
+                ".": {},
+                "k:{\"port\":53,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                },
+                "k:{\"port\":53,\"protocol\":\"UDP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                },
+                "k:{\"port\":9153,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                }
+              },
+              "f:selector": {},
+              "f:sessionAffinity": {},
+              "f:type": {}
+            }
+          },
+          "manager": "kubeadm",
+          "operation": "Update",
+          "subresource": null,
+          "time": "2024-11-29T08:43:59+00:00"
+        }
+      ],
+      "name": "kube-dns",
+      "namespace": "kube-system",
+      "owner_references": null,
+      "resource_version": "258",
+      "self_link": null,
+      "uid": "8f784a57-314a-47ea-93d8-59039c2498ff"
+    },
+    "spec": {
+      "allocate_load_balancer_node_ports": null,
+      "cluster_ip": "10.96.0.10",
+      "cluster_i_ps": [
+        "10.96.0.10"
+      ],
+      "external_i_ps": null,
+      "external_name": null,
+      "external_traffic_policy": null,
+      "health_check_node_port": null,
+      "internal_traffic_policy": "Cluster",
+      "ip_families": [
+        "IPv4"
+      ],
+      "ip_family_policy": "SingleStack",
+      "load_balancer_class": null,
+      "load_balancer_ip": null,
+      "load_balancer_source_ranges": null,
+      "ports": [
+        {
+          "app_protocol": null,
+          "name": "dns",
+          "node_port": null,
+          "port": 53,
+          "protocol": "UDP",
+          "target_port": 53
+        },
+        {
+          "app_protocol": null,
+          "name": "dns-tcp",
+          "node_port": null,
+          "port": 53,
+          "protocol": "TCP",
+          "target_port": 53
+        },
+        {
+          "app_protocol": null,
+          "name": "metrics",
+          "node_port": null,
+          "port": 9153,
+          "protocol": "TCP",
+          "target_port": 9153
+        }
+      ],
+      "publish_not_ready_addresses": null,
+      "selector": {
+        "k8s-app": "kube-dns"
+      },
+      "session_affinity": "None",
+      "session_affinity_config": null,
+      "traffic_distribution": null,
+      "type": "ClusterIP"
+    },
+    "status": {
+      "conditions": null,
+      "load_balancer": {
+        "ingress": null
+      }
+    }
+  },
+  {
+    "api_version": null,
+    "kind": null,
+    "metadata": {
+      "annotations": {
+        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"name\":\"webhook-service\",\"namespace\":\"metallb-system\"},\"spec\":{\"ports\":[{\"port\":443,\"targetPort\":9443}],\"selector\":{\"component\":\"controller\"}}}\n"
+      },
+      "creation_timestamp": "2025-02-12T07:16:13+00:00",
+      "deletion_grace_period_seconds": null,
+      "deletion_timestamp": null,
+      "finalizers": null,
+      "generate_name": null,
+      "generation": null,
+      "labels": null,
+      "managed_fields": [
+        {
+          "api_version": "v1",
+          "fields_type": "FieldsV1",
+          "fields_v1": {
+            "f:metadata": {
+              "f:annotations": {
+                ".": {},
+                "f:kubectl.kubernetes.io/last-applied-configuration": {}
+              }
+            },
+            "f:spec": {
+              "f:internalTrafficPolicy": {},
+              "f:ports": {
+                ".": {},
+                "k:{\"port\":443,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                }
+              },
+              "f:selector": {},
+              "f:sessionAffinity": {},
+              "f:type": {}
+            }
+          },
+          "manager": "kubectl-client-side-apply",
+          "operation": "Update",
+          "subresource": null,
+          "time": "2025-02-12T07:16:13+00:00"
+        }
+      ],
+      "name": "webhook-service",
+      "namespace": "metallb-system",
+      "owner_references": null,
+      "resource_version": "551806",
+      "self_link": null,
+      "uid": "430bdd69-9520-480e-b3ee-30d3d815402a"
+    },
+    "spec": {
+      "allocate_load_balancer_node_ports": null,
+      "cluster_ip": "10.111.196.72",
+      "cluster_i_ps": [
+        "10.111.196.72"
+      ],
+      "external_i_ps": null,
+      "external_name": null,
+      "external_traffic_policy": null,
+      "health_check_node_port": null,
+      "internal_traffic_policy": "Cluster",
+      "ip_families": [
+        "IPv4"
+      ],
+      "ip_family_policy": "SingleStack",
+      "load_balancer_class": null,
+      "load_balancer_ip": null,
+      "load_balancer_source_ranges": null,
+      "ports": [
+        {
+          "app_protocol": null,
+          "name": null,
+          "node_port": null,
+          "port": 443,
+          "protocol": "TCP",
+          "target_port": 9443
+        }
+      ],
+      "publish_not_ready_addresses": null,
+      "selector": {
+        "component": "controller"
+      },
+      "session_affinity": "None",
+      "session_affinity_config": null,
+      "traffic_distribution": null,
+      "type": "ClusterIP"
+    },
+    "status": {
+      "conditions": null,
+      "load_balancer": {
+        "ingress": null
+      }
+    }
+  },
+  {
+    "api_version": null,
+    "kind": null,
+    "metadata": {
+      "annotations": {
+        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"adservice\"},\"name\":\"adservice\",\"namespace\":\"online-boutique\"},\"spec\":{\"ports\":[{\"name\":\"grpc\",\"port\":9555,\"targetPort\":9555}],\"selector\":{\"app\":\"adservice\"},\"type\":\"ClusterIP\"}}\n"
+      },
+      "creation_timestamp": "2025-02-10T14:14:53+00:00",
+      "deletion_grace_period_seconds": null,
+      "deletion_timestamp": null,
+      "finalizers": null,
+      "generate_name": null,
+      "generation": null,
+      "labels": {
+        "app": "adservice"
+      },
+      "managed_fields": [
+        {
+          "api_version": "v1",
+          "fields_type": "FieldsV1",
+          "fields_v1": {
+            "f:metadata": {
+              "f:annotations": {
+                ".": {},
+                "f:kubectl.kubernetes.io/last-applied-configuration": {}
+              },
+              "f:labels": {
+                ".": {},
+                "f:app": {}
+              }
+            },
+            "f:spec": {
+              "f:internalTrafficPolicy": {},
+              "f:ports": {
+                ".": {},
+                "k:{\"port\":9555,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                }
+              },
+              "f:selector": {},
+              "f:sessionAffinity": {},
+              "f:type": {}
+            }
+          },
+          "manager": "kubectl-client-side-apply",
+          "operation": "Update",
+          "subresource": null,
+          "time": "2025-02-10T14:14:53+00:00"
+        }
+      ],
+      "name": "adservice",
+      "namespace": "online-boutique",
+      "owner_references": null,
+      "resource_version": "543042",
+      "self_link": null,
+      "uid": "acce71b0-39d0-4bfb-8cdb-dde7284f589b"
+    },
+    "spec": {
+      "allocate_load_balancer_node_ports": null,
+      "cluster_ip": "10.108.143.139",
+      "cluster_i_ps": [
+        "10.108.143.139"
+      ],
+      "external_i_ps": null,
+      "external_name": null,
+      "external_traffic_policy": null,
+      "health_check_node_port": null,
+      "internal_traffic_policy": "Cluster",
+      "ip_families": [
+        "IPv4"
+      ],
+      "ip_family_policy": "SingleStack",
+      "load_balancer_class": null,
+      "load_balancer_ip": null,
+      "load_balancer_source_ranges": null,
+      "ports": [
+        {
+          "app_protocol": null,
+          "name": "grpc",
+          "node_port": null,
+          "port": 9555,
+          "protocol": "TCP",
+          "target_port": 9555
+        }
+      ],
+      "publish_not_ready_addresses": null,
+      "selector": {
+        "app": "adservice"
+      },
+      "session_affinity": "None",
+      "session_affinity_config": null,
+      "traffic_distribution": null,
+      "type": "ClusterIP"
+    },
+    "status": {
+      "conditions": null,
+      "load_balancer": {
+        "ingress": null
+      }
+    }
+  },
+  {
+    "api_version": null,
+    "kind": null,
+    "metadata": {
+      "annotations": {
+        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"cartservice\"},\"name\":\"cartservice\",\"namespace\":\"online-boutique\"},\"spec\":{\"ports\":[{\"name\":\"grpc\",\"port\":7070,\"targetPort\":7070}],\"selector\":{\"app\":\"cartservice\"},\"type\":\"ClusterIP\"}}\n"
+      },
+      "creation_timestamp": "2025-02-10T14:11:59+00:00",
+      "deletion_grace_period_seconds": null,
+      "deletion_timestamp": null,
+      "finalizers": null,
+      "generate_name": null,
+      "generation": null,
+      "labels": {
+        "app": "cartservice"
+      },
+      "managed_fields": [
+        {
+          "api_version": "v1",
+          "fields_type": "FieldsV1",
+          "fields_v1": {
+            "f:metadata": {
+              "f:annotations": {
+                ".": {},
+                "f:kubectl.kubernetes.io/last-applied-configuration": {}
+              },
+              "f:labels": {
+                ".": {},
+                "f:app": {}
+              }
+            },
+            "f:spec": {
+              "f:internalTrafficPolicy": {},
+              "f:ports": {
+                ".": {},
+                "k:{\"port\":7070,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                }
+              },
+              "f:selector": {},
+              "f:sessionAffinity": {},
+              "f:type": {}
+            }
+          },
+          "manager": "kubectl-client-side-apply",
+          "operation": "Update",
+          "subresource": null,
+          "time": "2025-02-10T14:11:59+00:00"
+        }
+      ],
+      "name": "cartservice",
+      "namespace": "online-boutique",
+      "owner_references": null,
+      "resource_version": "542359",
+      "self_link": null,
+      "uid": "0926c3b0-1a59-4874-89c0-32f3f8ce0283"
+    },
+    "spec": {
+      "allocate_load_balancer_node_ports": null,
+      "cluster_ip": "10.102.39.242",
+      "cluster_i_ps": [
+        "10.102.39.242"
+      ],
+      "external_i_ps": null,
+      "external_name": null,
+      "external_traffic_policy": null,
+      "health_check_node_port": null,
+      "internal_traffic_policy": "Cluster",
+      "ip_families": [
+        "IPv4"
+      ],
+      "ip_family_policy": "SingleStack",
+      "load_balancer_class": null,
+      "load_balancer_ip": null,
+      "load_balancer_source_ranges": null,
+      "ports": [
+        {
+          "app_protocol": null,
+          "name": "grpc",
+          "node_port": null,
+          "port": 7070,
+          "protocol": "TCP",
+          "target_port": 7070
+        }
+      ],
+      "publish_not_ready_addresses": null,
+      "selector": {
+        "app": "cartservice"
+      },
+      "session_affinity": "None",
+      "session_affinity_config": null,
+      "traffic_distribution": null,
+      "type": "ClusterIP"
+    },
+    "status": {
+      "conditions": null,
+      "load_balancer": {
+        "ingress": null
+      }
+    }
+  },
+  {
+    "api_version": null,
+    "kind": null,
+    "metadata": {
+      "annotations": {
+        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"checkoutservice\"},\"name\":\"checkoutservice\",\"namespace\":\"online-boutique\"},\"spec\":{\"ports\":[{\"name\":\"grpc\",\"port\":5050,\"targetPort\":5050}],\"selector\":{\"app\":\"checkoutservice\"},\"type\":\"ClusterIP\"}}\n"
+      },
+      "creation_timestamp": "2025-02-10T14:11:59+00:00",
+      "deletion_grace_period_seconds": null,
+      "deletion_timestamp": null,
+      "finalizers": null,
+      "generate_name": null,
+      "generation": null,
+      "labels": {
+        "app": "checkoutservice"
+      },
+      "managed_fields": [
+        {
+          "api_version": "v1",
+          "fields_type": "FieldsV1",
+          "fields_v1": {
+            "f:metadata": {
+              "f:annotations": {
+                ".": {},
+                "f:kubectl.kubernetes.io/last-applied-configuration": {}
+              },
+              "f:labels": {
+                ".": {},
+                "f:app": {}
+              }
+            },
+            "f:spec": {
+              "f:internalTrafficPolicy": {},
+              "f:ports": {
+                ".": {},
+                "k:{\"port\":5050,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                }
+              },
+              "f:selector": {},
+              "f:sessionAffinity": {},
+              "f:type": {}
+            }
+          },
+          "manager": "kubectl-client-side-apply",
+          "operation": "Update",
+          "subresource": null,
+          "time": "2025-02-10T14:11:59+00:00"
+        }
+      ],
+      "name": "checkoutservice",
+      "namespace": "online-boutique",
+      "owner_references": null,
+      "resource_version": "542287",
+      "self_link": null,
+      "uid": "fd3fc265-4f97-453f-9995-3b6a30420b36"
+    },
+    "spec": {
+      "allocate_load_balancer_node_ports": null,
+      "cluster_ip": "10.107.228.12",
+      "cluster_i_ps": [
+        "10.107.228.12"
+      ],
+      "external_i_ps": null,
+      "external_name": null,
+      "external_traffic_policy": null,
+      "health_check_node_port": null,
+      "internal_traffic_policy": "Cluster",
+      "ip_families": [
+        "IPv4"
+      ],
+      "ip_family_policy": "SingleStack",
+      "load_balancer_class": null,
+      "load_balancer_ip": null,
+      "load_balancer_source_ranges": null,
+      "ports": [
+        {
+          "app_protocol": null,
+          "name": "grpc",
+          "node_port": null,
+          "port": 5050,
+          "protocol": "TCP",
+          "target_port": 5050
+        }
+      ],
+      "publish_not_ready_addresses": null,
+      "selector": {
+        "app": "checkoutservice"
+      },
+      "session_affinity": "None",
+      "session_affinity_config": null,
+      "traffic_distribution": null,
+      "type": "ClusterIP"
+    },
+    "status": {
+      "conditions": null,
+      "load_balancer": {
+        "ingress": null
+      }
+    }
+  },
+  {
+    "api_version": null,
+    "kind": null,
+    "metadata": {
+      "annotations": {
+        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"currencyservice\"},\"name\":\"currencyservice\",\"namespace\":\"online-boutique\"},\"spec\":{\"ports\":[{\"name\":\"grpc\",\"port\":7000,\"targetPort\":7000}],\"selector\":{\"app\":\"currencyservice\"},\"type\":\"ClusterIP\"}}\n"
+      },
+      "creation_timestamp": "2025-02-10T14:14:52+00:00",
+      "deletion_grace_period_seconds": null,
+      "deletion_timestamp": null,
+      "finalizers": null,
+      "generate_name": null,
+      "generation": null,
+      "labels": {
+        "app": "currencyservice"
+      },
+      "managed_fields": [
+        {
+          "api_version": "v1",
+          "fields_type": "FieldsV1",
+          "fields_v1": {
+            "f:metadata": {
+              "f:annotations": {
+                ".": {},
+                "f:kubectl.kubernetes.io/last-applied-configuration": {}
+              },
+              "f:labels": {
+                ".": {},
+                "f:app": {}
+              }
+            },
+            "f:spec": {
+              "f:internalTrafficPolicy": {},
+              "f:ports": {
+                ".": {},
+                "k:{\"port\":7000,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                }
+              },
+              "f:selector": {},
+              "f:sessionAffinity": {},
+              "f:type": {}
+            }
+          },
+          "manager": "kubectl-client-side-apply",
+          "operation": "Update",
+          "subresource": null,
+          "time": "2025-02-10T14:14:52+00:00"
+        }
+      ],
+      "name": "currencyservice",
+      "namespace": "online-boutique",
+      "owner_references": null,
+      "resource_version": "543001",
+      "self_link": null,
+      "uid": "933c3adb-f19b-4011-9adc-fd1c97db5382"
+    },
+    "spec": {
+      "allocate_load_balancer_node_ports": null,
+      "cluster_ip": "10.104.240.242",
+      "cluster_i_ps": [
+        "10.104.240.242"
+      ],
+      "external_i_ps": null,
+      "external_name": null,
+      "external_traffic_policy": null,
+      "health_check_node_port": null,
+      "internal_traffic_policy": "Cluster",
+      "ip_families": [
+        "IPv4"
+      ],
+      "ip_family_policy": "SingleStack",
+      "load_balancer_class": null,
+      "load_balancer_ip": null,
+      "load_balancer_source_ranges": null,
+      "ports": [
+        {
+          "app_protocol": null,
+          "name": "grpc",
+          "node_port": null,
+          "port": 7000,
+          "protocol": "TCP",
+          "target_port": 7000
+        }
+      ],
+      "publish_not_ready_addresses": null,
+      "selector": {
+        "app": "currencyservice"
+      },
+      "session_affinity": "None",
+      "session_affinity_config": null,
+      "traffic_distribution": null,
+      "type": "ClusterIP"
+    },
+    "status": {
+      "conditions": null,
+      "load_balancer": {
+        "ingress": null
+      }
+    }
+  },
+  {
+    "api_version": null,
+    "kind": null,
+    "metadata": {
+      "annotations": {
+        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"emailservice\"},\"name\":\"emailservice\",\"namespace\":\"online-boutique\"},\"spec\":{\"ports\":[{\"name\":\"grpc\",\"port\":5000,\"targetPort\":8080}],\"selector\":{\"app\":\"emailservice\"},\"type\":\"ClusterIP\"}}\n"
+      },
+      "creation_timestamp": "2025-02-10T14:11:59+00:00",
+      "deletion_grace_period_seconds": null,
+      "deletion_timestamp": null,
+      "finalizers": null,
+      "generate_name": null,
+      "generation": null,
+      "labels": {
+        "app": "emailservice"
+      },
+      "managed_fields": [
+        {
+          "api_version": "v1",
+          "fields_type": "FieldsV1",
+          "fields_v1": {
+            "f:metadata": {
+              "f:annotations": {
+                ".": {},
+                "f:kubectl.kubernetes.io/last-applied-configuration": {}
+              },
+              "f:labels": {
+                ".": {},
+                "f:app": {}
+              }
+            },
+            "f:spec": {
+              "f:internalTrafficPolicy": {},
+              "f:ports": {
+                ".": {},
+                "k:{\"port\":5000,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                }
+              },
+              "f:selector": {},
+              "f:sessionAffinity": {},
+              "f:type": {}
+            }
+          },
+          "manager": "kubectl-client-side-apply",
+          "operation": "Update",
+          "subresource": null,
+          "time": "2025-02-10T14:11:59+00:00"
+        }
+      ],
+      "name": "emailservice",
+      "namespace": "online-boutique",
+      "owner_references": null,
+      "resource_version": "542261",
+      "self_link": null,
+      "uid": "1586ee4a-9304-40a0-9d34-5ed33fffea55"
+    },
+    "spec": {
+      "allocate_load_balancer_node_ports": null,
+      "cluster_ip": "10.105.75.227",
+      "cluster_i_ps": [
+        "10.105.75.227"
+      ],
+      "external_i_ps": null,
+      "external_name": null,
+      "external_traffic_policy": null,
+      "health_check_node_port": null,
+      "internal_traffic_policy": "Cluster",
+      "ip_families": [
+        "IPv4"
+      ],
+      "ip_family_policy": "SingleStack",
+      "load_balancer_class": null,
+      "load_balancer_ip": null,
+      "load_balancer_source_ranges": null,
+      "ports": [
+        {
+          "app_protocol": null,
+          "name": "grpc",
+          "node_port": null,
+          "port": 5000,
+          "protocol": "TCP",
+          "target_port": 8080
+        }
+      ],
+      "publish_not_ready_addresses": null,
+      "selector": {
+        "app": "emailservice"
+      },
+      "session_affinity": "None",
+      "session_affinity_config": null,
+      "traffic_distribution": null,
+      "type": "ClusterIP"
+    },
+    "status": {
+      "conditions": null,
+      "load_balancer": {
+        "ingress": null
+      }
+    }
+  },
+  {
+    "api_version": null,
+    "kind": null,
+    "metadata": {
+      "annotations": {
+        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"frontend\"},\"name\":\"frontend\",\"namespace\":\"online-boutique\"},\"spec\":{\"ports\":[{\"name\":\"http\",\"port\":80,\"targetPort\":8080}],\"selector\":{\"app\":\"frontend\"},\"type\":\"ClusterIP\"}}\n"
+      },
+      "creation_timestamp": "2025-02-10T14:11:59+00:00",
+      "deletion_grace_period_seconds": null,
+      "deletion_timestamp": null,
+      "finalizers": null,
+      "generate_name": null,
+      "generation": null,
+      "labels": {
+        "app": "frontend"
+      },
+      "managed_fields": [
+        {
+          "api_version": "v1",
+          "fields_type": "FieldsV1",
+          "fields_v1": {
+            "f:metadata": {
+              "f:annotations": {
+                ".": {},
+                "f:kubectl.kubernetes.io/last-applied-configuration": {}
+              },
+              "f:labels": {
+                ".": {},
+                "f:app": {}
+              }
+            },
+            "f:spec": {
+              "f:internalTrafficPolicy": {},
+              "f:ports": {
+                ".": {},
+                "k:{\"port\":80,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                }
+              },
+              "f:selector": {},
+              "f:sessionAffinity": {},
+              "f:type": {}
+            }
+          },
+          "manager": "kubectl-client-side-apply",
+          "operation": "Update",
+          "subresource": null,
+          "time": "2025-02-10T14:11:59+00:00"
+        }
+      ],
+      "name": "frontend",
+      "namespace": "online-boutique",
+      "owner_references": null,
+      "resource_version": "542329",
+      "self_link": null,
+      "uid": "a2761fe5-1b94-4526-8707-7e35b01af30b"
+    },
+    "spec": {
+      "allocate_load_balancer_node_ports": null,
+      "cluster_ip": "10.99.54.171",
+      "cluster_i_ps": [
+        "10.99.54.171"
+      ],
+      "external_i_ps": null,
+      "external_name": null,
+      "external_traffic_policy": null,
+      "health_check_node_port": null,
+      "internal_traffic_policy": "Cluster",
+      "ip_families": [
+        "IPv4"
+      ],
+      "ip_family_policy": "SingleStack",
+      "load_balancer_class": null,
+      "load_balancer_ip": null,
+      "load_balancer_source_ranges": null,
+      "ports": [
+        {
+          "app_protocol": null,
+          "name": "http",
+          "node_port": null,
+          "port": 80,
+          "protocol": "TCP",
+          "target_port": 8080
+        }
+      ],
+      "publish_not_ready_addresses": null,
+      "selector": {
+        "app": "frontend"
+      },
+      "session_affinity": "None",
+      "session_affinity_config": null,
+      "traffic_distribution": null,
+      "type": "ClusterIP"
+    },
+    "status": {
+      "conditions": null,
+      "load_balancer": {
+        "ingress": null
+      }
+    }
+  },
+  {
+    "api_version": null,
+    "kind": null,
+    "metadata": {
+      "annotations": {
+        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"paymentservice\"},\"name\":\"paymentservice\",\"namespace\":\"online-boutique\"},\"spec\":{\"ports\":[{\"name\":\"grpc\",\"port\":50051,\"targetPort\":50051}],\"selector\":{\"app\":\"paymentservice\"},\"type\":\"ClusterIP\"}}\n"
+      },
+      "creation_timestamp": "2025-02-10T14:11:59+00:00",
+      "deletion_grace_period_seconds": null,
+      "deletion_timestamp": null,
+      "finalizers": null,
+      "generate_name": null,
+      "generation": null,
+      "labels": {
+        "app": "paymentservice"
+      },
+      "managed_fields": [
+        {
+          "api_version": "v1",
+          "fields_type": "FieldsV1",
+          "fields_v1": {
+            "f:metadata": {
+              "f:annotations": {
+                ".": {},
+                "f:kubectl.kubernetes.io/last-applied-configuration": {}
+              },
+              "f:labels": {
+                ".": {},
+                "f:app": {}
+              }
+            },
+            "f:spec": {
+              "f:internalTrafficPolicy": {},
+              "f:ports": {
+                ".": {},
+                "k:{\"port\":50051,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                }
+              },
+              "f:selector": {},
+              "f:sessionAffinity": {},
+              "f:type": {}
+            }
+          },
+          "manager": "kubectl-client-side-apply",
+          "operation": "Update",
+          "subresource": null,
+          "time": "2025-02-10T14:11:59+00:00"
+        }
+      ],
+      "name": "paymentservice",
+      "namespace": "online-boutique",
+      "owner_references": null,
+      "resource_version": "542344",
+      "self_link": null,
+      "uid": "f337c436-6c49-4f33-ba53-1bcf23cb2b58"
+    },
+    "spec": {
+      "allocate_load_balancer_node_ports": null,
+      "cluster_ip": "10.97.47.225",
+      "cluster_i_ps": [
+        "10.97.47.225"
+      ],
+      "external_i_ps": null,
+      "external_name": null,
+      "external_traffic_policy": null,
+      "health_check_node_port": null,
+      "internal_traffic_policy": "Cluster",
+      "ip_families": [
+        "IPv4"
+      ],
+      "ip_family_policy": "SingleStack",
+      "load_balancer_class": null,
+      "load_balancer_ip": null,
+      "load_balancer_source_ranges": null,
+      "ports": [
+        {
+          "app_protocol": null,
+          "name": "grpc",
+          "node_port": null,
+          "port": 50051,
+          "protocol": "TCP",
+          "target_port": 50051
+        }
+      ],
+      "publish_not_ready_addresses": null,
+      "selector": {
+        "app": "paymentservice"
+      },
+      "session_affinity": "None",
+      "session_affinity_config": null,
+      "traffic_distribution": null,
+      "type": "ClusterIP"
+    },
+    "status": {
+      "conditions": null,
+      "load_balancer": {
+        "ingress": null
+      }
+    }
+  },
+  {
+    "api_version": null,
+    "kind": null,
+    "metadata": {
+      "annotations": {
+        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"productcatalogservice\"},\"name\":\"productcatalogservice\",\"namespace\":\"online-boutique\"},\"spec\":{\"ports\":[{\"name\":\"grpc\",\"port\":3550,\"targetPort\":3550}],\"selector\":{\"app\":\"productcatalogservice\"},\"type\":\"ClusterIP\"}}\n"
+      },
+      "creation_timestamp": "2025-02-10T14:11:59+00:00",
+      "deletion_grace_period_seconds": null,
+      "deletion_timestamp": null,
+      "finalizers": null,
+      "generate_name": null,
+      "generation": null,
+      "labels": {
+        "app": "productcatalogservice"
+      },
+      "managed_fields": [
+        {
+          "api_version": "v1",
+          "fields_type": "FieldsV1",
+          "fields_v1": {
+            "f:metadata": {
+              "f:annotations": {
+                ".": {},
+                "f:kubectl.kubernetes.io/last-applied-configuration": {}
+              },
+              "f:labels": {
+                ".": {},
+                "f:app": {}
+              }
+            },
+            "f:spec": {
+              "f:internalTrafficPolicy": {},
+              "f:ports": {
+                ".": {},
+                "k:{\"port\":3550,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                }
+              },
+              "f:selector": {},
+              "f:sessionAffinity": {},
+              "f:type": {}
+            }
+          },
+          "manager": "kubectl-client-side-apply",
+          "operation": "Update",
+          "subresource": null,
+          "time": "2025-02-10T14:11:59+00:00"
+        }
+      ],
+      "name": "productcatalogservice",
+      "namespace": "online-boutique",
+      "owner_references": null,
+      "resource_version": "542353",
+      "self_link": null,
+      "uid": "6bf6335a-3f5d-430d-a57d-900e4e5b203e"
+    },
+    "spec": {
+      "allocate_load_balancer_node_ports": null,
+      "cluster_ip": "10.107.4.168",
+      "cluster_i_ps": [
+        "10.107.4.168"
+      ],
+      "external_i_ps": null,
+      "external_name": null,
+      "external_traffic_policy": null,
+      "health_check_node_port": null,
+      "internal_traffic_policy": "Cluster",
+      "ip_families": [
+        "IPv4"
+      ],
+      "ip_family_policy": "SingleStack",
+      "load_balancer_class": null,
+      "load_balancer_ip": null,
+      "load_balancer_source_ranges": null,
+      "ports": [
+        {
+          "app_protocol": null,
+          "name": "grpc",
+          "node_port": null,
+          "port": 3550,
+          "protocol": "TCP",
+          "target_port": 3550
+        }
+      ],
+      "publish_not_ready_addresses": null,
+      "selector": {
+        "app": "productcatalogservice"
+      },
+      "session_affinity": "None",
+      "session_affinity_config": null,
+      "traffic_distribution": null,
+      "type": "ClusterIP"
+    },
+    "status": {
+      "conditions": null,
+      "load_balancer": {
+        "ingress": null
+      }
+    }
+  },
+  {
+    "api_version": null,
+    "kind": null,
+    "metadata": {
+      "annotations": {
+        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"recommendationservice\"},\"name\":\"recommendationservice\",\"namespace\":\"online-boutique\"},\"spec\":{\"ports\":[{\"name\":\"grpc\",\"port\":8080,\"targetPort\":8080}],\"selector\":{\"app\":\"recommendationservice\"},\"type\":\"ClusterIP\"}}\n"
+      },
+      "creation_timestamp": "2025-02-10T14:11:59+00:00",
+      "deletion_grace_period_seconds": null,
+      "deletion_timestamp": null,
+      "finalizers": null,
+      "generate_name": null,
+      "generation": null,
+      "labels": {
+        "app": "recommendationservice"
+      },
+      "managed_fields": [
+        {
+          "api_version": "v1",
+          "fields_type": "FieldsV1",
+          "fields_v1": {
+            "f:metadata": {
+              "f:annotations": {
+                ".": {},
+                "f:kubectl.kubernetes.io/last-applied-configuration": {}
+              },
+              "f:labels": {
+                ".": {},
+                "f:app": {}
+              }
+            },
+            "f:spec": {
+              "f:internalTrafficPolicy": {},
+              "f:ports": {
+                ".": {},
+                "k:{\"port\":8080,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                }
+              },
+              "f:selector": {},
+              "f:sessionAffinity": {},
+              "f:type": {}
+            }
+          },
+          "manager": "kubectl-client-side-apply",
+          "operation": "Update",
+          "subresource": null,
+          "time": "2025-02-10T14:11:59+00:00"
+        }
+      ],
+      "name": "recommendationservice",
+      "namespace": "online-boutique",
+      "owner_references": null,
+      "resource_version": "542300",
+      "self_link": null,
+      "uid": "81691ee1-74e6-429c-b78d-96b7ddb6e39d"
+    },
+    "spec": {
+      "allocate_load_balancer_node_ports": null,
+      "cluster_ip": "10.108.99.50",
+      "cluster_i_ps": [
+        "10.108.99.50"
+      ],
+      "external_i_ps": null,
+      "external_name": null,
+      "external_traffic_policy": null,
+      "health_check_node_port": null,
+      "internal_traffic_policy": "Cluster",
+      "ip_families": [
+        "IPv4"
+      ],
+      "ip_family_policy": "SingleStack",
+      "load_balancer_class": null,
+      "load_balancer_ip": null,
+      "load_balancer_source_ranges": null,
+      "ports": [
+        {
+          "app_protocol": null,
+          "name": "grpc",
+          "node_port": null,
+          "port": 8080,
+          "protocol": "TCP",
+          "target_port": 8080
+        }
+      ],
+      "publish_not_ready_addresses": null,
+      "selector": {
+        "app": "recommendationservice"
+      },
+      "session_affinity": "None",
+      "session_affinity_config": null,
+      "traffic_distribution": null,
+      "type": "ClusterIP"
+    },
+    "status": {
+      "conditions": null,
+      "load_balancer": {
+        "ingress": null
+      }
+    }
+  },
+  {
+    "api_version": null,
+    "kind": null,
+    "metadata": {
+      "annotations": {
+        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"redis-cart\"},\"name\":\"redis-cart\",\"namespace\":\"online-boutique\"},\"spec\":{\"ports\":[{\"name\":\"tcp-redis\",\"port\":6379,\"targetPort\":6379}],\"selector\":{\"app\":\"redis-cart\"},\"type\":\"ClusterIP\"}}\n"
+      },
+      "creation_timestamp": "2025-02-10T14:11:59+00:00",
+      "deletion_grace_period_seconds": null,
+      "deletion_timestamp": null,
+      "finalizers": null,
+      "generate_name": null,
+      "generation": null,
+      "labels": {
+        "app": "redis-cart"
+      },
+      "managed_fields": [
+        {
+          "api_version": "v1",
+          "fields_type": "FieldsV1",
+          "fields_v1": {
+            "f:metadata": {
+              "f:annotations": {
+                ".": {},
+                "f:kubectl.kubernetes.io/last-applied-configuration": {}
+              },
+              "f:labels": {
+                ".": {},
+                "f:app": {}
+              }
+            },
+            "f:spec": {
+              "f:internalTrafficPolicy": {},
+              "f:ports": {
+                ".": {},
+                "k:{\"port\":6379,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                }
+              },
+              "f:selector": {},
+              "f:sessionAffinity": {},
+              "f:type": {}
+            }
+          },
+          "manager": "kubectl-client-side-apply",
+          "operation": "Update",
+          "subresource": null,
+          "time": "2025-02-10T14:11:59+00:00"
+        }
+      ],
+      "name": "redis-cart",
+      "namespace": "online-boutique",
+      "owner_references": null,
+      "resource_version": "542365",
+      "self_link": null,
+      "uid": "568f49c9-30aa-4344-805a-dbf1f4c75265"
+    },
+    "spec": {
+      "allocate_load_balancer_node_ports": null,
+      "cluster_ip": "10.106.230.161",
+      "cluster_i_ps": [
+        "10.106.230.161"
+      ],
+      "external_i_ps": null,
+      "external_name": null,
+      "external_traffic_policy": null,
+      "health_check_node_port": null,
+      "internal_traffic_policy": "Cluster",
+      "ip_families": [
+        "IPv4"
+      ],
+      "ip_family_policy": "SingleStack",
+      "load_balancer_class": null,
+      "load_balancer_ip": null,
+      "load_balancer_source_ranges": null,
+      "ports": [
+        {
+          "app_protocol": null,
+          "name": "tcp-redis",
+          "node_port": null,
+          "port": 6379,
+          "protocol": "TCP",
+          "target_port": 6379
+        }
+      ],
+      "publish_not_ready_addresses": null,
+      "selector": {
+        "app": "redis-cart"
+      },
+      "session_affinity": "None",
+      "session_affinity_config": null,
+      "traffic_distribution": null,
+      "type": "ClusterIP"
+    },
+    "status": {
+      "conditions": null,
+      "load_balancer": {
+        "ingress": null
+      }
+    }
+  },
+  {
+    "api_version": null,
+    "kind": null,
+    "metadata": {
+      "annotations": {
+        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"shippingservice\"},\"name\":\"shippingservice\",\"namespace\":\"online-boutique\"},\"spec\":{\"ports\":[{\"name\":\"grpc\",\"port\":50051,\"targetPort\":50051}],\"selector\":{\"app\":\"shippingservice\"},\"type\":\"ClusterIP\"}}\n"
+      },
+      "creation_timestamp": "2025-02-10T14:14:52+00:00",
+      "deletion_grace_period_seconds": null,
+      "deletion_timestamp": null,
+      "finalizers": null,
+      "generate_name": null,
+      "generation": null,
+      "labels": {
+        "app": "shippingservice"
+      },
+      "managed_fields": [
+        {
+          "api_version": "v1",
+          "fields_type": "FieldsV1",
+          "fields_v1": {
+            "f:metadata": {
+              "f:annotations": {
+                ".": {},
+                "f:kubectl.kubernetes.io/last-applied-configuration": {}
+              },
+              "f:labels": {
+                ".": {},
+                "f:app": {}
+              }
+            },
+            "f:spec": {
+              "f:internalTrafficPolicy": {},
+              "f:ports": {
+                ".": {},
+                "k:{\"port\":50051,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                }
+              },
+              "f:selector": {},
+              "f:sessionAffinity": {},
+              "f:type": {}
+            }
+          },
+          "manager": "kubectl-client-side-apply",
+          "operation": "Update",
+          "subresource": null,
+          "time": "2025-02-10T14:14:52+00:00"
+        }
+      ],
+      "name": "shippingservice",
+      "namespace": "online-boutique",
+      "owner_references": null,
+      "resource_version": "543027",
+      "self_link": null,
+      "uid": "58419fc0-4c6d-4de0-9612-6f56cf7d0802"
+    },
+    "spec": {
+      "allocate_load_balancer_node_ports": null,
+      "cluster_ip": "10.105.252.26",
+      "cluster_i_ps": [
+        "10.105.252.26"
+      ],
+      "external_i_ps": null,
+      "external_name": null,
+      "external_traffic_policy": null,
+      "health_check_node_port": null,
+      "internal_traffic_policy": "Cluster",
+      "ip_families": [
+        "IPv4"
+      ],
+      "ip_family_policy": "SingleStack",
+      "load_balancer_class": null,
+      "load_balancer_ip": null,
+      "load_balancer_source_ranges": null,
+      "ports": [
+        {
+          "app_protocol": null,
+          "name": "grpc",
+          "node_port": null,
+          "port": 50051,
+          "protocol": "TCP",
+          "target_port": 50051
+        }
+      ],
+      "publish_not_ready_addresses": null,
+      "selector": {
+        "app": "shippingservice"
+      },
+      "session_affinity": "None",
+      "session_affinity_config": null,
+      "traffic_distribution": null,
+      "type": "ClusterIP"
+    },
+    "status": {
+      "conditions": null,
+      "load_balancer": {
+        "ingress": null
+      }
+    }
+  }
+]

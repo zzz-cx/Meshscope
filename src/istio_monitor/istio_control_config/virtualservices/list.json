@@ -1,0 +1,465 @@
+{
+  "apiVersion": "networking.istio.io/v1alpha3",
+  "items": [
+    {
+      "apiVersion": "networking.istio.io/v1alpha3",
+      "kind": "VirtualService",
+      "metadata": {
+        "annotations": {
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"networking.istio.io/v1\",\"kind\":\"VirtualService\",\"metadata\":{\"annotations\":{},\"name\":\"bookinfo\",\"namespace\":\"default\"},\"spec\":{\"gateways\":[\"bookinfo-gateway\"],\"hosts\":[\"productpage.bookinfo.com\"],\"http\":[{\"match\":[{\"uri\":{\"exact\":\"/productpage\"}},{\"uri\":{\"prefix\":\"/static\"}},{\"uri\":{\"exact\":\"/login\"}},{\"uri\":{\"exact\":\"/logout\"}},{\"uri\":{\"prefix\":\"/api/v1/products\"}}],\"route\":[{\"destination\":{\"host\":\"productpage\",\"port\":{\"number\":9080}}}]}]}}\n"
+        },
+        "creationTimestamp": "2024-12-09T01:34:32Z",
+        "generation": 4,
+        "managedFields": [
+          {
+            "apiVersion": "networking.istio.io/v1",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:kubectl.kubernetes.io/last-applied-configuration": {}
+                }
+              },
+              "f:spec": {
+                ".": {},
+                "f:gateways": {},
+                "f:http": {}
+              }
+            },
+            "manager": "kubectl-client-side-apply",
+            "operation": "Update",
+            "time": "2024-12-10T02:48:22Z"
+          },
+          {
+            "apiVersion": "networking.istio.io/v1",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:spec": {
+                "f:hosts": {}
+              }
+            },
+            "manager": "kiali",
+            "operation": "Update",
+            "time": "2025-01-07T07:45:27Z"
+          }
+        ],
+        "name": "bookinfo",
+        "namespace": "default",
+        "resourceVersion": "329243",
+        "uid": "ea34e520-a81f-4989-b009-41932acf703a"
+      },
+      "spec": {
+        "gateways": [
+          "bookinfo-gateway"
+        ],
+        "hosts": [
+          "productpage.bookinfo.com"
+        ],
+        "http": [
+          {
+            "match": [
+              {
+                "uri": {
+                  "exact": "/productpage"
+                }
+              },
+              {
+                "uri": {
+                  "prefix": "/static"
+                }
+              },
+              {
+                "uri": {
+                  "exact": "/login"
+                }
+              },
+              {
+                "uri": {
+                  "exact": "/logout"
+                }
+              },
+              {
+                "uri": {
+                  "prefix": "/api/v1/products"
+                }
+              }
+            ],
+            "route": [
+              {
+                "destination": {
+                  "host": "productpage",
+                  "port": {
+                    "number": 9080
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.istio.io/v1alpha3",
+      "kind": "VirtualService",
+      "metadata": {
+        "annotations": {
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"networking.istio.io/v1alpha3\",\"kind\":\"VirtualService\",\"metadata\":{\"annotations\":{},\"name\":\"productpage\",\"namespace\":\"default\"},\"spec\":{\"gateways\":[\"bookinfo-gateway\"],\"hosts\":[\"*\"],\"http\":[{\"route\":[{\"destination\":{\"host\":\"productpage.default.svc.cluster.local\",\"port\":{\"number\":80},\"subset\":\"original\"},\"weight\":70},{\"destination\":{\"host\":\"productpage.default.svc.cluster.local\",\"port\":{\"number\":80},\"subset\":\"v1\"},\"weight\":30}]}]}}\n"
+        },
+        "creationTimestamp": "2025-04-03T07:34:07Z",
+        "generation": 8,
+        "managedFields": [
+          {
+            "apiVersion": "networking.istio.io/v1alpha3",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:kubectl.kubernetes.io/last-applied-configuration": {}
+                }
+              },
+              "f:spec": {}
+            },
+            "manager": "kubectl-client-side-apply",
+            "operation": "Update",
+            "time": "2025-04-03T07:34:07Z"
+          },
+          {
+            "apiVersion": "networking.istio.io/v1",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:spec": {
+                "f:hosts": {},
+                "f:http": {}
+              }
+            },
+            "manager": "kiali",
+            "operation": "Update",
+            "time": "2025-04-03T08:04:10Z"
+          }
+        ],
+        "name": "productpage",
+        "namespace": "default",
+        "resourceVersion": "1488473",
+        "uid": "52a95919-49c9-4cce-a65c-c6edf7e6b287"
+      },
+      "spec": {
+        "hosts": [
+          "productpage"
+        ],
+        "http": [
+          {
+            "route": [
+              {
+                "destination": {
+                  "host": "productpage",
+                  "subset": "v1"
+                },
+                "weight": 70
+              },
+              {
+                "destination": {
+                  "host": "productpage",
+                  "subset": "v2"
+                },
+                "weight": 30
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.istio.io/v1alpha3",
+      "kind": "VirtualService",
+      "metadata": {
+        "creationTimestamp": "2025-01-07T07:56:58Z",
+        "generation": 45,
+        "labels": {
+          "kiali_wizard": "traffic_shifting"
+        },
+        "managedFields": [
+          {
+            "apiVersion": "networking.istio.io/v1",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:labels": {
+                  ".": {},
+                  "f:kiali_wizard": {}
+                }
+              },
+              "f:spec": {
+                ".": {},
+                "f:hosts": {},
+                "f:http": {}
+              }
+            },
+            "manager": "kiali",
+            "operation": "Update",
+            "time": "2025-04-03T15:20:27Z"
+          }
+        ],
+        "name": "reviews",
+        "namespace": "default",
+        "resourceVersion": "1555856",
+        "uid": "c0d053b0-7053-4f0f-ba92-fae7e63724d1"
+      },
+      "spec": {
+        "hosts": [
+          "reviews"
+        ],
+        "http": [
+          {
+            "match": [
+              {
+                "headers": {
+                  "source": {
+                    "exact": "jason"
+                  }
+                }
+              }
+            ],
+            "route": [
+              {
+                "destination": {
+                  "host": "reviews",
+                  "subset": "v3"
+                }
+              }
+            ]
+          },
+          {
+            "route": [
+              {
+                "destination": {
+                  "host": "reviews",
+                  "subset": "v2"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.istio.io/v1alpha3",
+      "kind": "VirtualService",
+      "metadata": {
+        "annotations": {
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"networking.istio.io/v1alpha3\",\"kind\":\"VirtualService\",\"metadata\":{\"annotations\":{},\"name\":\"adservice\",\"namespace\":\"online-boutique\"},\"spec\":{\"hosts\":[\"adservice\"],\"http\":[{\"route\":[{\"destination\":{\"host\":\"adservice\",\"subset\":\"v1\"},\"weight\":50},{\"destination\":{\"host\":\"adservice\",\"subset\":\"v2\"},\"weight\":50}]}]}}\n"
+        },
+        "creationTimestamp": "2025-03-27T05:18:01Z",
+        "generation": 4,
+        "managedFields": [
+          {
+            "apiVersion": "networking.istio.io/v1alpha3",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:kubectl.kubernetes.io/last-applied-configuration": {}
+                }
+              },
+              "f:spec": {
+                ".": {},
+                "f:hosts": {}
+              }
+            },
+            "manager": "kubectl-client-side-apply",
+            "operation": "Update",
+            "time": "2025-03-27T05:18:01Z"
+          },
+          {
+            "apiVersion": "networking.istio.io/v1",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:spec": {
+                "f:http": {}
+              }
+            },
+            "manager": "kubectl-edit",
+            "operation": "Update",
+            "time": "2025-05-07T07:20:01Z"
+          }
+        ],
+        "name": "adservice",
+        "namespace": "online-boutique",
+        "resourceVersion": "1697955",
+        "uid": "d9b1a65f-521e-4a56-b547-43f084c409a1"
+      },
+      "spec": {
+        "hosts": [
+          "adservice"
+        ],
+        "http": [
+          {
+            "route": [
+              {
+                "destination": {
+                  "host": "adservice.online-boutique.svc.cluster.local",
+                  "subset": "v1"
+                },
+                "weight": 50
+              },
+              {
+                "destination": {
+                  "host": "adservice.online-boutique.svc.cluster.local",
+                  "subset": "v2"
+                },
+                "weight": 50
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.istio.io/v1alpha3",
+      "kind": "VirtualService",
+      "metadata": {
+        "annotations": {
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"networking.istio.io/v1alpha3\",\"kind\":\"VirtualService\",\"metadata\":{\"annotations\":{},\"name\":\"frontend\",\"namespace\":\"online-boutique\"},\"spec\":{\"hosts\":[\"frontend.default.svc.cluster.local\"],\"http\":[{\"route\":[{\"destination\":{\"host\":\"frontend\",\"port\":{\"number\":80}}}]}]}}\n"
+        },
+        "creationTimestamp": "2025-03-20T09:19:48Z",
+        "generation": 6,
+        "managedFields": [
+          {
+            "apiVersion": "networking.istio.io/v1alpha3",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:kubectl.kubernetes.io/last-applied-configuration": {}
+                }
+              },
+              "f:spec": {}
+            },
+            "manager": "kubectl-client-side-apply",
+            "operation": "Update",
+            "time": "2025-03-20T09:19:48Z"
+          },
+          {
+            "apiVersion": "networking.istio.io/v1",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:spec": {
+                "f:hosts": {},
+                "f:http": {}
+              }
+            },
+            "manager": "kiali",
+            "operation": "Update",
+            "time": "2025-04-03T08:55:08Z"
+          }
+        ],
+        "name": "frontend",
+        "namespace": "online-boutique",
+        "resourceVersion": "1496582",
+        "uid": "e0d965fe-cd4b-42b6-8916-39045e5b4c33"
+      },
+      "spec": {
+        "hosts": [
+          "frontend.online-boutique.svc.cluster.local"
+        ],
+        "http": [
+          {
+            "route": [
+              {
+                "destination": {
+                  "host": "frontend",
+                  "port": {
+                    "number": 80
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.istio.io/v1alpha3",
+      "kind": "VirtualService",
+      "metadata": {
+        "annotations": {
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"networking.istio.io/v1alpha3\",\"kind\":\"VirtualService\",\"metadata\":{\"annotations\":{},\"name\":\"frontend-ingress\",\"namespace\":\"online-boutique\"},\"spec\":{\"gateways\":[\"frontend-gateway\"],\"hosts\":[\"*\"],\"http\":[{\"route\":[{\"destination\":{\"host\":\"frontend.online-boutique.svc.cluster.local\",\"port\":{\"number\":80},\"subset\":\"original\"},\"weight\":70},{\"destination\":{\"host\":\"frontend.online-boutique.svc.cluster.local\",\"port\":{\"number\":80},\"subset\":\"v1\"},\"weight\":30}]}]}}\n"
+        },
+        "creationTimestamp": "2025-02-12T07:39:29Z",
+        "generation": 34,
+        "managedFields": [
+          {
+            "apiVersion": "networking.istio.io/v1alpha3",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:kubectl.kubernetes.io/last-applied-configuration": {}
+                }
+              },
+              "f:spec": {}
+            },
+            "manager": "kubectl-client-side-apply",
+            "operation": "Update",
+            "time": "2025-03-20T09:56:04Z"
+          },
+          {
+            "apiVersion": "networking.istio.io/v1",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:spec": {
+                "f:gateways": {},
+                "f:hosts": {},
+                "f:http": {}
+              }
+            },
+            "manager": "kiali",
+            "operation": "Update",
+            "time": "2025-04-03T12:42:48Z"
+          }
+        ],
+        "name": "frontend-ingress",
+        "namespace": "online-boutique",
+        "resourceVersion": "1532774",
+        "uid": "0d76f9c0-f5ba-470b-b9dd-9fd6639b7940"
+      },
+      "spec": {
+        "gateways": [
+          "frontend-gateway"
+        ],
+        "hosts": [
+          "*"
+        ],
+        "http": [
+          {
+            "route": [
+              {
+                "destination": {
+                  "host": "frontend.online-boutique.svc.cluster.local",
+                  "subset": "original"
+                },
+                "weight": 55
+              },
+              {
+                "destination": {
+                  "host": "frontend.online-boutique.svc.cluster.local",
+                  "subset": "v1"
+                },
+                "weight": 45
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "kind": "VirtualServiceList",
+  "metadata": {
+    "continue": "",
+    "resourceVersion": "1801764"
+  }
+}

@@ -1,0 +1,310 @@
+{
+  "apiVersion": "networking.istio.io/v1alpha3",
+  "items": [
+    {
+      "apiVersion": "networking.istio.io/v1alpha3",
+      "kind": "DestinationRule",
+      "metadata": {
+        "annotations": {
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"networking.istio.io/v1alpha3\",\"kind\":\"DestinationRule\",\"metadata\":{\"annotations\":{},\"name\":\"productpage\",\"namespace\":\"default\"},\"spec\":{\"host\":\"productpage\",\"subsets\":[{\"labels\":{\"version\":\"v1\"},\"name\":\"v1\"},{\"labels\":{\"version\":\"v2\"},\"name\":\"v2\"}]}}\n"
+        },
+        "creationTimestamp": "2025-04-03T07:25:50Z",
+        "generation": 1,
+        "managedFields": [
+          {
+            "apiVersion": "networking.istio.io/v1alpha3",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:kubectl.kubernetes.io/last-applied-configuration": {}
+                }
+              },
+              "f:spec": {
+                ".": {},
+                "f:host": {},
+                "f:subsets": {}
+              }
+            },
+            "manager": "kubectl-client-side-apply",
+            "operation": "Update",
+            "time": "2025-04-03T07:25:50Z"
+          }
+        ],
+        "name": "productpage",
+        "namespace": "default",
+        "resourceVersion": "1482342",
+        "uid": "8f68a648-6bc7-4436-8ea2-132859b7e95c"
+      },
+      "spec": {
+        "host": "productpage",
+        "subsets": [
+          {
+            "labels": {
+              "version": "v1"
+            },
+            "name": "v1"
+          },
+          {
+            "labels": {
+              "version": "v2"
+            },
+            "name": "v2"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.istio.io/v1alpha3",
+      "kind": "DestinationRule",
+      "metadata": {
+        "creationTimestamp": "2025-01-07T07:56:58Z",
+        "generation": 1,
+        "labels": {
+          "kiali_wizard": "traffic_shifting"
+        },
+        "managedFields": [
+          {
+            "apiVersion": "networking.istio.io/v1",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:labels": {
+                  ".": {},
+                  "f:kiali_wizard": {}
+                }
+              },
+              "f:spec": {
+                ".": {},
+                "f:host": {},
+                "f:subsets": {}
+              }
+            },
+            "manager": "kiali",
+            "operation": "Update",
+            "time": "2025-01-07T07:56:58Z"
+          }
+        ],
+        "name": "reviews",
+        "namespace": "default",
+        "resourceVersion": "330766",
+        "uid": "edec9b1f-f367-4fe6-b120-0bf003c6c053"
+      },
+      "spec": {
+        "host": "reviews.default.svc.cluster.local",
+        "subsets": [
+          {
+            "labels": {
+              "version": "v1"
+            },
+            "name": "v1"
+          },
+          {
+            "labels": {
+              "version": "v2"
+            },
+            "name": "v2"
+          },
+          {
+            "labels": {
+              "version": "v3"
+            },
+            "name": "v3"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.istio.io/v1alpha3",
+      "kind": "DestinationRule",
+      "metadata": {
+        "annotations": {
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"networking.istio.io/v1alpha3\",\"kind\":\"DestinationRule\",\"metadata\":{\"annotations\":{},\"name\":\"adservice\",\"namespace\":\"online-boutique\"},\"spec\":{\"host\":\"adservice\",\"subsets\":[{\"labels\":{\"version\":\"v1\"},\"name\":\"v1\"},{\"labels\":{\"version\":\"v2\"},\"name\":\"v2\"}]}}\n"
+        },
+        "creationTimestamp": "2025-03-27T05:17:35Z",
+        "generation": 1,
+        "managedFields": [
+          {
+            "apiVersion": "networking.istio.io/v1alpha3",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:kubectl.kubernetes.io/last-applied-configuration": {}
+                }
+              },
+              "f:spec": {
+                ".": {},
+                "f:host": {},
+                "f:subsets": {}
+              }
+            },
+            "manager": "kubectl-client-side-apply",
+            "operation": "Update",
+            "time": "2025-03-27T05:17:35Z"
+          }
+        ],
+        "name": "adservice",
+        "namespace": "online-boutique",
+        "resourceVersion": "1436429",
+        "uid": "a8a5191d-1dcc-4381-af3b-85d9aebbfcf2"
+      },
+      "spec": {
+        "host": "adservice",
+        "subsets": [
+          {
+            "labels": {
+              "version": "v1"
+            },
+            "name": "v1"
+          },
+          {
+            "labels": {
+              "version": "v2"
+            },
+            "name": "v2"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.istio.io/v1alpha3",
+      "kind": "DestinationRule",
+      "metadata": {
+        "annotations": {
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"networking.istio.io/v1alpha3\",\"kind\":\"DestinationRule\",\"metadata\":{\"annotations\":{},\"name\":\"currencyservice\",\"namespace\":\"online-boutique\"},\"spec\":{\"host\":\"currencyservice\",\"trafficPolicy\":{\"connectionPool\":{\"http\":{\"http1MaxPendingRequests\":2,\"maxRequestsPerConnection\":2},\"tcp\":{\"maxConnections\":2}},\"outlierDetection\":{\"baseEjectionTime\":\"3m\",\"consecutive5xxErrors\":1,\"interval\":\"1s\",\"maxEjectionPercent\":100}}}}\n"
+        },
+        "creationTimestamp": "2025-05-12T06:47:04Z",
+        "generation": 1,
+        "managedFields": [
+          {
+            "apiVersion": "networking.istio.io/v1alpha3",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:kubectl.kubernetes.io/last-applied-configuration": {}
+                }
+              },
+              "f:spec": {
+                ".": {},
+                "f:host": {},
+                "f:trafficPolicy": {
+                  ".": {},
+                  "f:connectionPool": {
+                    ".": {},
+                    "f:http": {
+                      ".": {},
+                      "f:http1MaxPendingRequests": {},
+                      "f:maxRequestsPerConnection": {}
+                    },
+                    "f:tcp": {
+                      ".": {},
+                      "f:maxConnections": {}
+                    }
+                  },
+                  "f:outlierDetection": {
+                    ".": {},
+                    "f:baseEjectionTime": {},
+                    "f:consecutive5xxErrors": {},
+                    "f:interval": {},
+                    "f:maxEjectionPercent": {}
+                  }
+                }
+              }
+            },
+            "manager": "kubectl-client-side-apply",
+            "operation": "Update",
+            "time": "2025-05-12T06:47:04Z"
+          }
+        ],
+        "name": "currencyservice",
+        "namespace": "online-boutique",
+        "resourceVersion": "1766398",
+        "uid": "1bd23399-177b-4959-95fb-d70228acf5c2"
+      },
+      "spec": {
+        "host": "currencyservice",
+        "trafficPolicy": {
+          "connectionPool": {
+            "http": {
+              "http1MaxPendingRequests": 2,
+              "maxRequestsPerConnection": 2
+            },
+            "tcp": {
+              "maxConnections": 2
+            }
+          },
+          "outlierDetection": {
+            "baseEjectionTime": "3m",
+            "consecutive5xxErrors": 1,
+            "interval": "1s",
+            "maxEjectionPercent": 100
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "networking.istio.io/v1alpha3",
+      "kind": "DestinationRule",
+      "metadata": {
+        "annotations": {
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"networking.istio.io/v1alpha3\",\"kind\":\"DestinationRule\",\"metadata\":{\"annotations\":{},\"name\":\"frontend\",\"namespace\":\"online-boutique\"},\"spec\":{\"host\":\"frontend.online-boutique.svc.cluster.local\",\"subsets\":[{\"labels\":{\"version\":\"original\"},\"name\":\"original\"},{\"labels\":{\"version\":\"1.0.0\"},\"name\":\"v1\"}]}}\n"
+        },
+        "creationTimestamp": "2025-03-19T09:08:24Z",
+        "generation": 1,
+        "managedFields": [
+          {
+            "apiVersion": "networking.istio.io/v1alpha3",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:kubectl.kubernetes.io/last-applied-configuration": {}
+                }
+              },
+              "f:spec": {
+                ".": {},
+                "f:host": {},
+                "f:subsets": {}
+              }
+            },
+            "manager": "kubectl-client-side-apply",
+            "operation": "Update",
+            "time": "2025-03-19T09:08:24Z"
+          }
+        ],
+        "name": "frontend",
+        "namespace": "online-boutique",
+        "resourceVersion": "1272261",
+        "uid": "87ca8cc1-5c11-47c7-9250-7649e16dc73c"
+      },
+      "spec": {
+        "host": "frontend.online-boutique.svc.cluster.local",
+        "subsets": [
+          {
+            "labels": {
+              "version": "original"
+            },
+            "name": "original"
+          },
+          {
+            "labels": {
+              "version": "1.0.0"
+            },
+            "name": "v1"
+          }
+        ]
+      }
+    }
+  ],
+  "kind": "DestinationRuleList",
+  "metadata": {
+    "continue": "",
+    "resourceVersion": "1801764"
+  }
+}

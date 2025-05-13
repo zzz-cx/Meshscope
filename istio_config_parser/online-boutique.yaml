@@ -1,0 +1,254 @@
+apiVersion: v1
+items:
+- apiVersion: networking.istio.io/v1
+  kind: EnvoyFilter
+  metadata:
+    name: adservice-rate-limit
+    namespace: online-boutique
+  spec:
+    workloadSelector:
+      labels:
+        app: adservice  # 作用于 adservice
+    configPatches:
+    - applyTo: HTTP_FILTER
+      match:
+        context: SIDECAR_INBOUND
+        listener:
+          filterChain:
+            filter:
+              name: "envoy.filters.network.http_connection_manager"
+      patch:
+        operation: INSERT_BEFORE
+        value:
+          name: envoy.filters.http.local_ratelimit
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.filters.http.local_ratelimit.v3.LocalRateLimit
+            stat_prefix: http_local_rate_limiter
+            token_bucket:
+              max_tokens: 3  # 限制 3 个请求
+              tokens_per_fill: 3
+              fill_interval: 60s  # 1 分钟重置
+            filter_enabled:
+              default_value:
+                numerator: 100
+                denominator: HUNDRED
+            filter_enforced:
+              default_value:
+                numerator: 100
+                denominator: HUNDRED
+            response_headers_to_add:
+              - header:
+                  key: "x-rate-limit"
+                  value: "3 requests per minute"
+    - applyTo: VIRTUAL_HOST
+      match:
+        context: SIDECAR_INBOUND
+      patch:
+        operation: MERGE
+        value:
+          rate_limits:
+          - actions:
+              - request_headers:
+                  header_name: "x-request-source"
+                  descriptor_key: "frontend"
+- apiVersion: networking.istio.io/v1
+  kind: VirtualService
+  metadata:
+    creationTimestamp: "2025-01-07T07:56:58Z"
+    generation: 1
+    labels:
+      kiali_wizard: traffic_shifting
+    name: adservice
+    namespace: online-boutique
+    resourceVersion: "330767"
+    uid: c0d053b0-7053-4f0f-ba92-fae7e63724d1
+  spec:
+    hosts:
+    - adservice.online-boutique.svc.cluster.local
+    http:
+    - route:
+      - destination:
+          host: adservice.online-boutique.svc.cluster.local
+          subset: v1
+        weight: 25
+      - destination:
+          host: adservice.online-boutique.svc.cluster.local
+          subset: v2
+        weight: 25
+      - destination:
+          host: adservice.online-boutique.svc.cluster.local
+          subset: v3
+        weight: 50
+- apiVersion: networking.istio.io/v1
+  kind: DestinationRule
+  metadata:
+    creationTimestamp: "2025-01-07T07:56:58Z"
+    generation: 1
+    labels:
+      kiali_wizard: traffic_shifting
+    name: adservice
+    namespace: online-boutique
+    resourceVersion: "330766"
+    uid: edec9b1f-f367-4fe6-b120-0bf003c6c053
+  spec:
+    host: adservice.online-boutique.svc.cluster.local
+    subsets:
+    - labels:
+        version: v1
+      name: v1
+    - labels:
+        version: v2
+      name: v2
+    - labels:
+        version: v3
+      name: v3
+- apiVersion: networking.istio.io/v1
+  kind: EnvoyFilter
+  metadata:
+    name: global-ratelimit
+    namespace: online-boutique
+  spec:
+    workloadSelector:
+      labels:
+        app: adservice  # 只对 adservice 和 recommendationservice 作用
+    configPatches:
+      - applyTo: HTTP_FILTER
+        match:
+          context: SIDECAR_INBOUND
+        patch:
+          operation: INSERT_BEFORE
+          value:
+            name: envoy.filters.http.ratelimit
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.ratelimit.v3.RateLimit
+              domain: "ad-recommendation-limit"
+              failure_mode_deny: true
+              timeout: 2s
+              rate_limit_service:
+                grpc_service:
+                  envoy_grpc:
+                    cluster_name: rate_limit_cluster
+                  timeout: 0.25s
+      - applyTo: VIRTUAL_HOST
+        match:
+          context: SIDECAR_INBOUND
+        patch:
+          operation: MERGE
+          value:
+            rate_limits:
+            - actions:
+                - request_headers:
+                    header_name: "x-request-source"
+                    descriptor_key: "recommendationservice"           
+- apiVersion: networking.istio.io/v1alpha3
+  kind: VirtualService
+  metadata:
+    name: frontend
+  spec:
+    gateways:
+      - frontend-gateway
+    http:
+    - route:
+      - destination:
+          host: frontend.online-boutique.svc.cluster.local
+          port:
+            number: 80
+          subset: original
+        weight: 70
+      - destination:
+          host: frontend.online-boutique.svc.cluster.local
+          port:
+            number: 80
+          subset: v1
+        weight: 30
+- apiVersion: networking.istio.io/v1alpha3
+  kind: DestinationRule
+  metadata:
+    name: frontend
+  spec:
+    host: frontend.online-boutique.svc.cluster.local
+    subsets:
+      - name: original
+        labels:
+          version: original
+      - name: v1
+        labels:
+          version: 1.0.0
+- apiVersion: networking.istio.io/v1
+  kind: EnvoyFilter
+  metadata:
+    name: global-ratelimit-recommendation
+    namespace: online-boutique
+  spec:
+    workloadSelector:
+      labels:
+        app: recommendationservice  # 只对 recommendationservice 作用
+    configPatches:
+      - applyTo: HTTP_FILTER
+        match:
+          context: SIDECAR_INBOUND
+        patch:
+          operation: INSERT_BEFORE
+          value:
+            name: envoy.filters.http.ratelimit
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.ratelimit.v3.RateLimit
+              domain: "ad-recommendation-limit"
+              failure_mode_deny: true
+              timeout: 2s
+              rate_limit_service:
+                grpc_service:
+                  envoy_grpc:
+                    cluster_name: rate_limit_cluster
+                  timeout: 0.25s
+- apiVersion: networking.istio.io/v1
+  kind: EnvoyFilter
+  metadata:
+    name: adservice-rate-limit
+    namespace: online-boutique
+  spec:
+    workloadSelector:
+      labels:
+        app: adservice  # 作用于 adservice
+    configPatches:
+    - applyTo: HTTP_FILTER
+      match:
+        context: SIDECAR_INBOUND
+        listener:
+          filterChain:
+            filter:
+              name: "envoy.filters.network.http_connection_manager"
+      patch:
+        operation: INSERT_BEFORE
+        value:
+          name: envoy.filters.http.local_ratelimit
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.filters.http.local_ratelimit.v3.LocalRateLimit
+            stat_prefix: http_local_rate_limiter
+            token_bucket:
+              max_tokens: 3  # 限制 3 个请求
+              tokens_per_fill: 3
+              fill_interval: 60s  # 1 分钟重置
+            filter_enabled:
+              default_value:
+                numerator: 100
+                denominator: HUNDRED
+            filter_enforced:
+              default_value:
+                numerator: 100
+                denominator: HUNDRED
+            response_headers_to_add:
+              - header:
+                  key: "x-rate-limit"
+                  value: "3 requests per minute"
+    - applyTo: VIRTUAL_HOST
+      match:
+        context: SIDECAR_INBOUND
+      patch:
+        operation: MERGE
+        value:
+          rate_limits:
+          - actions:
+              - request_headers:
+                  header_name: "x-request-source"
+                  descriptor_key: "recommendationservice"

@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: '{"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"labels":{"app":"productcatalogservice"},"name":"productcatalogservice","namespace":"online-boutique"},"spec":{"ports":[{"name":"grpc","port":3550,"targetPort":3550}],"selector":{"app":"productcatalogservice"},"type":"ClusterIP"}}
+
+      '
+  labels:
+    app: productcatalogservice
+  name: productcatalogservice
+  namespace: online-boutique
+spec:
+  clusterIP: 10.107.4.168
+  ports:
+  - name: grpc
+    port: 3550
+    protocol: TCP
+    targetPort: 3550
+  selector:
+    app: productcatalogservice
+  sessionAffinity: None
+  type: ClusterIP
