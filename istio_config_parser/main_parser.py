@@ -79,29 +79,32 @@ def parse_control_plane_from_dir(config_dir: str = 'istio_control_config', names
         'configurations': {}
     }
     
-    # 1. 加载并解析服务配置
+    # 1. 加载相关配置
     services_config = _load_config_files(config_dir, 'services', namespace)
+    vs_config = _load_config_files(config_dir, 'virtualservices', namespace)
+    dr_config = _load_config_files(config_dir, 'destinationrules', namespace)
+    ef_config = _load_config_files(config_dir, 'envoyfilters', namespace)
+    # 2. 解析服务配置
     result['services'] = parse_services(services_config)
     
-    # 2. 加载并解析 VirtualService 配置
-    vs_config = _load_config_files(config_dir, 'virtualservices', namespace)
+    # 3. 解析路由规则配置
     routes = parse_routes(vs_config)
     
-    # 3. 加载并解析 DestinationRule 配置
-    dr_config = _load_config_files(config_dir, 'destinationrules', namespace)
+    # 4. 解析灰度发布配置
     canary = parse_canary(dr_config, vs_config)
+    # 5. 解析熔断配置
     circuit_breakers = parse_circuit_breaker(dr_config)
     
-    # 4. 加载并解析 EnvoyFilter 配置
-    ef_config = _load_config_files(config_dir, 'envoyfilters', namespace)
+    # 6. 解析限流配置
     ratelimits = parse_ratelimit(ef_config)
     
-    # 合并所有服务的关系和配置
+    # 7. 合并所有服务的关系和配置
     all_services = set()
     all_services.update(routes.keys())
     all_services.update(canary.keys())
     all_services.update(ratelimits.keys())
-    
+    all_services.update(circuit_breakers.keys())
+
     for service in all_services:
         result['serviceRelations'][service] = {
             'incomingVirtualServices': routes.get(service, {}).get('inbound', []),

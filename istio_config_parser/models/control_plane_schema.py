@@ -109,33 +109,7 @@ CONTROL_PLANE_SCHEMA = {
         "service_name": {              # 服务名称作为键
             "virtualServices": [],      # 虚拟服务配置
             "destinationRules": [],     # 目标规则配置
-            "envoyFilters": [],          # Envoy过滤器配置
-            "circuitBreaker": {         # 熔断配置
-                "global": {             # 全局熔断配置
-                    "connectionPool": {  # 连接池配置
-                        "http": {        # HTTP连接池设置
-                            "http1MaxPendingRequests": "int",
-                            "http2MaxRequests": "int",
-                            "maxRequestsPerConnection": "int",
-                            "maxRetries": "int"
-                        },
-                        "tcp": {         # TCP连接池设置
-                            "maxConnections": "int",
-                            "connectTimeout": "string"
-                        }
-                    },
-                    "outlierDetection": { # 异常检测配置
-                        "baseEjectionTime": "string",
-                        "consecutive5xxErrors": "int",
-                        "interval": "string",
-                        "maxEjectionPercent": "int",
-                        "minHealthPercent": "int"
-                    }
-                },
-                "subsets": {            # 子集特定的熔断配置
-                    "subset_name": None  # 可能为None表示无特定配置，或者包含完整配置
-                }
-            }
+            "envoyFilters": []           # Envoy过滤器配置
         }
     }
 } 
