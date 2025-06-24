@@ -1,0 +1,59 @@
+{
+    "description": "声明需要进行动态测试的 Istio 策略。生成器将根据此文件的 'true'/'false' 值来决定激活哪些正交维度来生成测试用例矩阵。",
+    "enabled_policies": {
+      "routing": true,
+      "retry": true,
+      "circuit_breaker": true,
+      "rate_limit": false,
+      "fault_injection": true
+    },
+    "virtualServices": [
+      {
+        "name": "reviews-route",
+        "spec": {
+          "hosts": ["reviews"],
+          "http": [
+            {
+              "name": "reviews-v2-for-jason",
+              "match": [
+                {
+                  "headers": { "end-user": { "exact": "jason" } },
+                  "uri": { "prefix": "/reviews" }
+                }
+              ],
+              "route": [{ "destination": { "host": "reviews", "subset": "v2" } }],
+              "retries": { "attempts": 3, "per_try_timeout": "2s" }
+            },
+            {
+              "name": "reviews-v1-v3-default-split",
+              "route": [
+                { "destination": { "host": "reviews", "subset": "v1" }, "weight": 80 },
+                { "destination": { "host": "reviews", "subset": "v3" }, "weight": 20 }
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "destinationRules": [
+      {
+        "name": "reviews-dr",
+        "spec": {
+          "host": "reviews",
+          "subsets": [
+            {"name": "v1", "labels": {"version": "v1"}},
+            {"name": "v2", "labels": {"version": "v2"}},
+            {"name": "v3", "labels": {"version": "v3"}}
+          ],
+          "trafficPolicy": {
+            "outlierDetection": {
+              "consecutiveGatewayErrors": 5,
+              "interval": "30s",
+              "baseEjectionTime": "1m"
+            }
+          }
+        }
+      }
+    ]
+  }
+  
