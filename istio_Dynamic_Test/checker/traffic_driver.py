@@ -6,7 +6,7 @@ import json
 import argparse
 import time
 from collections import Counter
-from utils.ssh_utils import SSHClient
+from istio_Dynamic_Test.utils.ssh_utils import SSHClient
 from fault_injector import FaultInjector
 
 class TrafficDriver:

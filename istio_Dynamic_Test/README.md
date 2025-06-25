@@ -19,6 +19,9 @@
 - `scripts/`：存放各类 shell/python 测试脚本
 - `cases/`：存放具体的测试用例描述（如 YAML/JSON/Markdown）
 - `results/`：存放测试结果及日志
+- `checker/`：存放测试结果校验相关脚本和数据，如故障注入、流量驱动、输出矩阵等。
+- `generator`：存放测试用例生成器及相关配置，如 istio_config.json、test_case_generator.py。
+- `utils`：存放辅助工具函数，如 SSH 工具等。
 - `README.md`：本说明文档
 
 ## 实现建议
