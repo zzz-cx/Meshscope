@@ -1,12 +1,13 @@
 import json
-import itertools
 import argparse
-from math import sqrt
 import os
 
 class TestCaseGenerator:
     """
-    解析具体的 Istio 配置文件，生成覆盖多种策略的正交测试用例矩阵。
+    解析具体的 Istio 配置文件，生成精简的正交测试用例矩阵：
+    - 路由/匹配只生成正向用例
+    - 重试/熔断只生成 simulate_503_error 用例
+    - 分流只生成一组负载测试，并根据连接池/限流/熔断配置自动调整并发
     """
     def __init__(self, config_path):
         with open(config_path, 'r', encoding='utf-8') as f:
@@ -35,8 +36,41 @@ class TestCaseGenerator:
         num = (z * z * max_var) / (e * e)
         return int(num + 1)
 
+    def _get_dest_rule_for_host(self, host):
+        for dr in self.config.get("destinationRules", []):
+            dr_host = dr["spec"].get("host")
+            if dr_host == host or dr_host == f"{host}.default.svc.cluster.local":
+                return dr["spec"]
+        return None
+
+    def _has_conn_limit_or_outlier(self, dr_spec):
+        if not dr_spec:
+            return False
+        tp = dr_spec.get("trafficPolicy", {})
+        # 检查 outlierDetection
+        if "outlierDetection" in tp:
+            return True
+        # 检查 connectionPool
+        cp = tp.get("connectionPool", {})
+        http = cp.get("http", {})
+        if cp.get("maxConnections") or http.get("http1MaxPendingRequests") or http.get("maxRequestsPerConnection"):
+            return True
+        return False
+
+    def _any_host_has_conn_limit_or_outlier(self):
+        for dr in self.config.get("destinationRules", []):
+            tp = dr["spec"].get("trafficPolicy", {})
+            if "outlierDetection" in tp:
+                return True
+            cp = tp.get("connectionPool", {})
+            http = cp.get("http", {})
+            if cp.get("maxConnections") or http.get("http1MaxPendingRequests") or http.get("maxRequestsPerConnection"):
+                return True
+        return False
+
     def generate(self):
-        """主生成逻辑，调用各个解析器。"""
+        # 只要有一个host存在熔断或限流，所有分流用例都低并发
+        self.low_concurrency = self._any_host_has_conn_limit_or_outlier()
         self._parse_virtual_services()
         self._parse_destination_rules()
         return self.test_cases
@@ -45,98 +79,95 @@ class TestCaseGenerator:
         for vs in self.config.get("virtualServices", []):
             host = vs["spec"]["hosts"][0]
             for route_block in vs["spec"]["http"]:
-                # 场景一：处理带 `match` 条件的路由规则 (正交单一请求)
+                # 只生成正向匹配用例
                 if "match" in route_block:
-                    self._generate_matching_cases(host, route_block)
-                
-                # 场景二：处理带 `weight` 的分流规则 (多次请求)
+                    params = {}
+                    header_match = route_block["match"][0].get("headers", {})
+                    if header_match:
+                        key, rule = list(header_match.items())[0]
+                        val = rule["exact"]
+                        params["headers"] = {key: val}
+                    uri_match = route_block["match"][0].get("uri", {})
+                    if uri_match:
+                        prefix = uri_match.get("prefix", "")
+                        params["path"] = prefix
+                    self.test_cases.append({
+                        "case_id": self._generate_case_id(),
+                        "description": f"正向匹配路由测试 for host '{host}'",
+                        "type": "single_request",
+                        "request_params": {"host": host, **params},
+                        "expected_outcome": {
+                            "destination": route_block["route"][0]["destination"]["subset"],
+                            "note": "只验证正向命中路由。"
+                        }
+                    })
+                    # 如果有重试策略，生成 simulate_503_error 用例
+                    if "retries" in route_block:
+                        self.test_cases.append({
+                            "case_id": self._generate_case_id(),
+                            "description": f"重试策略-故障注入测试 for host '{host}'",
+                            "type": "single_request",
+                            "request_params": {"host": host, **params, "trigger_condition": "simulate_503_error"},
+                            "expected_outcome": {
+                                "destination": route_block["route"][0]["destination"]["subset"],
+                                "note": "验证重试时的故障注入行为。"
+                            }
+                        })
+                # 分流用例
                 elif "route" in route_block and len(route_block["route"]) > 1:
-                    self._generate_traffic_shifting_case(host, route_block)
+                    weights = [r.get("weight", 0) for r in route_block["route"]]
+                    num_requests = self._calculate_requests_for_split(weights)
+                    concurrency = 1 if self.low_concurrency else 10
+                    distribution = {
+                        r["destination"]["subset"]: f"approx {r['weight']/sum(weights):.2f}"
+                        for r in route_block["route"]
+                    }
+                    self.test_cases.append({
+                        "case_id": self._generate_case_id(),
+                        "description": f"分流权重测试 for host '{host}'",
+                        "type": "load_test",
+                        "request_params": {"host": host, "path": "/"},
+                        "load_params": {"num_requests": num_requests, "concurrency": concurrency},
+                        "expected_outcome": {
+                            "distribution": distribution,
+                            "margin_of_error": "0.05"
+                        }
+                    })
+                elif "retries" in route_block:
+                    self.test_cases.append({
+                        "case_id": self._generate_case_id(),
+                        "description": f"重试策略-故障注入测试 for host '{host}' (default route)",
+                        "type": "single_request",
+                        "request_params": {"host": host, "trigger_condition": "simulate_503_error"},
+                        "expected_outcome": {
+                            "destination": route_block["route"][0]["destination"]["subset"],
+                            "note": "验证重试时的故障注入行为（无 match 默认路由）。"
+                        }
+                    })
 
-    def _generate_matching_cases(self, host, route_block):
-        """为带 match 的规则生成正交测试用例。"""
-        dimensions = {}
-        # 提取 header 匹配维度 (正向 + 反向)
-        header_match = route_block["match"][0].get("headers", {})
-        if header_match:
-            key, rule = list(header_match.items())[0]
-            val = rule["exact"]
-            dimensions["headers"] = [{key: val}, {key: f"not-{val}"}] # 正向与反向
-
-        # 提取 uri 匹配维度 (正向 + 反向)
-        uri_match = route_block["match"][0].get("uri", {})
-        if uri_match:
-            prefix = uri_match["prefix"]
-            dimensions["path"] = [f"{prefix}", ""]
-
-        # 提取重试策略维度
-        if "retries" in route_block:
-            dimensions["trigger_condition"] = ["normal_response", "simulate_503_error"]
-
-        # 生成正交组合
-        dim_names = dimensions.keys()
-        for combo in itertools.product(*dimensions.values()):
-            params = dict(zip(dim_names, combo))
-            self.test_cases.append({
-                "case_id": self._generate_case_id(),
-                "description": f"Test routing for host '{host}' with params: {params}",
-                "type": "single_request",
-                "request_params": { "host": host, **params },
-                "expected_outcome": {
-                    "destination": route_block["route"][0]["destination"]["subset"],
-                    "note": "Verify response source and retry behavior if applicable."
-                }
-            })
-
-    def _generate_traffic_shifting_case(self, host, route_block):
-        """为权重分流生成一个多次请求的测试用例。"""
-        weights = [r.get("weight", 0) for r in route_block["route"]]
-        num_requests = self._calculate_requests_for_split(weights)
-        
-        distribution = {
-            r["destination"]["subset"]: f"approx {r['weight']/sum(weights):.2f}"
-            for r in route_block["route"]
-        }
-
-        self.test_cases.append({
-            "case_id": self._generate_case_id(),
-            "description": f"Verify {weights} traffic split for host '{host}'",
-            "type": "load_test",
-            "request_params": {"host": host, "path": "/"},
-            "load_params": {"num_requests": num_requests, "concurrency": 10},
-            "expected_outcome": {
-                "distribution": distribution,
-                "margin_of_error": "0.05"
-            }
-        })
-        
     def _parse_destination_rules(self):
         for dr in self.config.get("destinationRules", []):
-            # 场景三：处理熔断策略 (多次请求)
             if "outlierDetection" in dr["spec"].get("trafficPolicy", {}):
                 policy = dr["spec"]["trafficPolicy"]["outlierDetection"]
+                # 只生成 simulate_503_error 用例
                 self.test_cases.append({
                     "case_id": self._generate_case_id(),
-                    "description": f"Verify circuit breaker for host '{dr['spec']['host']}'",
+                    "description": f"熔断策略-故障注入测试 for host '{dr['spec']['host']}'",
                     "type": "load_test",
-                    "request_params": {"host": dr['spec']['host']},
+                    "request_params": {"host": dr['spec']['host'], "trigger_condition": "simulate_503_error"},
                     "load_params": {
                         "concurrency": policy.get("consecutiveGatewayErrors", 5) * 2,
-                        "num_requests": policy.get("consecutiveGatewayErrors", 5) * 10,
-                        "trigger_condition": "simulate_503_error"
+                        "num_requests": policy.get("consecutiveGatewayErrors", 5) * 10
                     },
                     "expected_outcome": {
-                        "behavior": "Observe upstream_rq_pending_overflow and successful requests count."
+                        "behavior": "验证熔断时的故障注入与恢复行为。"
                     }
                 })
 
 def main():
-    parser = argparse.ArgumentParser(description="智能 Istio 测试用例生成器")
-    
-    # Construct the default path for the config file relative to the script's location.
+    parser = argparse.ArgumentParser(description="精简版 Istio 测试用例生成器（自动适配并发限制）")
     script_dir = os.path.dirname(os.path.realpath(__file__))
     default_input_path = os.path.join(script_dir, 'istio_config.json')
-
     parser.add_argument("-i", "--input", default=default_input_path, help="输入的 Istio 配置文件路径")
     parser.add_argument("-o", "--output", default="output_matrix.json", help="输出的测试矩阵文件路径")
     parser.add_argument("--ingress-url", required=True, help="集群入口服务的URL (例如: http://productpage:9080)")

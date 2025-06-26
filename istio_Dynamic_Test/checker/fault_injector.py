@@ -1,43 +1,166 @@
 import time
+import os
+import paramiko
+import yaml
 
 class FaultInjector:
     """
-    用于在测试期间通过 SSH 在集群主机上模拟下游服务的故障。
+    支持自动生成/patch 任意 VirtualService 实现故障注入。
+    - 无目标 VS 时新建，清理时删除。
+    - 有目标 VS 时先备份，patch 注入高优先级路由，清理时恢复。
     """
-    def __init__(self, ssh_client):
+    def __init__(self, ssh_client, vs_name='reviews', route_host='reviews', namespace='default'):
         self.ssh_client = ssh_client
-        print("🔧 FaultInjector initialized. (SSH模式)")
+        self._vs_name = vs_name
+        self._route_host = route_host
+        self._namespace = namespace
+        self._backup_path = f'/tmp/{vs_name}_vs_backup.yaml'
+        self._patched_path = f'/tmp/{vs_name}_vs_patched.yaml'
+        self._new_path = f'/tmp/{vs_name}_vs_new.yaml'
+        self._injected = False
+        self._created = False
+        print(f"🔧 FaultInjector initialized for VS: {vs_name}, route_host: {route_host}")
 
-    def inject_http_fault(self, service_name, error_code=503):
-        """
-        为指定服务注入一个返回特定错误码的故障。
-        
-        这在实际实现中可能需要与 Kubernetes API 或服务网格的调试端点交互。
-        例如，创建一个临时的 Istio FaultInjection 规则。
-        """
-        print(f"🔥 [INJECTING FAULT] 为服务 '{service_name}' 注入 HTTP {error_code} 故障...")
-        # 这里假设有一个预定义的 YAML 文件用于注入故障
-        yaml_path = f"/tmp/fault_injection_{service_name}_{error_code}.yaml"
-        # 你可以根据实际情况动态生成 yaml 文件并上传到主机
-        cmd = f"kubectl apply -f {yaml_path}"
-        output, error = self.ssh_client.run_command(cmd)
-        print(f"  - 注入故障输出: {output.strip()}")
-        if error:
-            print(f"  - 注入故障错误: {error.strip()}")
+    def _remote(self, cmd):
+        return self.ssh_client.run_command(cmd)
 
-    def clear_faults(self, service_name):
-        """
-        清除为指定服务注入的所有故障。
-        
-        这在实际实现中需要删除之前创建的 Istio 规则。
-        """
-        print(f"🧹 [CLEARING FAULT] 清除服务 '{service_name}' 的所有故障...")
-        # 假设故障注入规则名为 fault-injection-{service_name}
-        rule_name = f"fault-injection-{service_name}"
-        cmd = f"kubectl delete virtualservice {rule_name} --ignore-not-found"
-        output, error = self.ssh_client.run_command(cmd)
-        print(f"  - 清理故障输出: {output.strip()}")
-        if error:
-            print(f"  - 清理故障错误: {error.strip()}")
+    def _upload_file(self, local_path, remote_path):
+        transport = paramiko.Transport((self.ssh_client.hostname, self.ssh_client.port))
+        if self.ssh_client.password:
+            transport.connect(username=self.ssh_client.username, password=self.ssh_client.password)
+        else:
+            transport.connect(username=self.ssh_client.username, pkey=None)
+        sftp = paramiko.SFTPClient.from_transport(transport)
+        sftp.put(local_path, remote_path)
+        sftp.close()
+        transport.close()
+
+    def _download_vs_to_local(self, remote_path, local_path):
+        transport = paramiko.Transport((self.ssh_client.hostname, self.ssh_client.port))
+        if self.ssh_client.password:
+            transport.connect(username=self.ssh_client.username, password=self.ssh_client.password)
+        else:
+            transport.connect(username=self.ssh_client.username, pkey=None)
+        sftp = paramiko.SFTPClient.from_transport(transport)
+        sftp.get(remote_path, local_path)
+        sftp.close()
+        transport.close()
+
+    def _patch_vs_fault(self, local_backup, local_patched, error_code=503, match_headers=None, match_path=None):
+        with open(local_backup, 'r', encoding='utf-8') as f:
+            vs = yaml.safe_load(f)
+        match = {}
+        if match_headers:
+            match['headers'] = {k: {'exact': v} for k, v in match_headers.items()}
+        if match_path:
+            match['uri'] = {'exact': match_path}
+        else:
+            match['uri'] = {'exact': '/productpage'}  # 默认入口路径
+        print(f"[DEBUG] 注入故障时插入的 match 字段: {match}")
+        fault_rule = {
+            'fault': {
+                'abort': {
+                    'httpStatus': error_code,
+                    'percentage': {'value': 100}
+                }
+            },
+            'route': [{
+                'destination': {'host': self._route_host}
+            }]
+        }
+        if match:
+            fault_rule['match'] = [match]
+        vs['spec']['http'] = [fault_rule] + vs['spec'].get('http', [])
+        with open(local_patched, 'w', encoding='utf-8') as f:
+            yaml.safe_dump(vs, f)
+        with open(local_patched, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+            print('[DEBUG] patch 后 VS yaml 预览:')
+            print(''.join(lines[:40]))
+
+    def _generate_new_vs(self, local_path, error_code=503, match_headers=None, match_path=None):
+        match = {}
+        if match_headers:
+            match['headers'] = {k: {'exact': v} for k, v in match_headers.items()}
+        if match_path:
+            match['uri'] = {'exact': match_path}
+        else:
+            match['uri'] = {'exact': '/productpage'}
+        fault_rule = {
+            'fault': {
+                'abort': {
+                    'httpStatus': error_code,
+                    'percentage': {'value': 100}
+                }
+            },
+            'route': [{
+                'destination': {'host': self._route_host}
+            }]
+        }
+        if match:
+            fault_rule['match'] = [match]
+        vs = {
+            'apiVersion': 'networking.istio.io/v1beta1',
+            'kind': 'VirtualService',
+            'metadata': {'name': self._vs_name, 'namespace': self._namespace},
+            'spec': {
+                'hosts': [self._route_host],
+                'http': [fault_rule]
+            }
+        }
+        with open(local_path, 'w', encoding='utf-8') as f:
+            yaml.safe_dump(vs, f)
+
+    def inject_http_fault(self, error_code=503, match_headers=None, match_path=None):
+        print(f"🔥 [INJECTING FAULT] patch VS '{self._vs_name}' 注入 HTTP {error_code} 故障...")
+        check_cmd = f"kubectl get virtualservice {self._vs_name} -n {self._namespace}"
+        output, error = self._remote(check_cmd)
+        if 'NotFound' in output or 'NotFound' in error:
+            print(f"  - 未检测到 {self._vs_name} VS，自动生成新 VS")
+            local_new = f'checker/{self._vs_name}_vs_new.yaml'
+            self._generate_new_vs(local_new, error_code, match_headers, match_path)
+            self._upload_file(local_new, self._new_path)
+            apply_cmd = f"kubectl apply -f {self._new_path}"
+            out, err = self._remote(apply_cmd)
+            print(f"  - 新建VS输出: {out.strip()}")
+            if err:
+                print(f"  - 新建VS错误: {err.strip()}")
+            self._created = True
+        else:
+            print(f"  - 检测到 {self._vs_name} VS，先备份并patch注入故障")
+            remote_backup = self._backup_path
+            local_backup = f'checker/{self._vs_name}_vs_backup.yaml'
+            local_patched = f'checker/{self._vs_name}_vs_patched.yaml'
+            dump_cmd = f"kubectl get virtualservice {self._vs_name} -n {self._namespace} -o yaml > {remote_backup}"
+            self._remote(dump_cmd)
+            self._download_vs_to_local(remote_backup, local_backup)
+            self._patch_vs_fault(local_backup, local_patched, error_code, match_headers, match_path)
+            self._upload_file(local_patched, self._patched_path)
+            apply_cmd = f"kubectl apply -f {self._patched_path}"
+            out, err = self._remote(apply_cmd)
+            print(f"  - patch VS输出: {out.strip()}")
+            if err:
+                print(f"  - patch VS错误: {err.strip()}")
+            self._injected = True
+
+    def clear_faults(self):
+        print(f"🧹 [CLEARING FAULT] 清除 VS '{self._vs_name}' 的所有故障...")
+        if self._created:
+            del_cmd = f"kubectl delete virtualservice {self._vs_name} -n {self._namespace} --ignore-not-found"
+            out, err = self._remote(del_cmd)
+            print(f"  - 删除VS输出: {out.strip()}")
+            if err:
+                print(f"  - 删除VS错误: {err.strip()}")
+            self._created = False
+        elif self._injected:
+            print(f"  - 恢复原始 {self._vs_name} VS 配置")
+            self._upload_file(f'checker/{self._vs_name}_vs_backup.yaml', self._backup_path)
+            replace_cmd = f"kubectl replace --force -f {self._backup_path}"
+            out, err = self._remote(replace_cmd)
+            print(f"  - 恢复VS输出: {out.strip()}")
+            if err:
+                print(f"  - 恢复VS错误: {err.strip()}")
+            self._injected = False
 
 # Main block removed to convert this file into a library module. 
+
