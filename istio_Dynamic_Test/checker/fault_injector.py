@@ -49,14 +49,6 @@ class FaultInjector:
     def _patch_vs_fault(self, local_backup, local_patched, error_code=503, match_headers=None, match_path=None):
         with open(local_backup, 'r', encoding='utf-8') as f:
             vs = yaml.safe_load(f)
-        match = {}
-        if match_headers:
-            match['headers'] = {k: {'exact': v} for k, v in match_headers.items()}
-        if match_path:
-            match['uri'] = {'exact': match_path}
-        else:
-            match['uri'] = {'exact': '/productpage'}  # 默认入口路径
-        print(f"[DEBUG] 注入故障时插入的 match 字段: {match}")
         fault_rule = {
             'fault': {
                 'abort': {
@@ -68,8 +60,6 @@ class FaultInjector:
                 'destination': {'host': self._route_host}
             }]
         }
-        if match:
-            fault_rule['match'] = [match]
         vs['spec']['http'] = [fault_rule] + vs['spec'].get('http', [])
         with open(local_patched, 'w', encoding='utf-8') as f:
             yaml.safe_dump(vs, f)
@@ -79,13 +69,6 @@ class FaultInjector:
             print(''.join(lines[:40]))
 
     def _generate_new_vs(self, local_path, error_code=503, match_headers=None, match_path=None):
-        match = {}
-        if match_headers:
-            match['headers'] = {k: {'exact': v} for k, v in match_headers.items()}
-        if match_path:
-            match['uri'] = {'exact': match_path}
-        else:
-            match['uri'] = {'exact': '/productpage'}
         fault_rule = {
             'fault': {
                 'abort': {
@@ -97,8 +80,6 @@ class FaultInjector:
                 'destination': {'host': self._route_host}
             }]
         }
-        if match:
-            fault_rule['match'] = [match]
         vs = {
             'apiVersion': 'networking.istio.io/v1beta1',
             'kind': 'VirtualService',

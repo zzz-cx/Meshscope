@@ -6,14 +6,19 @@ class TestCaseGenerator:
     """
     解析具体的 Istio 配置文件，生成精简的正交测试用例矩阵：
     - 路由/匹配只生成正向用例
-    - 重试/熔断只生成 simulate_503_error 用例
+    - 重试/熔断只生成 simulate_503_error 用例（重试用例为下游服务注入故障）
     - 分流只生成一组负载测试，并根据连接池/限流/熔断配置自动调整并发
     """
-    def __init__(self, config_path):
+    def __init__(self, config_path, service_deps_path=None):
         with open(config_path, 'r', encoding='utf-8') as f:
             self.config = json.load(f)
         self.test_cases = []
         self.case_id_counter = 1
+        self.service_deps = {}
+        if service_deps_path:
+            if os.path.exists(service_deps_path):
+                with open(service_deps_path, 'r', encoding='utf-8') as f:
+                    self.service_deps = json.load(f)
 
     def _generate_case_id(self):
         case_id = f"case_{self.case_id_counter:03d}"
@@ -99,20 +104,38 @@ class TestCaseGenerator:
                         "expected_outcome": {
                             "destination": route_block["route"][0]["destination"]["subset"],
                             "note": "只验证正向命中路由。"
-                        }
+                        },
+                        "source_service": host
                     })
-                    # 如果有重试策略，生成 simulate_503_error 用例
+                    # 如果有重试策略，生成 simulate_503_error 用例（为下游服务注入故障）
                     if "retries" in route_block:
-                        self.test_cases.append({
-                            "case_id": self._generate_case_id(),
-                            "description": f"重试策略-故障注入测试 for host '{host}'",
-                            "type": "single_request",
-                            "request_params": {"host": host, **params, "trigger_condition": "simulate_503_error"},
-                            "expected_outcome": {
-                                "destination": route_block["route"][0]["destination"]["subset"],
-                                "note": "验证重试时的故障注入行为。"
-                            }
-                        })
+                        downstreams = self.service_deps.get(host, [])
+                        if downstreams:
+                            downstream = downstreams[0]
+                            self.test_cases.append({
+                                "case_id": self._generate_case_id(),
+                                "description": f"重试策略-故障注入测试 for host '{host}', inject fault to '{downstream}'",
+                                "type": "single_request",
+                                "request_params": {"host": host, **params, "trigger_condition": "simulate_503_error", "inject_fault_to": downstream},
+                                "expected_outcome": {
+                                    "destination": route_block["route"][0]["destination"]["subset"],
+                                    "note": "验证重试时的故障注入行为。"
+                                },
+                                "source_service": host
+                            })
+                        else:
+                            # 没有下游服务时，兼容原有逻辑
+                            self.test_cases.append({
+                                "case_id": self._generate_case_id(),
+                                "description": f"重试策略-故障注入测试 for host '{host}' (无下游服务)",
+                                "type": "single_request",
+                                "request_params": {"host": host, **params, "trigger_condition": "simulate_503_error"},
+                                "expected_outcome": {
+                                    "destination": route_block["route"][0]["destination"]["subset"],
+                                    "note": "验证重试时的故障注入行为。"
+                                },
+                                "source_service": host
+                            })
                 # 分流用例
                 elif "route" in route_block and len(route_block["route"]) > 1:
                     weights = [r.get("weight", 0) for r in route_block["route"]]
@@ -131,19 +154,36 @@ class TestCaseGenerator:
                         "expected_outcome": {
                             "distribution": distribution,
                             "margin_of_error": "0.05"
-                        }
+                        },
+                        "source_service": host
                     })
                 elif "retries" in route_block:
-                    self.test_cases.append({
-                        "case_id": self._generate_case_id(),
-                        "description": f"重试策略-故障注入测试 for host '{host}' (default route)",
-                        "type": "single_request",
-                        "request_params": {"host": host, "trigger_condition": "simulate_503_error"},
-                        "expected_outcome": {
-                            "destination": route_block["route"][0]["destination"]["subset"],
-                            "note": "验证重试时的故障注入行为（无 match 默认路由）。"
-                        }
-                    })
+                    downstreams = self.service_deps.get(host, [])
+                    if downstreams:
+                        downstream = downstreams[0]
+                        self.test_cases.append({
+                            "case_id": self._generate_case_id(),
+                            "description": f"重试策略-故障注入测试 for host '{host}' (default route), inject fault to '{downstream}'",
+                            "type": "single_request",
+                            "request_params": {"host": host, "trigger_condition": "simulate_503_error", "inject_fault_to": downstream},
+                            "expected_outcome": {
+                                "destination": route_block["route"][0]["destination"]["subset"],
+                                "note": "验证重试时的故障注入行为（无 match 默认路由）。"
+                            },
+                            "source_service": host
+                        })
+                    else:
+                        self.test_cases.append({
+                            "case_id": self._generate_case_id(),
+                            "description": f"重试策略-故障注入测试 for host '{host}' (default route, 无下游服务)",
+                            "type": "single_request",
+                            "request_params": {"host": host, "trigger_condition": "simulate_503_error"},
+                            "expected_outcome": {
+                                "destination": route_block["route"][0]["destination"]["subset"],
+                                "note": "验证重试时的故障注入行为（无 match 默认路由）。"
+                            },
+                            "source_service": host
+                        })
 
     def _parse_destination_rules(self):
         for dr in self.config.get("destinationRules", []):
@@ -171,9 +211,10 @@ def main():
     parser.add_argument("-i", "--input", default=default_input_path, help="输入的 Istio 配置文件路径")
     parser.add_argument("-o", "--output", default="output_matrix.json", help="输出的测试矩阵文件路径")
     parser.add_argument("--ingress-url", required=True, help="集群入口服务的URL (例如: http://productpage:9080)")
+    parser.add_argument("--service-deps", required=True, help="服务依赖关系的json文件路径（由 trace_utils 生成）")
     args = parser.parse_args()
 
-    generator = TestCaseGenerator(args.input)
+    generator = TestCaseGenerator(args.input, args.service_deps)
     test_cases = generator.generate()
 
     output_data = {

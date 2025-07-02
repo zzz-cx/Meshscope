@@ -1,0 +1,41 @@
+{
+  "global_settings": {
+    "ingress_url": "http://192.168.92.131:30476/productpage"
+  },
+  "test_cases": [
+    {
+      "case_id": "case_001",
+      "description": "路由测试 - 请求路由到 reviews-v2",
+      "type": "single_request",
+      "request_params": {
+        "host": "reviews",
+        "headers": {
+          "user-agent": "jason"
+        }
+      },
+      "expected_outcome": {
+        "destination": "v2",
+        "note": "验证路由到 v2 版本"
+      }
+    },
+    {
+      "case_id": "case_002",
+      "description": "流量分布测试 - 80% v1, 20% v3",
+      "type": "load_test",
+      "request_params": {
+        "host": "reviews"
+      },
+      "load_params": {
+        "num_requests": 50,
+        "concurrency": 1
+      },
+      "expected_outcome": {
+        "distribution": {
+          "v1": "0.80",
+          "v3": "0.20"
+        },
+        "margin_of_error": "0.05"
+      }
+    }
+  ]
+}
