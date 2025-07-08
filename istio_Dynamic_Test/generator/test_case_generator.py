@@ -80,64 +80,257 @@ class TestCaseGenerator:
         self._parse_destination_rules()
         return self.test_cases
 
-    def _parse_virtual_services(self):
+    def _extract_route_params(self, route_block):
+        """提取路由匹配参数"""
+        params = {}
+        if "match" in route_block:
+            header_match = route_block["match"][0].get("headers", {})
+            if header_match:
+                key, rule = list(header_match.items())[0]
+                # 支持多种匹配类型：exact, prefix, regex
+                if "exact" in rule:
+                    val = rule["exact"]
+                elif "prefix" in rule:
+                    val = rule["prefix"] + "-test"  # 为prefix添加后缀确保匹配
+                elif "regex" in rule:
+                    # 为regex提供一个可能的匹配值（简化处理）
+                    val = "test-value"
+                else:
+                    # 默认处理其他情况
+                    val = str(list(rule.values())[0])
+                params["headers"] = {key: val}
+            uri_match = route_block["match"][0].get("uri", {})
+            if uri_match:
+                prefix = uri_match.get("prefix", "")
+                params["path"] = prefix
+        return params
+
+    def _get_policy_combination(self, route_block):
+        """获取路由规则的策略组合（正交设计核心）"""
+        policies = {
+            "has_retries": "retries" in route_block,
+            "has_timeout": "timeout" in route_block,
+            "has_fault": "fault" in route_block,
+            "retry_attempts": route_block.get("retries", {}).get("attempts", 0),
+            "timeout_value": route_block.get("timeout", ""),
+            "fault_config": route_block.get("fault", {})
+        }
+        return policies
+
+    def _generate_orthogonal_test_case(self, host, route_block, params, case_type="basic"):
+        """生成正交组合测试用例"""
+        policies = self._get_policy_combination(route_block)
+        
+        # 基础路由测试
+        if case_type == "basic":
+            return {
+                "case_id": self._generate_case_id(),
+                "description": f"正向匹配路由测试 for host '{host}'",
+                "type": "single_request",
+                "request_params": {"host": host, **params},
+                "expected_outcome": {
+                    "destination": route_block["route"][0]["destination"]["subset"],
+                    "note": "验证正向命中路由。"
+                },
+                "source_service": host
+            }
+        
+        # 正交组合策略测试
+        elif case_type == "orthogonal_combination":
+            test_strategies = []
+            request_params = {"host": host, **params}
+            expected_behaviors = []
+            
+            # 策略1: 超时 + 重试组合测试
+            if policies["has_timeout"] and policies["has_retries"]:
+                request_params["simulate_slow_response"] = True
+                request_params["response_delay"] = "3s"  # 超过timeout的延迟
+                test_strategies.append("timeout+retry")
+                expected_behaviors.append(f"超时{policies['timeout_value']}后重试{policies['retry_attempts']}次")
+            
+            # 策略2: 故障注入 + 重试组合测试
+            elif policies["has_fault"] and policies["has_retries"]:
+                fault_config = policies["fault_config"]
+                if "abort" in fault_config:
+                    request_params["trigger_condition"] = "simulate_config_fault"
+                    request_params["fault_type"] = "abort"
+                    request_params["fault_status"] = fault_config["abort"]["httpStatus"]
+                    request_params["fault_percentage"] = fault_config["abort"]["percent"]
+                    test_strategies.append("fault+retry")
+                    expected_behaviors.append(f"配置故障注入({fault_config['abort']['httpStatus']}, {fault_config['abort']['percent']}%)后重试{policies['retry_attempts']}次")
+                elif "delay" in fault_config:
+                    request_params["trigger_condition"] = "simulate_config_fault"
+                    request_params["fault_type"] = "delay"
+                    request_params["fault_delay"] = fault_config["delay"]["fixedDelay"]
+                    request_params["fault_percentage"] = fault_config["delay"]["percent"]
+                    test_strategies.append("delay+retry")
+                    expected_behaviors.append(f"延迟故障注入({fault_config['delay']['fixedDelay']}, {fault_config['delay']['percent']}%)后重试{policies['retry_attempts']}次")
+            
+            # 策略3: 仅超时测试
+            elif policies["has_timeout"]:
+                request_params["simulate_slow_response"] = True
+                request_params["response_delay"] = "3s"
+                test_strategies.append("timeout")
+                expected_behaviors.append(f"验证{policies['timeout_value']}超时设置")
+            
+            # 策略4: 仅故障注入测试
+            elif policies["has_fault"]:
+                fault_config = policies["fault_config"]
+                if "abort" in fault_config:
+                    request_params["trigger_condition"] = "simulate_config_fault"
+                    request_params["fault_type"] = "abort"
+                    request_params["fault_status"] = fault_config["abort"]["httpStatus"]
+                    request_params["fault_percentage"] = fault_config["abort"]["percent"]
+                    test_strategies.append("fault")
+                    expected_behaviors.append(f"验证配置故障注入({fault_config['abort']['httpStatus']}, {fault_config['abort']['percent']}%)")
+            
+            # 策略5: 仅重试测试（使用模拟故障）
+            elif policies["has_retries"]:
+                downstreams = self.service_deps.get(host, [])
+                if downstreams:
+                    request_params["trigger_condition"] = "simulate_503_error"
+                    request_params["inject_fault_to"] = downstreams[0]
+                    test_strategies.append("retry")
+                    expected_behaviors.append(f"下游故障重试{policies['retry_attempts']}次")
+                else:
+                    request_params["trigger_condition"] = "simulate_503_error"
+                    test_strategies.append("retry")
+                    expected_behaviors.append(f"服务故障重试{policies['retry_attempts']}次")
+            
+            if test_strategies:
+                return {
+                    "case_id": self._generate_case_id(),
+                    "description": f"正交组合策略测试({'+'.join(test_strategies)}) for host '{host}'",
+                    "type": "single_request",
+                    "request_params": request_params,
+                    "expected_outcome": {
+                        "destination": route_block["route"][0]["destination"]["subset"],
+                        "behaviors": expected_behaviors,
+                        "note": f"验证{'+'.join(test_strategies)}策略组合行为。"
+                    },
+                    "source_service": host,
+                    "test_strategies": test_strategies
+                }
+        
+        return None
+
+    def _group_routes_by_destination(self):
+        """按目标版本分组路由规则，实现匹配条件的正交组合"""
+        destination_groups = {}
+        
         for vs in self.config.get("virtualServices", []):
             host = vs["spec"]["hosts"][0]
             for route_block in vs["spec"]["http"]:
-                # 只生成正向匹配用例
-                if "match" in route_block:
-                    params = {}
-                    header_match = route_block["match"][0].get("headers", {})
-                    if header_match:
-                        key, rule = list(header_match.items())[0]
-                        val = rule["exact"]
-                        params["headers"] = {key: val}
-                    uri_match = route_block["match"][0].get("uri", {})
-                    if uri_match:
-                        prefix = uri_match.get("prefix", "")
-                        params["path"] = prefix
-                    self.test_cases.append({
-                        "case_id": self._generate_case_id(),
-                        "description": f"正向匹配路由测试 for host '{host}'",
-                        "type": "single_request",
-                        "request_params": {"host": host, **params},
-                        "expected_outcome": {
-                            "destination": route_block["route"][0]["destination"]["subset"],
-                            "note": "只验证正向命中路由。"
-                        },
-                        "source_service": host
+                if "match" in route_block and "route" in route_block:
+                    destination = route_block["route"][0]["destination"]["subset"]
+                    
+                    if destination not in destination_groups:
+                        destination_groups[destination] = []
+                    
+                    destination_groups[destination].append({
+                        "host": host,
+                        "route_block": route_block,
+                        "params": self._extract_route_params(route_block)
                     })
-                    # 如果有重试策略，生成 simulate_503_error 用例（为下游服务注入故障）
-                    if "retries" in route_block:
-                        downstreams = self.service_deps.get(host, [])
-                        if downstreams:
-                            downstream = downstreams[0]
-                            self.test_cases.append({
-                                "case_id": self._generate_case_id(),
-                                "description": f"重试策略-故障注入测试 for host '{host}', inject fault to '{downstream}'",
-                                "type": "single_request",
-                                "request_params": {"host": host, **params, "trigger_condition": "simulate_503_error", "inject_fault_to": downstream},
-                                "expected_outcome": {
-                                    "destination": route_block["route"][0]["destination"]["subset"],
-                                    "note": "验证重试时的故障注入行为。"
-                                },
-                                "source_service": host
-                            })
-                        else:
-                            # 没有下游服务时，兼容原有逻辑
-                            self.test_cases.append({
-                                "case_id": self._generate_case_id(),
-                                "description": f"重试策略-故障注入测试 for host '{host}' (无下游服务)",
-                                "type": "single_request",
-                                "request_params": {"host": host, **params, "trigger_condition": "simulate_503_error"},
-                                "expected_outcome": {
-                                    "destination": route_block["route"][0]["destination"]["subset"],
-                                    "note": "验证重试时的故障注入行为。"
-                                },
-                                "source_service": host
-                            })
-                # 分流用例
-                elif "route" in route_block and len(route_block["route"]) > 1:
+        
+        return destination_groups
+
+    def _generate_orthogonal_matching_test(self, destination, route_group):
+        """生成匹配条件的正交组合测试用例"""
+        if len(route_group) < 2:
+            return None
+        
+        # 构建正交匹配测试
+        combined_params = {}
+        expected_hits = []
+        test_description_parts = []
+        
+        for route_info in route_group:
+            host = route_info["host"]
+            params = route_info["params"]
+            
+            # 合并请求参数
+            if "headers" in params:
+                if "headers" not in combined_params:
+                    combined_params["headers"] = {}
+                combined_params["headers"].update(params["headers"])
+            
+            if "path" in params:
+                combined_params["path"] = params["path"]
+            
+            # 记录期望命中的服务和目标
+            expected_hits.append({
+                "host": host,
+                "destination": destination,
+                "match_condition": params
+            })
+            
+            # 构建描述
+            match_desc = ""
+            if "headers" in params:
+                header_key = list(params["headers"].keys())[0]
+                header_val = list(params["headers"].values())[0]
+                match_desc = f"{header_key}={header_val}"
+            if "path" in params:
+                match_desc += f" path={params['path']}" if match_desc else f"path={params['path']}"
+            
+            test_description_parts.append(f"{host}({match_desc})")
+        
+        return {
+            "case_id": self._generate_case_id(),
+            "description": f"正交匹配组合测试({'+'.join(test_description_parts)}) -> {destination}",
+            "type": "single_request",
+            "request_params": {
+                "orthogonal_matching": True,
+                **combined_params
+            },
+            "expected_outcome": {
+                "orthogonal_hits": expected_hits,
+                "note": f"一个用例验证多个服务到{destination}的匹配规则"
+            },
+            "test_strategies": ["orthogonal_matching"],
+            "target_hosts": [route_info["host"] for route_info in route_group]
+        }
+
+    def _parse_virtual_services(self):
+        # 首先按目标版本分组，寻找正交匹配机会
+        destination_groups = self._group_routes_by_destination()
+        
+        # 生成正交匹配测试用例
+        for destination, route_group in destination_groups.items():
+            orthogonal_matching_case = self._generate_orthogonal_matching_test(destination, route_group)
+            if orthogonal_matching_case:
+                self.test_cases.append(orthogonal_matching_case)
+                # 标记已处理的路由，避免重复生成
+                for route_info in route_group:
+                    route_info["processed"] = True
+        
+        # 处理剩余的路由规则
+        for vs in self.config.get("virtualServices", []):
+            host = vs["spec"]["hosts"][0]
+            for route_block in vs["spec"]["http"]:
+                params = self._extract_route_params(route_block)
+                
+                # 检查是否已被正交匹配处理
+                already_processed = False
+                if "match" in route_block and "route" in route_block:
+                    destination = route_block["route"][0]["destination"]["subset"]
+                    for route_group in destination_groups.values():
+                        for route_info in route_group:
+                            if (route_info["host"] == host and 
+                                route_info.get("processed") and
+                                route_info["route_block"] == route_block):
+                                already_processed = True
+                                break
+                
+                # 1. 基础路由测试（如果有match规则且未被正交处理）
+                if "match" in route_block and not already_processed:
+                    basic_case = self._generate_orthogonal_test_case(host, route_block, params, "basic")
+                    if basic_case:
+                        self.test_cases.append(basic_case)
+                
+                # 2. 分流权重测试（优先检查，避免重复）
+                if "route" in route_block and len(route_block["route"]) > 1:
                     weights = [r.get("weight", 0) for r in route_block["route"]]
                     num_requests = self._calculate_requests_for_split(weights)
                     concurrency = 1 if self.low_concurrency else 10
@@ -145,64 +338,168 @@ class TestCaseGenerator:
                         r["destination"]["subset"]: f"approx {r['weight']/sum(weights):.2f}"
                         for r in route_block["route"]
                     }
+                    
+                    # 正交组合：分流 + 故障注入（一个用例同时验证两个功能）
+                    load_params = {"host": host, "path": "/"}
+                    test_strategies = ["traffic_split"]
+                    expected_behaviors = [f"验证流量分割：{', '.join([f'{r['destination']['subset']}({r.get('weight', 0)}%)' for r in route_block['route']])}"]
+                    
+                    if "fault" in route_block:
+                        fault_config = route_block["fault"]
+                        if "abort" in fault_config:
+                            load_params["trigger_condition"] = "simulate_config_fault"
+                            load_params["fault_type"] = "abort"
+                            load_params["fault_status"] = fault_config["abort"]["httpStatus"]
+                            load_params["fault_percentage"] = fault_config["abort"]["percent"]
+                            test_strategies.append("fault_injection")
+                            expected_behaviors.append(f"验证故障注入：{fault_config['abort']['httpStatus']}错误({fault_config['abort']['percent']}%)")
+                        elif "delay" in fault_config:
+                            load_params["trigger_condition"] = "simulate_config_fault"
+                            load_params["fault_type"] = "delay"
+                            load_params["fault_delay"] = fault_config["delay"]["fixedDelay"]
+                            load_params["fault_percentage"] = fault_config["delay"]["percent"]
+                            test_strategies.append("fault_injection")
+                            expected_behaviors.append(f"验证延迟注入：{fault_config['delay']['fixedDelay']}({fault_config['delay']['percent']}%)")
+                    
+                    test_description = f"正交组合测试({'+'.join(test_strategies)}) for host '{host}'"
+                    
                     self.test_cases.append({
                         "case_id": self._generate_case_id(),
-                        "description": f"分流权重测试 for host '{host}'",
+                        "description": test_description,
                         "type": "load_test",
-                        "request_params": {"host": host, "path": "/"},
+                        "request_params": load_params,
                         "load_params": {"num_requests": num_requests, "concurrency": concurrency},
                         "expected_outcome": {
                             "distribution": distribution,
-                            "margin_of_error": "0.05"
+                            "margin_of_error": "0.05",
+                            "behaviors": expected_behaviors
                         },
-                        "source_service": host
+                        "source_service": host,
+                        "test_strategies": test_strategies
                     })
-                elif "retries" in route_block:
-                    downstreams = self.service_deps.get(host, [])
-                    if downstreams:
-                        downstream = downstreams[0]
-                        self.test_cases.append({
-                            "case_id": self._generate_case_id(),
-                            "description": f"重试策略-故障注入测试 for host '{host}' (default route), inject fault to '{downstream}'",
-                            "type": "single_request",
-                            "request_params": {"host": host, "trigger_condition": "simulate_503_error", "inject_fault_to": downstream},
-                            "expected_outcome": {
-                                "destination": route_block["route"][0]["destination"]["subset"],
-                                "note": "验证重试时的故障注入行为（无 match 默认路由）。"
-                            },
-                            "source_service": host
-                        })
-                    else:
-                        self.test_cases.append({
-                            "case_id": self._generate_case_id(),
-                            "description": f"重试策略-故障注入测试 for host '{host}' (default route, 无下游服务)",
-                            "type": "single_request",
-                            "request_params": {"host": host, "trigger_condition": "simulate_503_error"},
-                            "expected_outcome": {
-                                "destination": route_block["route"][0]["destination"]["subset"],
-                                "note": "验证重试时的故障注入行为（无 match 默认路由）。"
-                            },
-                            "source_service": host
-                        })
+                
+                # 3. 其他正交组合策略测试（仅针对非分流场景）
+                elif not ("route" in route_block and len(route_block["route"]) > 1):
+                    orthogonal_case = self._generate_orthogonal_test_case(host, route_block, params, "orthogonal_combination")
+                    if orthogonal_case:
+                        self.test_cases.append(orthogonal_case)
+
+    def _generate_destination_rule_orthogonal_tests(self, dr_spec):
+        """为DestinationRule生成正交组合测试"""
+        host = dr_spec["host"]
+        traffic_policy = dr_spec.get("trafficPolicy", {})
+        
+        # 获取策略组合
+        has_outlier = "outlierDetection" in traffic_policy
+        has_conn_pool = "connectionPool" in traffic_policy
+        
+        outlier_config = traffic_policy.get("outlierDetection", {}) if has_outlier else {}
+        conn_pool_config = traffic_policy.get("connectionPool", {}) if has_conn_pool else {}
+        
+        test_cases = []
+        
+        # 正交组合1: 熔断 + 连接池限制测试
+        if has_outlier and has_conn_pool:
+            consecutive_errors = outlier_config.get("consecutiveErrors", outlier_config.get("consecutive5xxErrors", 5))
+            tcp_max = conn_pool_config.get("tcp", {}).get("maxConnections", 10)
+            http_pending = conn_pool_config.get("http", {}).get("http1MaxPendingRequests", 5)
+            
+            test_cases.append({
+                "case_id": self._generate_case_id(),
+                "description": f"正交组合策略测试(熔断+连接池) for host '{host}'",
+                "type": "load_test",
+                "request_params": {
+                    "host": host,
+                    "trigger_condition": "simulate_high_load_with_errors",
+                    "connection_pool_test": True
+                },
+                "load_params": {
+                    "concurrency": max(tcp_max * 2, 20),  # 超过连接池限制
+                    "num_requests": consecutive_errors * 15,  # 足够触发熔断
+                    "ramp_up_time": "10s"
+                },
+                "expected_outcome": {
+                    "behaviors": [
+                        f"连接池限制：最大TCP连接{tcp_max}，HTTP挂起请求{http_pending}",
+                        f"熔断触发：{consecutive_errors}次连续错误后熔断",
+                        "验证连接池限制与熔断策略的协同工作"
+                    ],
+                    "circuit_breaker_threshold": consecutive_errors,
+                    "connection_limits": {"tcp": tcp_max, "http_pending": http_pending}
+                },
+                "source_service": host,
+                "test_strategies": ["circuit_breaker", "connection_pool"]
+            })
+        
+        # 正交组合2: 仅熔断测试
+        elif has_outlier:
+            consecutive_errors = outlier_config.get("consecutiveErrors", outlier_config.get("consecutive5xxErrors", 5))
+            interval = outlier_config.get("interval", "30s")
+            
+            test_cases.append({
+                "case_id": self._generate_case_id(),
+                "description": f"正交组合策略测试(熔断) for host '{host}'",
+                "type": "load_test",
+                "request_params": {
+                    "host": host,
+                    "trigger_condition": "simulate_503_error"
+                },
+                "load_params": {
+                    "concurrency": 10,
+                    "num_requests": consecutive_errors * 12,
+                    "error_rate": 0.8  # 高错误率触发熔断
+                },
+                "expected_outcome": {
+                    "behaviors": [
+                        f"熔断触发：{consecutive_errors}次连续错误",
+                        f"检测间隔：{interval}",
+                        "验证熔断策略的故障注入与恢复行为"
+                    ],
+                    "circuit_breaker_threshold": consecutive_errors
+                },
+                "source_service": host,
+                "test_strategies": ["circuit_breaker"]
+            })
+        
+        # 正交组合3: 仅连接池测试
+        elif has_conn_pool:
+            tcp_max = conn_pool_config.get("tcp", {}).get("maxConnections", 10)
+            http_pending = conn_pool_config.get("http", {}).get("http1MaxPendingRequests", 5)
+            
+            test_cases.append({
+                "case_id": self._generate_case_id(),
+                "description": f"正交组合策略测试(连接池) for host '{host}'",
+                "type": "load_test",
+                "request_params": {
+                    "host": host,
+                    "connection_pool_test": True,
+                    "simulate_slow_response": True,
+                    "response_delay": "2s"  # 慢响应增加连接池压力
+                },
+                "load_params": {
+                    "concurrency": tcp_max * 3,  # 超过连接池限制
+                    "num_requests": 100,
+                    "sustained_load": True
+                },
+                "expected_outcome": {
+                    "behaviors": [
+                        f"连接池限制：最大TCP连接{tcp_max}",
+                        f"HTTP挂起请求限制：{http_pending}",
+                        "验证连接池限制的有效性"
+                    ],
+                    "connection_limits": {"tcp": tcp_max, "http_pending": http_pending}
+                },
+                "source_service": host,
+                "test_strategies": ["connection_pool"]
+            })
+        
+        return test_cases
 
     def _parse_destination_rules(self):
         for dr in self.config.get("destinationRules", []):
-            if "outlierDetection" in dr["spec"].get("trafficPolicy", {}):
-                policy = dr["spec"]["trafficPolicy"]["outlierDetection"]
-                # 只生成 simulate_503_error 用例
-                self.test_cases.append({
-                    "case_id": self._generate_case_id(),
-                    "description": f"熔断策略-故障注入测试 for host '{dr['spec']['host']}'",
-                    "type": "load_test",
-                    "request_params": {"host": dr['spec']['host'], "trigger_condition": "simulate_503_error"},
-                    "load_params": {
-                        "concurrency": policy.get("consecutiveGatewayErrors", 5) * 2,
-                        "num_requests": policy.get("consecutiveGatewayErrors", 5) * 10
-                    },
-                    "expected_outcome": {
-                        "behavior": "验证熔断时的故障注入与恢复行为。"
-                    }
-                })
+            dr_spec = dr["spec"]
+            orthogonal_tests = self._generate_destination_rule_orthogonal_tests(dr_spec)
+            self.test_cases.extend(orthogonal_tests)
 
 def main():
     parser = argparse.ArgumentParser(description="精简版 Istio 测试用例生成器（自动适配并发限制）")
