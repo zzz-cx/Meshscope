@@ -106,7 +106,7 @@ class TestCaseGenerator:
         return params
 
     def _get_policy_combination(self, route_block):
-        """获取路由规则的策略组合（正交设计核心）"""
+        """基于四种正交原则获取策略组合（正交设计核心）"""
         policies = {
             "has_retries": "retries" in route_block,
             "has_timeout": "timeout" in route_block,
@@ -115,7 +115,69 @@ class TestCaseGenerator:
             "timeout_value": route_block.get("timeout", ""),
             "fault_config": route_block.get("fault", {})
         }
+        
+        # 新增：四种正交原则分析
+        orthogonal_analysis = {
+            # 1. 匹配条件维度正交 - 已在 _generate_orthogonal_matching_test 中实现
+            "matching_orthogonal": True,
+            
+            # 2. 功能策略间正交 - 同一请求路径中的策略不相互屏蔽
+            "functional_orthogonal": {
+                "route_match": True,  # 路由匹配
+                "retry_policy": policies["has_retries"],    # 重试策略
+                "timeout_policy": policies["has_timeout"],  # 超时策略  
+                "fault_injection": policies["has_fault"]    # 故障注入
+            },
+            
+            # 3. 全局/局部策略正交 - VirtualService(局部) + DestinationRule(全局)
+            "scope_orthogonal": {
+                "local_policies": ["routing", "retry", "timeout", "fault"],
+                "global_policies": ["circuit_breaker", "connection_pool"],
+                "can_combine": True  # 可在一个请求中验证
+            },
+            
+            # 4. 策略触发机制正交 - 不同生命周期阶段的策略可组合
+            "trigger_orthogonal": {
+                "request_entry": ["routing", "fault_injection"],      # 请求入口触发
+                "failure_triggered": ["retry", "circuit_breaker"],    # 失败时触发  
+                "load_triggered": ["connection_pool", "rate_limit"],  # 负载时触发
+                "response_triggered": ["timeout"]                     # 响应超时触发
+            }
+        }
+        
+        policies["orthogonal_analysis"] = orthogonal_analysis
         return policies
+
+    def _find_vs_policies_for_host(self, host):
+        """查找特定host的VirtualService策略，用于全局/局部正交组合"""
+        vs_policies = {
+            "has_retries": False,
+            "has_timeout": False, 
+            "has_fault": False,
+            "has_routing": False,
+            "retry_config": {},
+            "timeout_config": "",
+            "fault_config": {},
+            "routing_rules": []
+        }
+        
+        for vs in self.config.get("virtualServices", []):
+            if host in vs["spec"]["hosts"]:
+                for route_block in vs["spec"]["http"]:
+                    if "retries" in route_block:
+                        vs_policies["has_retries"] = True
+                        vs_policies["retry_config"] = route_block["retries"]
+                    if "timeout" in route_block:
+                        vs_policies["has_timeout"] = True
+                        vs_policies["timeout_config"] = route_block["timeout"]
+                    if "fault" in route_block:
+                        vs_policies["has_fault"] = True
+                        vs_policies["fault_config"] = route_block["fault"]
+                    if "match" in route_block:
+                        vs_policies["has_routing"] = True
+                        vs_policies["routing_rules"].append(route_block["match"])
+                        
+        return vs_policies
 
     def _generate_orthogonal_test_case(self, host, route_block, params, case_type="basic"):
         """生成正交组合测试用例"""
@@ -135,20 +197,43 @@ class TestCaseGenerator:
                 "source_service": host
             }
         
-        # 正交组合策略测试
+        # 正交组合策略测试 - 基于四种正交原则
         elif case_type == "orthogonal_combination":
             test_strategies = []
             request_params = {"host": host, **params}
             expected_behaviors = []
             
-            # 策略1: 超时 + 重试组合测试
-            if policies["has_timeout"] and policies["has_retries"]:
+            # 获取正交分析
+            orthogonal = policies.get("orthogonal_analysis", {})
+            
+            # 策略1: 功能策略间正交 - 故障注入 + 重试 + 超时组合
+            # 原理：故障注入(请求入口触发) + 重试(失败触发) + 超时(响应触发) 在不同生命周期阶段，可正交组合
+            if policies["has_fault"] and policies["has_retries"] and policies["has_timeout"]:
+                fault_config = policies["fault_config"]
+                if "abort" in fault_config:
+                    request_params["trigger_condition"] = "simulate_config_fault_with_timeout"
+                    request_params["fault_type"] = "abort"
+                    request_params["fault_status"] = fault_config["abort"]["httpStatus"]
+                    request_params["fault_percentage"] = fault_config["abort"]["percent"]
+                    request_params["timeout_limit"] = policies["timeout_value"]
+                    test_strategies.extend(["fault_injection", "retry", "timeout"])
+                    expected_behaviors.extend([
+                        f"故障注入：{fault_config['abort']['httpStatus']}错误({fault_config['abort']['percent']}%)",
+                        f"重试机制：失败时重试{policies['retry_attempts']}次",
+                        f"超时控制：请求不超过{policies['timeout_value']}"
+                    ])
+            
+            # 策略2: 超时 + 重试组合测试（响应触发 + 失败触发）
+            elif policies["has_timeout"] and policies["has_retries"]:
                 request_params["simulate_slow_response"] = True
                 request_params["response_delay"] = "3s"  # 超过timeout的延迟
-                test_strategies.append("timeout+retry")
-                expected_behaviors.append(f"超时{policies['timeout_value']}后重试{policies['retry_attempts']}次")
+                test_strategies.extend(["timeout", "retry"])
+                expected_behaviors.extend([
+                    f"超时触发：请求超过{policies['timeout_value']}",
+                    f"重试机制：超时后重试{policies['retry_attempts']}次"
+                ])
             
-            # 策略2: 故障注入 + 重试组合测试
+            # 策略3: 故障注入 + 重试组合测试（入口触发 + 失败触发）
             elif policies["has_fault"] and policies["has_retries"]:
                 fault_config = policies["fault_config"]
                 if "abort" in fault_config:
@@ -156,24 +241,30 @@ class TestCaseGenerator:
                     request_params["fault_type"] = "abort"
                     request_params["fault_status"] = fault_config["abort"]["httpStatus"]
                     request_params["fault_percentage"] = fault_config["abort"]["percent"]
-                    test_strategies.append("fault+retry")
-                    expected_behaviors.append(f"配置故障注入({fault_config['abort']['httpStatus']}, {fault_config['abort']['percent']}%)后重试{policies['retry_attempts']}次")
+                    test_strategies.extend(["fault_injection", "retry"])
+                    expected_behaviors.extend([
+                        f"故障注入：{fault_config['abort']['httpStatus']}错误({fault_config['abort']['percent']}%)",
+                        f"重试机制：故障后重试{policies['retry_attempts']}次"
+                    ])
                 elif "delay" in fault_config:
                     request_params["trigger_condition"] = "simulate_config_fault"
                     request_params["fault_type"] = "delay"
                     request_params["fault_delay"] = fault_config["delay"]["fixedDelay"]
                     request_params["fault_percentage"] = fault_config["delay"]["percent"]
-                    test_strategies.append("delay+retry")
-                    expected_behaviors.append(f"延迟故障注入({fault_config['delay']['fixedDelay']}, {fault_config['delay']['percent']}%)后重试{policies['retry_attempts']}次")
+                    test_strategies.extend(["delay_injection", "retry"])
+                    expected_behaviors.extend([
+                        f"延迟注入：{fault_config['delay']['fixedDelay']}延迟({fault_config['delay']['percent']}%)",
+                        f"重试机制：延迟后重试{policies['retry_attempts']}次"
+                    ])
             
-            # 策略3: 仅超时测试
+            # 策略4: 仅超时测试（响应触发）
             elif policies["has_timeout"]:
                 request_params["simulate_slow_response"] = True
                 request_params["response_delay"] = "3s"
                 test_strategies.append("timeout")
                 expected_behaviors.append(f"验证{policies['timeout_value']}超时设置")
             
-            # 策略4: 仅故障注入测试
+            # 策略5: 仅故障注入测试（入口触发）
             elif policies["has_fault"]:
                 fault_config = policies["fault_config"]
                 if "abort" in fault_config:
@@ -181,10 +272,10 @@ class TestCaseGenerator:
                     request_params["fault_type"] = "abort"
                     request_params["fault_status"] = fault_config["abort"]["httpStatus"]
                     request_params["fault_percentage"] = fault_config["abort"]["percent"]
-                    test_strategies.append("fault")
+                    test_strategies.append("fault_injection")
                     expected_behaviors.append(f"验证配置故障注入({fault_config['abort']['httpStatus']}, {fault_config['abort']['percent']}%)")
             
-            # 策略5: 仅重试测试（使用模拟故障）
+            # 策略6: 仅重试测试（失败触发）
             elif policies["has_retries"]:
                 downstreams = self.service_deps.get(host, [])
                 if downstreams:
@@ -385,50 +476,73 @@ class TestCaseGenerator:
                         self.test_cases.append(orthogonal_case)
 
     def _generate_destination_rule_orthogonal_tests(self, dr_spec):
-        """为DestinationRule生成正交组合测试"""
+        """基于四种正交原则为DestinationRule生成组合测试"""
         host = dr_spec["host"]
         traffic_policy = dr_spec.get("trafficPolicy", {})
         
-        # 获取策略组合
+        # 获取全局策略组合
         has_outlier = "outlierDetection" in traffic_policy
         has_conn_pool = "connectionPool" in traffic_policy
         
         outlier_config = traffic_policy.get("outlierDetection", {}) if has_outlier else {}
         conn_pool_config = traffic_policy.get("connectionPool", {}) if has_conn_pool else {}
         
+        # 查找对应的VirtualService局部策略，实现全局/局部策略正交
+        vs_policies = self._find_vs_policies_for_host(host)
+        
         test_cases = []
         
-        # 正交组合1: 熔断 + 连接池限制测试
+        # 正交组合1: 全局/局部策略正交 - 熔断+连接池(全局) + 重试+路由(局部)
         if has_outlier and has_conn_pool:
             consecutive_errors = outlier_config.get("consecutiveErrors", outlier_config.get("consecutive5xxErrors", 5))
             tcp_max = conn_pool_config.get("tcp", {}).get("maxConnections", 10)
             http_pending = conn_pool_config.get("http", {}).get("http1MaxPendingRequests", 5)
             
+            # 构建请求参数 - 结合VirtualService策略
+            request_params = {
+                "host": host,
+                "trigger_condition": "simulate_high_load_with_errors",
+                "connection_pool_test": True
+            }
+            
+            test_strategies = ["circuit_breaker", "connection_pool"]
+            expected_behaviors = [
+                f"连接池限制：最大TCP连接{tcp_max}，HTTP挂起请求{http_pending}",
+                f"熔断触发：{consecutive_errors}次连续错误后熔断"
+            ]
+            
+            # 如果VirtualService有重试策略，则组合测试（全局+局部正交）
+            if vs_policies["has_retries"]:
+                retry_attempts = vs_policies["retry_config"].get("attempts", 3)
+                request_params["enable_vs_retry"] = True
+                test_strategies.append("retry")
+                expected_behaviors.append(f"重试机制：失败时重试{retry_attempts}次")
+            
+            # 如果VirtualService有路由匹配，添加路由验证
+            if vs_policies["has_routing"]:
+                test_strategies.append("routing")
+                expected_behaviors.append("路由匹配：验证请求正确路由到目标版本")
+            
+            description_suffix = "+".join(test_strategies)
+            
             test_cases.append({
                 "case_id": self._generate_case_id(),
-                "description": f"正交组合策略测试(熔断+连接池) for host '{host}'",
+                "description": f"全局/局部正交组合测试({description_suffix}) for host '{host}'",
                 "type": "load_test",
-                "request_params": {
-                    "host": host,
-                    "trigger_condition": "simulate_high_load_with_errors",
-                    "connection_pool_test": True
-                },
+                "request_params": request_params,
                 "load_params": {
                     "concurrency": max(tcp_max * 2, 20),  # 超过连接池限制
                     "num_requests": consecutive_errors * 15,  # 足够触发熔断
                     "ramp_up_time": "10s"
                 },
                 "expected_outcome": {
-                    "behaviors": [
-                        f"连接池限制：最大TCP连接{tcp_max}，HTTP挂起请求{http_pending}",
-                        f"熔断触发：{consecutive_errors}次连续错误后熔断",
-                        "验证连接池限制与熔断策略的协同工作"
-                    ],
+                    "behaviors": expected_behaviors,
                     "circuit_breaker_threshold": consecutive_errors,
-                    "connection_limits": {"tcp": tcp_max, "http_pending": http_pending}
+                    "connection_limits": {"tcp": tcp_max, "http_pending": http_pending},
+                    "orthogonal_note": "全局策略(DR)与局部策略(VS)的正交验证"
                 },
                 "source_service": host,
-                "test_strategies": ["circuit_breaker", "connection_pool"]
+                "test_strategies": test_strategies
             })
         
         # 正交组合2: 仅熔断测试

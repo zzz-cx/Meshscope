@@ -19,21 +19,32 @@ class EnvoyLogEnabler:
         :param log_path: 日志输出路径
         :param wait_ready: 是否等待 pod ready
         """
-        # 使用标准的 Common Log Format，确保与 Istio 兼容
+        # 使用增强的访问日志格式，确保记录所有错误（包括故障注入的503）
         access_log_format = (
             '[%START_TIME%] "%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%" '
             '%RESPONSE_CODE% %RESPONSE_FLAGS% %BYTES_RECEIVED% %BYTES_SENT% %DURATION% '
             '%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)% "%REQ(X-FORWARDED-FOR)%" "%REQ(USER-AGENT)%" '
-            '"%REQ(X-REQUEST-ID)%" "%REQ(:AUTHORITY)%" "%UPSTREAM_HOST%" "%UPSTREAM_CLUSTER%"\n'
+            '"%REQ(X-REQUEST-ID)%" "%REQ(:AUTHORITY)%" "%UPSTREAM_HOST%" "%UPSTREAM_CLUSTER%" '
+            '%DOWNSTREAM_REMOTE_ADDRESS% %ROUTE_NAME%\n'
         )
         
-        # 使用 Istio 推荐的 proxy.istio.io/config 格式
+        # 使用正确的 proxy.istio.io/config 格式，确保记录所有响应
         proxy_config = {
             "proxyStatsMatcher": {
                 "inclusionRegexps": [".*"]
             },
             "accessLogFile": log_path,
-            "accessLogFormat": access_log_format
+            "accessLogFormat": access_log_format,
+            "accessLogEncoding": "TEXT",
+            # 关键：添加proxyMetadata确保访问日志在Pod级别生效
+            "proxyMetadata": {
+                "PILOT_ENABLE_WORKLOAD_ENTRY_AUTOREGISTRATION": "true",
+                "BOOTSTRAP_XDS_AGENT": "true"
+            },
+            # 确保记录所有状态码，包括故障注入产生的错误
+            "accessLogFilter": {
+                "expression": "true"  # 记录所有请求，不过滤
+            }
         }
         
         # 同时添加 sidecar.istio.io/inject 确保注入

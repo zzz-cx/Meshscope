@@ -163,7 +163,7 @@ class ReportGenerator:
             <div class="success-rate">
                 <h3>整体成功率: {overall_stats['success_rate']:.1%}</h3>
                 <div class="progress-bar">
-                    <div class="progress-fill" style="width: {overall_stats['success_rate']*100:.1f}%"></div>
+                    <div class="progress-fill" style="width: {overall_stats['success_rate']:.1f}%"></div>
                 </div>
             </div>
         </section>
@@ -171,6 +171,11 @@ class ReportGenerator:
         <section class="test-details">
             <h2>📋 详细测试结果</h2>
             {self._generate_test_cases_html(results)}
+        </section>
+        
+        <section class="verification-process">
+            <h2>🔍 验证过程详情</h2>
+            {self._generate_verification_process_html(test_config)}
         </section>
         
         <section class="charts">
@@ -315,14 +320,336 @@ class ReportGenerator:
                     VerificationStatus.SKIPPED: "⏭️"
                 }.get(verification.status, "❓")
                 
+                # 生成详细的验证信息
+                verification_details = self._generate_verification_details_html(verification)
+                
                 html_parts.append(f"""
                     <div class="verification-item {verification_status}">
-                        <span class="verification-name">{verification_symbol} {verification.test_name}</span>
-                        <span class="verification-message">{verification.message}</span>
+                        <div class="verification-header">
+                            <span class="verification-name">{verification_symbol} {verification.test_name}</span>
+                            <span class="verification-message">{verification.message}</span>
+                        </div>
+                        {verification_details}
                     </div>
                 """)
             
             html_parts.append("</div></div>")
+        
+        return ''.join(html_parts)
+    
+    def _generate_verification_details_html(self, verification: VerificationResult) -> str:
+        """生成单个验证项的详细信息HTML"""
+        if not verification.details:
+            return ""
+        
+        details_html = []
+        
+        # 根据验证类型生成不同的详细信息
+        if verification.test_name == "重试验证":
+            details_html.append('<div class="verification-details retry-details">')
+            details_html.append('<h5>重试验证详情</h5>')
+            
+            # 时间分析
+            if 'avg_response_time' in verification.details:
+                details_html.append(f'<p>📊 平均响应时间: {verification.details["avg_response_time"]:.3f}s</p>')
+            
+            if 'time_variance_ratio' in verification.details:
+                details_html.append(f'<p>📈 响应时间方差比: {verification.details["time_variance_ratio"]:.1f} (P95/P50)</p>')
+            
+            if 'retry_indicators' in verification.details:
+                indicators = verification.details['retry_indicators']
+                if indicators:
+                    details_html.append('<p>🔍 重试指标:</p>')
+                    details_html.append('<ul>')
+                    for indicator in indicators:
+                        details_html.append(f'<li>{indicator}</li>')
+                    details_html.append('</ul>')
+            
+            # 时间验证结果
+            if 'time_validation_passed' in verification.details:
+                validation_icon = "✅" if verification.details['time_validation_passed'] else "❌"
+                details_html.append(f'<p>{validation_icon} 时间验证: {"通过" if verification.details["time_validation_passed"] else "失败"}</p>')
+            
+            # 期望配置
+            if 'expected_max_retries' in verification.details and verification.details['expected_max_retries']:
+                details_html.append(f'<p>⚙️ 期望重试次数: {verification.details["expected_max_retries"]}</p>')
+            
+            if 'expected_retry_timeout' in verification.details and verification.details['expected_retry_timeout']:
+                details_html.append(f'<p>⏱️ 期望重试超时: {verification.details["expected_retry_timeout"]}s</p>')
+            
+            details_html.append('</div>')
+        
+        elif verification.test_name == "熔断器验证":
+            details_html.append('<div class="verification-details circuit-breaker-details">')
+            details_html.append('<h5>熔断器验证详情</h5>')
+            
+            # 基本统计
+            if 'total_requests' in verification.details:
+                details_html.append(f'<p>📊 总请求数: {verification.details["total_requests"]}</p>')
+            
+            if 'error_rate' in verification.details:
+                details_html.append(f'<p>❌ 错误率: {verification.details["error_rate"]:.1%}</p>')
+            
+            if 'circuit_breaker_errors' in verification.details:
+                details_html.append(f'<p>⚡ 503熔断错误: {verification.details["circuit_breaker_errors"]}个</p>')
+            
+            # 熔断指标
+            if 'cb_indicators' in verification.details:
+                indicators = verification.details['cb_indicators']
+                if indicators:
+                    details_html.append('<p>🔍 熔断指标:</p>')
+                    details_html.append('<ul>')
+                    for indicator in indicators:
+                        details_html.append(f'<li>{indicator}</li>')
+                    details_html.append('</ul>')
+            
+            # 时间分析
+            if 'time_analysis' in verification.details:
+                time_analysis = verification.details['time_analysis']
+                details_html.append('<h6>时间分析:</h6>')
+                details_html.append('<ul>')
+                
+                if 'max_consecutive_errors' in time_analysis:
+                    details_html.append(f'<li>最大连续错误: {time_analysis["max_consecutive_errors"]}个</li>')
+                
+                if 'trip_detection_time' in time_analysis:
+                    details_html.append(f'<li>熔断触发时间: {time_analysis["trip_detection_time"]:.3f}s</li>')
+                
+                if 'recovery_time' in time_analysis:
+                    details_html.append(f'<li>恢复时间: {time_analysis["recovery_time"]:.3f}s</li>')
+                
+                if 'avg_cb_response_time' in time_analysis:
+                    details_html.append(f'<li>熔断响应时间: {time_analysis["avg_cb_response_time"]:.3f}s</li>')
+                
+                details_html.append('</ul>')
+            
+            # 时间验证结果
+            if 'time_validation_passed' in verification.details:
+                validation_icon = "✅" if verification.details['time_validation_passed'] else "❌"
+                details_html.append(f'<p>{validation_icon} 时间验证: {"通过" if verification.details["time_validation_passed"] else "失败"}</p>')
+            
+            # 期望配置
+            if 'expected_trip_threshold' in verification.details and verification.details['expected_trip_threshold']:
+                details_html.append(f'<p>⚙️ 期望熔断阈值: {verification.details["expected_trip_threshold"]}</p>')
+            
+            if 'expected_recovery_time' in verification.details and verification.details['expected_recovery_time']:
+                details_html.append(f'<p>⏱️ 期望恢复时间: {verification.details["expected_recovery_time"]}s</p>')
+            
+            details_html.append('</div>')
+        
+        elif verification.test_name == "流量分布验证":
+            details_html.append('<div class="verification-details traffic-details">')
+            details_html.append('<h5>流量分布验证详情</h5>')
+            
+            if 'distribution_analysis' in verification.details:
+                analysis = verification.details['distribution_analysis']
+                details_html.append('<div class="distribution-table">')
+                details_html.append('<table><thead><tr><th>版本</th><th>实际请求</th><th>实际占比</th><th>期望占比</th><th>偏差</th></tr></thead><tbody>')
+                
+                for version_data in analysis:
+                    version = version_data.get('version', 'N/A')
+                    actual_count = version_data.get('actual_count', 0)
+                    actual_percentage = version_data.get('actual_percentage', 0) * 100
+                    expected_percentage = version_data.get('expected_percentage', 0) * 100
+                    deviation = version_data.get('deviation', 0) * 100
+                    
+                    details_html.append(f'''
+                        <tr>
+                            <td>{version}</td>
+                            <td>{actual_count}</td>
+                            <td>{actual_percentage:.1f}%</td>
+                            <td>{expected_percentage:.1f}%</td>
+                            <td class="{'positive' if deviation > 0 else 'negative'}">{deviation:+.1f}%</td>
+                        </tr>
+                    ''')
+                
+                details_html.append('</tbody></table>')
+                details_html.append('</div>')
+            
+            if 'effective_margin_of_error' in verification.details:
+                details_html.append(f'<p>⚙️ 有效容错: ±{verification.details["effective_margin_of_error"]:.1%}</p>')
+            
+            details_html.append('</div>')
+        
+        elif verification.test_name == "HTTP状态码验证":
+            details_html.append('<div class="verification-details http-details">')
+            details_html.append('<h5>HTTP验证详情</h5>')
+            
+            if 'total_requests' in verification.details:
+                details_html.append(f'<p>📊 总请求数: {verification.details["total_requests"]}</p>')
+            
+            if 'success_rate' in verification.details:
+                details_html.append(f'<p>✅ 成功率: {verification.details["success_rate"]:.1%}</p>')
+            
+            if 'avg_response_time' in verification.details:
+                details_html.append(f'<p>⏱️ 平均响应时间: {verification.details["avg_response_time"]:.3f}s</p>')
+            
+            if 'status_code_distribution' in verification.details:
+                distribution = verification.details['status_code_distribution']
+                details_html.append('<p>📋 状态码分布:</p>')
+                details_html.append('<ul>')
+                for code, count in distribution.items():
+                    details_html.append(f'<li>{code}: {count}次</li>')
+                details_html.append('</ul>')
+            
+            details_html.append('</div>')
+        
+        # 通用详情展示
+        elif verification.details:
+            details_html.append('<div class="verification-details generic-details">')
+            details_html.append('<h5>详细信息</h5>')
+            details_html.append('<ul>')
+            
+            for key, value in verification.details.items():
+                if isinstance(value, (int, float, str, bool)):
+                    details_html.append(f'<li><strong>{key}:</strong> {value}</li>')
+                elif isinstance(value, list) and len(value) <= 5:
+                    details_html.append(f'<li><strong>{key}:</strong> {", ".join(map(str, value))}</li>')
+            
+            details_html.append('</ul>')
+            details_html.append('</div>')
+        
+        return ''.join(details_html)
+    
+    def _generate_verification_process_html(self, test_config: Optional[Dict]) -> str:
+        """生成验证过程详情的 HTML"""
+        if not test_config or "verification_process" not in test_config:
+            return '<p>⚠️ 未找到验证过程信息</p>'
+        
+        process_info = test_config["verification_process"]
+        
+        html_parts = []
+        
+        # 总体信息
+        total_duration = process_info.get("total_duration_ms", 0) / 1000
+        html_parts.append(f"""
+        <div class="process-summary">
+            <h3>📝 总体信息</h3>
+            <div class="process-info-grid">
+                <div class="info-item">
+                    <span class="label">开始时间:</span>
+                    <span class="value">{process_info.get('start_time', 'N/A')}</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">结束时间:</span>
+                    <span class="value">{process_info.get('end_time', 'N/A')}</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">总耗时:</span>
+                    <span class="value">{total_duration:.2f}秒</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">配置文件:</span>
+                    <span class="value">{process_info.get('istio_config_file', '未使用') or '未使用'}</span>
+                </div>
+            </div>
+        </div>
+        """)
+        
+        # 步骤详情
+        steps = process_info.get("steps", [])
+        if steps:
+            html_parts.append('<h3>🔄 验证步骤</h3>')
+            html_parts.append('<div class="steps-container">')
+            
+            for step in steps:
+                step_duration = step.get("duration_ms", 0) / 1000
+                step_html = f"""
+                <div class="step-card">
+                    <div class="step-header">
+                        <h4>步骤 {step.get('step', 'N/A')}: {step.get('name', 'Unknown')}</h4>
+                        <span class="step-duration">{step_duration:.2f}s</span>
+                    </div>
+                    <div class="step-content">
+                """
+                
+                # 步骤特定信息
+                if step.get('name') == '解析测试矩阵':
+                    step_html += f"""
+                        <p><strong>解析的行为数量:</strong> {step.get('parsed_behaviors_count', 0)}</p>
+                        <details class="behaviors-details">
+                            <summary>查看期望行为详情 ({len(step.get('behaviors_summary', []))}个)</summary>
+                            <div class="behaviors-list">
+                    """
+                    for behavior in step.get('behaviors_summary', []):
+                        step_html += f"""
+                                <div class="behavior-item">
+                                    <strong>{behavior.get('case_id', 'N/A')}</strong>: 
+                                    {behavior.get('policy_type', 'N/A')} - {behavior.get('description', 'N/A')}
+                        """
+                        if behavior.get('expected_retry_attempts'):
+                            step_html += f"<br>🔄 重试: {behavior['expected_retry_attempts']}次, 单次超时: {behavior.get('expected_per_try_timeout', 'N/A')}s"
+                        if behavior.get('expected_trip_threshold'):
+                            step_html += f"<br>⚡ 熔断: 阈值{behavior['expected_trip_threshold']}, 恢复时间: {behavior.get('expected_recovery_time', 'N/A')}s"
+                        step_html += "</div>"
+                    step_html += "</div></details>"
+                
+                elif step.get('name') == '加载和解析日志':
+                    step_html += f"""
+                        <p><strong>处理的用例数:</strong> {step.get('cases_with_logs_count', 0)}</p>
+                        <p><strong>总日志条目:</strong> {step.get('total_log_entries', 0)}</p>
+                        <details class="log-details">
+                            <summary>查看日志解析详情</summary>
+                            <div class="log-summary-table">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>用例ID</th>
+                                            <th>日志条目</th>
+                                            <th>Pod数量</th>
+                                            <th>成功率</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                    """
+                    for log_info in step.get('log_summary', []):
+                        success_rate = log_info.get('success_rate', 0) * 100
+                        step_html += f"""
+                                        <tr>
+                                            <td>{log_info.get('case_id', 'N/A')}</td>
+                                            <td>{log_info.get('total_entries', 0)}</td>
+                                            <td>{log_info.get('pod_count', 0)}</td>
+                                            <td class="success-rate-cell">{success_rate:.1f}%</td>
+                                        </tr>
+                        """
+                    step_html += """
+                                    </tbody>
+                                </table>
+                            </div>
+                        </details>
+                    """
+                
+                elif step.get('name') == '执行对比验证':
+                    step_html += f"""
+                        <p><strong>验证结果数量:</strong> {step.get('verification_results_count', 0)}</p>
+                        <div class="verification-stats">
+                            <span class="stat passed">✅ 通过: {step.get('passed_count', 0)}</span>
+                            <span class="stat failed">❌ 失败: {step.get('failed_count', 0)}</span>
+                            <span class="stat warning">⚠️ 警告: {step.get('warning_count', 0)}</span>
+                        </div>
+                    """
+                
+                elif step.get('name') == '生成验证报告':
+                    step_html += f"""
+                        <p><strong>输出目录:</strong> {step.get('output_dir', 'N/A')}</p>
+                        <p><strong>生成的文件:</strong></p>
+                        <ul>
+                    """
+                    for file_path in step.get('generated_files', []):
+                        step_html += f"<li>{file_path}</li>"
+                    step_html += "</ul>"
+                
+                # 错误信息
+                if step.get('error'):
+                    step_html += f'<div class="error-message">❌ 错误: {step["error"]}</div>'
+                
+                step_html += """
+                    </div>
+                </div>
+                """
+                html_parts.append(step_html)
+            
+            html_parts.append('</div>')
         
         return ''.join(html_parts)
     
@@ -655,6 +982,283 @@ class ReportGenerator:
             padding: 20px;
             color: #666;
             margin-top: 30px;
+        }
+        
+        /* 验证过程样式 */
+        .verification-process {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .process-summary {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+        
+        .process-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .info-item .label {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .info-item .value {
+            color: #34495e;
+            font-family: monospace;
+        }
+        
+        .steps-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .step-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+            transition: box-shadow 0.3s ease;
+        }
+        
+        .step-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .step-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .step-header h4 {
+            margin: 0;
+            font-size: 1.1em;
+        }
+        
+        .step-duration {
+            background: rgba(255,255,255,0.2);
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+        
+        .step-content {
+            padding: 20px;
+            background: white;
+        }
+        
+        .behaviors-details, .log-details {
+            margin-top: 15px;
+        }
+        
+        .behaviors-details summary, .log-details summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: #3498db;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        
+        .behaviors-list {
+            padding: 10px;
+            background: #fdfdfd;
+            border-radius: 5px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .behavior-item {
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 4px;
+            border-left: 3px solid #3498db;
+            font-size: 0.9em;
+        }
+        
+        .log-summary-table table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        
+        .log-summary-table th,
+        .log-summary-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .log-summary-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .success-rate-cell {
+            font-weight: 600;
+            color: #27ae60;
+        }
+        
+        .verification-stats {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+        }
+        
+        .verification-stats .stat {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+        
+        .verification-stats .stat.passed {
+            background: #d5f5d5;
+            color: #2d7d2d;
+        }
+        
+        .verification-stats .stat.failed {
+            background: #f5d5d5;
+            color: #7d2d2d;
+        }
+        
+        .verification-stats .stat.warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .error-message {
+            margin-top: 15px;
+            padding: 12px;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 5px;
+            color: #721c24;
+            font-weight: 500;
+        }
+        
+        /* 验证详情样式 */
+        .verification-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .verification-details {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .verification-details h5 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+            font-size: 1.1em;
+        }
+        
+        .verification-details h6 {
+            margin: 10px 0 5px 0;
+            color: #34495e;
+            font-size: 1em;
+        }
+        
+        .verification-details p {
+            margin: 5px 0;
+            font-size: 0.9em;
+        }
+        
+        .verification-details ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        
+        .verification-details li {
+            margin: 3px 0;
+            font-size: 0.9em;
+        }
+        
+        .retry-details {
+            border-left-color: #f39c12;
+            background: #fef9e7;
+        }
+        
+        .circuit-breaker-details {
+            border-left-color: #e74c3c;
+            background: #fdf2f2;
+        }
+        
+        .traffic-details {
+            border-left-color: #9b59b6;
+            background: #f8f4ff;
+        }
+        
+        .http-details {
+            border-left-color: #27ae60;
+            background: #f0f8f0;
+        }
+        
+        .generic-details {
+            border-left-color: #95a5a6;
+            background: #f5f6fa;
+        }
+        
+        .distribution-table table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            font-size: 0.9em;
+        }
+        
+        .distribution-table th,
+        .distribution-table td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .distribution-table th {
+            background: #e9ecef;
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .distribution-table .positive {
+            color: #dc3545;
+            font-weight: 600;
+        }
+        
+        .distribution-table .negative {
+            color: #28a745;
+            font-weight: 600;
         }
         
         @media (max-width: 768px) {

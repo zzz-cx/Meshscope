@@ -25,14 +25,21 @@ class LogEntry:
     path: str
     protocol: str
     status_code: int
+    response_flags: str
+    bytes_received: int
+    bytes_sent: int
+    duration: int
+    upstream_service_time: str
     response_size: int
     request_time: float
     upstream_host: str
     user_agent: str
     x_forwarded_for: str
     request_id: str
+    authority: str
     pod_name: str
     raw_log: str
+    log_source: str = "sidecar"  # "sidecar" or "gateway"
     
     @property
     def is_success(self) -> bool:
@@ -43,15 +50,32 @@ class LogEntry:
     def is_error(self) -> bool:
         """判断请求是否错误"""
         return self.status_code >= 400
+    
+    @property
+    def is_circuit_breaker_error(self) -> bool:
+        """判断是否是熔断器错误"""
+        return (self.status_code == 503 and 
+                self.response_flags in ['UO', 'UH', 'UC', 'UF'])
+    
+    @property
+    def is_upstream_error(self) -> bool:
+        """判断是否是上游错误"""
+        return self.response_flags in ['UO', 'UH', 'UC', 'UF', 'NR']
+    
+    @property
+    def is_retry_attempt(self) -> bool:
+        """判断是否是重试请求（基于request_id和响应时间模式）"""
+        return self.status_code >= 500 or self.response_flags in ['UR', 'UH']
 
 class EnvoyLogParser:
     """Envoy 访问日志解析器"""
     
-    # 默认的 Envoy access log 格式正则表达式
+    # 增强的 Envoy access log 格式正则表达式
     # 格式: [%START_TIME%] "%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%" 
     #       %RESPONSE_CODE% %RESPONSE_FLAGS% %BYTES_RECEIVED% %BYTES_SENT% %DURATION% 
     #       %RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)% "%REQ(X-FORWARDED-FOR)%" "%REQ(USER-AGENT)%" 
-    #       "%REQ(X-REQUEST-ID)%" "%REQ(:AUTHORITY)%" "%UPSTREAM_HOST%"
+    #       "%REQ(X-REQUEST-ID)%" "%REQ(:AUTHORITY)%" "%UPSTREAM_HOST%" "%UPSTREAM_CLUSTER%" 
+    #       %DOWNSTREAM_REMOTE_ADDRESS% %ROUTE_NAME%
     DEFAULT_LOG_PATTERN = re.compile(
         r'\[(?P<timestamp>[^\]]+)\]\s+'
         r'"(?P<method>\w+)\s+(?P<path>[^\s]+)\s+(?P<protocol>[^"]+)"\s+'
@@ -62,7 +86,10 @@ class EnvoyLogParser:
         r'"(?P<user_agent>[^"]*)"\s+'
         r'"(?P<request_id>[^"]*)"\s+'
         r'"(?P<authority>[^"]*)"\s+'
-        r'"(?P<upstream_host>[^"]*)"'
+        r'"(?P<upstream_host>[^"]*)"\s*'
+        r'(?:"(?P<upstream_cluster>[^"]*)")?\s*'
+        r'(?:(?P<downstream_remote_address>[^\s]+))?\s*'
+        r'(?:(?P<route_name>[^\s]+))?'
     )
     
     # 简化的日志格式（只包含关键信息）
@@ -101,40 +128,58 @@ class EnvoyLogParser:
             match = self.log_pattern.match(log_line.strip())
             if match:
                 data = match.groupdict()
+                # 检测日志来源（Gateway vs Sidecar）
+                log_source = "gateway" if "gateway" in pod_name.lower() else "sidecar"
+                
                 return LogEntry(
                     timestamp=data.get('timestamp', ''),
                     method=data.get('method', ''),
                     path=data.get('path', ''),
                     protocol=data.get('protocol', ''),
                     status_code=int(data.get('status_code', 0)),
+                    response_flags=data.get('response_flags', '-'),
+                    bytes_received=int(data.get('bytes_received', 0)),
+                    bytes_sent=int(data.get('bytes_sent', 0)),
+                    duration=int(data.get('duration', 0)),
+                    upstream_service_time=data.get('upstream_service_time', '-'),
                     response_size=int(data.get('bytes_sent', 0)),
                     request_time=float(data.get('duration', 0)) / 1000.0,  # 转换为秒
                     upstream_host=data.get('upstream_host', ''),
                     user_agent=data.get('user_agent', ''),
                     x_forwarded_for=data.get('x_forwarded_for', ''),
                     request_id=data.get('request_id', ''),
+                    authority=data.get('authority', ''),
                     pod_name=pod_name,
-                    raw_log=log_line
+                    raw_log=log_line,
+                    log_source=log_source
                 )
             
             # 尝试简化格式解析
             match = self.SIMPLE_LOG_PATTERN.search(log_line)
             if match:
                 data = match.groupdict()
+                log_source = "gateway" if "gateway" in pod_name.lower() else "sidecar"
                 return LogEntry(
                     timestamp=datetime.now().isoformat(),
                     method=data.get('method', ''),
                     path=data.get('path', ''),
                     protocol='HTTP/1.1',
                     status_code=int(data.get('status_code', 0)),
+                    response_flags='-',
+                    bytes_received=0,
+                    bytes_sent=0,
+                    duration=0,
+                    upstream_service_time='-',
                     response_size=0,
                     request_time=0.0,
                     upstream_host='',
                     user_agent='',
                     x_forwarded_for='',
                     request_id='',
+                    authority='',
                     pod_name=pod_name,
-                    raw_log=log_line
+                    raw_log=log_line,
+                    log_source=log_source
                 )
                 
         except (ValueError, AttributeError) as e:
@@ -379,10 +424,23 @@ def parse_logs_from_files(log_files: List[str], parser: Optional[EnvoyLogParser]
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
             
-            # 从文件名提取 pod 名称
+            # 从文件名提取 pod 名称，支持Gateway日志
             import os
             filename = os.path.basename(file_path)
-            pod_name = filename.replace('.log', '').split('_')[-1]  # 假设格式为 case_001_reviews_v2_pod-name.log
+            
+            # 支持不同的日志文件命名格式:
+            # - case_005_productpage_productpage-v1-pod.log (sidecar)
+            # - case_005_gateway_istio-ingressgateway-pod.log (gateway)
+            # - case_005_test503_productpage_productpage-v1-pod.log (test)
+            if '_gateway_' in filename:
+                # Gateway日志文件
+                pod_name = filename.replace('.log', '').split('_gateway_')[-1]
+            elif '_test503_' in filename:
+                # Test日志文件
+                pod_name = filename.replace('.log', '').split('_')[-1]
+            else:
+                # 普通sidecar日志文件  
+                pod_name = filename.replace('.log', '').split('_')[-1]
             
             logs_dict[pod_name] = content
             
