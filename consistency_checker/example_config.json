@@ -1,0 +1,19 @@
+{
+  "project_root": ".",
+  "control_plane_config_dir": "istio_config_parser/istio_control_config",
+  "data_plane_config_dir": "istio_config_parser/istio_control_config",
+  "test_matrix_file": "istio_Dynamic_Test/generator/output_matrix.json",
+  "envoy_logs_dir": "istio_Dynamic_Test/results/envoy_logs",
+  "http_results_dir": "istio_Dynamic_Test/results/http_results",
+  "verification_dir": "istio_Dynamic_Test/results/verification",
+  "consistency_output_dir": "results/consistency",
+  "visualization_output_dir": "results/visualization",
+  "namespace": "default",
+  "web_port": 8080,
+  "enable_interactive_graph": true,
+  "traffic_split_tolerance": 0.1,
+  "statistical_confidence": 0.95,
+  "log_level": "INFO"
+}
+
+

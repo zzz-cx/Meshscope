@@ -638,7 +638,7 @@ def main():
     with open(args.output, 'w', encoding='utf-8') as f:
         json.dump(output_data, f, indent=2, ensure_ascii=False)
 
-    print(f"✅ 成功生成 {len(test_cases)} 个测试用例，已保存到 {args.output}")
+    print(f"[SUCCESS] Generated {len(test_cases)} test cases, saved to {args.output}")
 
 if __name__ == "__main__":
     main()
