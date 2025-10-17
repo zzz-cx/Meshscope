@@ -14,8 +14,8 @@ from datetime import datetime
 from typing import List, Dict, Any, Optional
 from dataclasses import asdict
 
-from result_comparator import ComprehensiveResult, VerificationResult, VerificationStatus
-from behavior_model import ExpectedBehavior
+from .result_comparator import ComprehensiveResult, VerificationResult, VerificationStatus
+from .behavior_model import ExpectedBehavior
 
 class ReportGenerator:
     """报告生成器"""

@@ -19,8 +19,8 @@ from enum import Enum
 # 例如：将其设置为 0.08 可放宽为 ±8%。
 TRAFFIC_SPLIT_MARGIN_OVERRIDE: Optional[float] = None
 
-from log_parser import LogEntry, EnvoyLogParser
-from behavior_model import ExpectedBehavior, TestType, PolicyType
+from .log_parser import LogEntry, EnvoyLogParser
+from .behavior_model import ExpectedBehavior, TestType, PolicyType
 
 class VerificationStatus(Enum):
     """验证状态枚举"""

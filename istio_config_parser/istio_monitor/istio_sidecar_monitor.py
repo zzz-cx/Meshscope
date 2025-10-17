@@ -18,13 +18,20 @@ import queue
 import yaml
 
 try:
-    from istio_api import IstioAPI
+    from .istio_api import IstioAPI
     from kubernetes import client, config, watch
 except ImportError as e:
-    print(f"错误: {str(e)}")
-    print("请确保已安装所有依赖:")
-    print("pip install -r requirements.txt")
-    sys.exit(1)
+    # 尝试相对导入
+    try:
+        import os
+        sys.path.insert(0, os.path.dirname(__file__))
+        from istio_api import IstioAPI
+        from kubernetes import client, config, watch
+    except ImportError as e2:
+        print(f"错误: {str(e2)}")
+        print("请确保已安装所有依赖:")
+        print("pip install -r requirements.txt")
+        sys.exit(1)
 
 # 配置日志
 logging.basicConfig(
@@ -102,6 +109,7 @@ class IstioSidecarMonitor:
         self.last_update_time = 0  # 添加最后更新时间记录
         self.k8s_host = k8s_host  # 保存 k8s_host 以供后续使用
         self.k8s_token = k8s_token  # 保存原始 token
+        self.configuration = None  # 保存configuration实例
         
         # 确保输出目录存在
         if not os.path.exists(output_dir):
@@ -138,9 +146,13 @@ class IstioSidecarMonitor:
                 configuration.debug = True
                 
                 if self.k8s_token:
-                    configuration.api_key = {"authorization": self.k8s_token}
+                    # 确保token格式正确
+                    token = self.k8s_token.strip()
+                    if token.startswith("Bearer "):
+                        token = token[7:]  # 移除 "Bearer " 前缀
+                    configuration.api_key = {"authorization": token}
                     configuration.api_key_prefix = {"authorization": "Bearer"}
-                    logger.info("已使用提供的 token 配置 Kubernetes 认证")
+                    logger.info(f"已使用提供的 token 配置 Kubernetes 认证 (token长度: {len(token)})")
                 else:
                     try:
                         with open('/var/run/secrets/kubernetes.io/serviceaccount/token', 'r') as f:
@@ -152,8 +164,9 @@ class IstioSidecarMonitor:
                     except Exception as e:
                         logger.warning(f"无法读取 ServiceAccount token: {str(e)}")
                 
+                self.configuration = configuration
                 client.Configuration.set_default(configuration)
-                self.k8s_client = client.CustomObjectsApi()
+                self.k8s_client = client.CustomObjectsApi(client.ApiClient(configuration))
                 logger.info("已使用指定配置初始化 Kubernetes 客户端")
             else:
                 config.load_kube_config()
@@ -240,6 +253,12 @@ class IstioSidecarMonitor:
         """获取控制平面配置"""
         changes = {}
         try:
+            # 确保configuration被应用（有时会被重置）
+            if self.configuration:
+                client.Configuration.set_default(self.configuration)
+                # 重新创建client以确保使用最新configuration
+                self.k8s_client = client.CustomObjectsApi(client.ApiClient(self.configuration))
+            
             # 处理 Istio 自定义资源
             istio_resources = [
                 ("networking.istio.io", "v1alpha3", "virtualservices"),
@@ -304,8 +323,12 @@ class IstioSidecarMonitor:
             
             # 处理 Kubernetes 核心服务资源
             try:
-                # 创建 CoreV1Api 实例
-                core_v1_api = client.CoreV1Api()
+                # 创建 CoreV1Api 实例 - 使用相同的configuration
+                if self.configuration:
+                    api_client = client.ApiClient(self.configuration)
+                else:
+                    api_client = client.ApiClient()
+                core_v1_api = client.CoreV1Api(api_client)
                 
                 # 获取所有命名空间的服务
                 services = core_v1_api.list_service_for_all_namespaces()

@@ -1,0 +1,525 @@
+{
+  "metadata": {
+    "cp_services": 6,
+    "dp_services": 36,
+    "timestamp": null
+  },
+  "nodes": [
+    {
+      "id": "online-boutique.paymentservice",
+      "service_name": "paymentservice",
+      "namespace": "online-boutique",
+      "has_control_plane": false,
+      "has_data_plane": true,
+      "status": "dp_only",
+      "dp_functions": [
+        "routing",
+        "circuit_breaker"
+      ]
+    },
+    {
+      "id": "online-boutique.frontend",
+      "service_name": "frontend",
+      "namespace": "online-boutique",
+      "has_control_plane": true,
+      "has_data_plane": true,
+      "status": "matched",
+      "cp_functions": [
+        "routing",
+        "circuit_breaker",
+        "traffic_shifting"
+      ],
+      "dp_functions": [
+        "routing",
+        "circuit_breaker"
+      ]
+    },
+    {
+      "id": "online-boutique.checkoutservice",
+      "service_name": "checkoutservice",
+      "namespace": "online-boutique",
+      "has_control_plane": false,
+      "has_data_plane": true,
+      "status": "dp_only",
+      "dp_functions": [
+        "routing",
+        "circuit_breaker"
+      ]
+    },
+    {
+      "id": "online-boutique.shippingservice",
+      "service_name": "shippingservice",
+      "namespace": "online-boutique",
+      "has_control_plane": false,
+      "has_data_plane": true,
+      "status": "dp_only",
+      "dp_functions": [
+        "routing",
+        "circuit_breaker"
+      ]
+    },
+    {
+      "id": "online-boutique.adservice",
+      "service_name": "adservice",
+      "namespace": "online-boutique",
+      "has_control_plane": true,
+      "has_data_plane": true,
+      "status": "matched",
+      "cp_functions": [
+        "routing",
+        "circuit_breaker",
+        "traffic_shifting"
+      ],
+      "dp_functions": [
+        "routing",
+        "circuit_breaker",
+        "traffic_shifting"
+      ]
+    },
+    {
+      "id": "google.metadata",
+      "service_name": "metadata",
+      "namespace": "google",
+      "has_control_plane": false,
+      "has_data_plane": true,
+      "status": "dp_only",
+      "dp_functions": [
+        "routing",
+        "circuit_breaker"
+      ]
+    },
+    {
+      "id": "istio-system.zipkin",
+      "service_name": "zipkin",
+      "namespace": "istio-system",
+      "has_control_plane": false,
+      "has_data_plane": true,
+      "status": "dp_only",
+      "dp_functions": [
+        "routing",
+        "circuit_breaker"
+      ]
+    },
+    {
+      "id": "online-boutique.frontend-ingress",
+      "service_name": "frontend-ingress",
+      "namespace": "online-boutique",
+      "has_control_plane": true,
+      "has_data_plane": false,
+      "status": "cp_only",
+      "cp_functions": [
+        "routing"
+      ]
+    },
+    {
+      "id": "istio-system.kiali",
+      "service_name": "kiali",
+      "namespace": "istio-system",
+      "has_control_plane": false,
+      "has_data_plane": true,
+      "status": "dp_only",
+      "dp_functions": [
+        "routing",
+        "circuit_breaker"
+      ]
+    },
+    {
+      "id": "default.productpage",
+      "service_name": "productpage",
+      "namespace": "default",
+      "has_control_plane": true,
+      "has_data_plane": true,
+      "status": "matched",
+      "cp_functions": [
+        "routing",
+        "circuit_breaker",
+        "traffic_shifting"
+      ],
+      "dp_functions": [
+        "routing",
+        "circuit_breaker"
+      ]
+    },
+    {
+      "id": "istio-system.loki",
+      "service_name": "loki",
+      "namespace": "istio-system",
+      "has_control_plane": false,
+      "has_data_plane": true,
+      "status": "dp_only",
+      "dp_functions": [
+        "routing",
+        "circuit_breaker"
+      ]
+    },
+    {
+      "id": "default.details",
+      "service_name": "details",
+      "namespace": "default",
+      "has_control_plane": false,
+      "has_data_plane": true,
+      "status": "dp_only",
+      "dp_functions": [
+        "routing",
+        "circuit_breaker"
+      ]
+    },
+    {
+      "id": "istio-system.jaeger-collector",
+      "service_name": "jaeger-collector",
+      "namespace": "istio-system",
+      "has_control_plane": false,
+      "has_data_plane": true,
+      "status": "dp_only",
+      "dp_functions": [
+        "routing",
+        "circuit_breaker"
+      ]
+    },
+    {
+      "id": "istio-system.tracing",
+      "service_name": "tracing",
+      "namespace": "istio-system",
+      "has_control_plane": false,
+      "has_data_plane": true,
+      "status": "dp_only",
+      "dp_functions": [
+        "routing",
+        "circuit_breaker"
+      ]
+    },
+    {
+      "id": "istio-system.istiod",
+      "service_name": "istiod",
+      "namespace": "istio-system",
+      "has_control_plane": false,
+      "has_data_plane": true,
+      "status": "dp_only",
+      "dp_functions": [
+        "routing",
+        "circuit_breaker"
+      ]
+    },
+    {
+      "id": "default.reviews",
+      "service_name": "reviews",
+      "namespace": "default",
+      "has_control_plane": true,
+      "has_data_plane": true,
+      "status": "matched",
+      "cp_functions": [
+        "routing",
+        "circuit_breaker"
+      ],
+      "dp_functions": [
+        "routing",
+        "circuit_breaker",
+        "traffic_shifting"
+      ]
+    },
+    {
+      "id": "online-boutique.redis-cart",
+      "service_name": "redis-cart",
+      "namespace": "online-boutique",
+      "has_control_plane": false,
+      "has_data_plane": true,
+      "status": "dp_only",
+      "dp_functions": [
+        "circuit_breaker"
+      ]
+    },
+    {
+      "id": "online-boutique.productcatalogservice",
+      "service_name": "productcatalogservice",
+      "namespace": "online-boutique",
+      "has_control_plane": false,
+      "has_data_plane": true,
+      "status": "dp_only",
+      "dp_functions": [
+        "routing",
+        "circuit_breaker"
+      ]
+    },
+    {
+      "id": "online-boutique.currencyservice",
+      "service_name": "currencyservice",
+      "namespace": "online-boutique",
+      "has_control_plane": true,
+      "has_data_plane": true,
+      "status": "matched",
+      "cp_functions": [
+        "circuit_breaker"
+      ],
+      "dp_functions": [
+        "routing",
+        "circuit_breaker"
+      ]
+    },
+    {
+      "id": "googleapis.*",
+      "service_name": "*",
+      "namespace": "googleapis",
+      "has_control_plane": false,
+      "has_data_plane": true,
+      "status": "dp_only",
+      "dp_functions": [
+        "routing",
+        "circuit_breaker"
+      ]
+    },
+    {
+      "id": "default.kubernetes",
+      "service_name": "kubernetes",
+      "namespace": "default",
+      "has_control_plane": false,
+      "has_data_plane": true,
+      "status": "dp_only",
+      "dp_functions": [
+        "circuit_breaker"
+      ]
+    },
+    {
+      "id": "istio-system.grafana",
+      "service_name": "grafana",
+      "namespace": "istio-system",
+      "has_control_plane": false,
+      "has_data_plane": true,
+      "status": "dp_only",
+      "dp_functions": [
+        "circuit_breaker"
+      ]
+    },
+    {
+      "id": "online-boutique.sleep",
+      "service_name": "sleep",
+      "namespace": "online-boutique",
+      "has_control_plane": false,
+      "has_data_plane": true,
+      "status": "dp_only",
+      "dp_functions": [
+        "routing"
+      ]
+    },
+    {
+      "id": "istio-system.loki-headless",
+      "service_name": "loki-headless",
+      "namespace": "istio-system",
+      "has_control_plane": false,
+      "has_data_plane": true,
+      "status": "dp_only",
+      "dp_functions": [
+        "routing",
+        "circuit_breaker"
+      ]
+    },
+    {
+      "id": "online-boutique.cartservice",
+      "service_name": "cartservice",
+      "namespace": "online-boutique",
+      "has_control_plane": false,
+      "has_data_plane": true,
+      "status": "dp_only",
+      "dp_functions": [
+        "routing",
+        "circuit_breaker"
+      ]
+    },
+    {
+      "id": "online-boutique.emailservice",
+      "service_name": "emailservice",
+      "namespace": "online-boutique",
+      "has_control_plane": false,
+      "has_data_plane": true,
+      "status": "dp_only",
+      "dp_functions": [
+        "routing",
+        "circuit_breaker"
+      ]
+    },
+    {
+      "id": "kube-system.kube-dns",
+      "service_name": "kube-dns",
+      "namespace": "kube-system",
+      "has_control_plane": false,
+      "has_data_plane": true,
+      "status": "dp_only",
+      "dp_functions": [
+        "circuit_breaker"
+      ]
+    },
+    {
+      "id": "google.accounts",
+      "service_name": "accounts",
+      "namespace": "google",
+      "has_control_plane": false,
+      "has_data_plane": true,
+      "status": "dp_only",
+      "dp_functions": [
+        "routing",
+        "circuit_breaker"
+      ]
+    },
+    {
+      "id": "default.unknown",
+      "service_name": "unknown",
+      "namespace": "default",
+      "has_control_plane": false,
+      "has_data_plane": true,
+      "status": "dp_only",
+      "dp_functions": [
+        "routing"
+      ]
+    },
+    {
+      "id": "metallb-system.webhook-service",
+      "service_name": "webhook-service",
+      "namespace": "metallb-system",
+      "has_control_plane": false,
+      "has_data_plane": true,
+      "status": "dp_only",
+      "dp_functions": [
+        "circuit_breaker"
+      ]
+    },
+    {
+      "id": "default.sleep",
+      "service_name": "sleep",
+      "namespace": "default",
+      "has_control_plane": false,
+      "has_data_plane": true,
+      "status": "dp_only",
+      "dp_functions": [
+        "routing",
+        "circuit_breaker"
+      ]
+    },
+    {
+      "id": "istio-system.prometheus",
+      "service_name": "prometheus",
+      "namespace": "istio-system",
+      "has_control_plane": false,
+      "has_data_plane": true,
+      "status": "dp_only",
+      "dp_functions": [
+        "routing",
+        "circuit_breaker"
+      ]
+    },
+    {
+      "id": "istio-system.loki-memberlist",
+      "service_name": "loki-memberlist",
+      "namespace": "istio-system",
+      "has_control_plane": false,
+      "has_data_plane": true,
+      "status": "dp_only",
+      "dp_functions": [
+        "circuit_breaker"
+      ]
+    },
+    {
+      "id": "default.ratings",
+      "service_name": "ratings",
+      "namespace": "default",
+      "has_control_plane": false,
+      "has_data_plane": true,
+      "status": "dp_only",
+      "dp_functions": [
+        "routing",
+        "circuit_breaker"
+      ]
+    },
+    {
+      "id": "istio-system.istio-egressgateway",
+      "service_name": "istio-egressgateway",
+      "namespace": "istio-system",
+      "has_control_plane": false,
+      "has_data_plane": true,
+      "status": "dp_only",
+      "dp_functions": [
+        "routing",
+        "circuit_breaker"
+      ]
+    },
+    {
+      "id": "istio-system.istio-ingressgateway",
+      "service_name": "istio-ingressgateway",
+      "namespace": "istio-system",
+      "has_control_plane": false,
+      "has_data_plane": true,
+      "status": "dp_only",
+      "dp_functions": [
+        "routing",
+        "circuit_breaker"
+      ]
+    },
+    {
+      "id": "online-boutique.recommendationservice",
+      "service_name": "recommendationservice",
+      "namespace": "online-boutique",
+      "has_control_plane": false,
+      "has_data_plane": true,
+      "status": "dp_only",
+      "dp_functions": [
+        "routing",
+        "circuit_breaker"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "source": "default.productpage",
+      "target": "default.productpage",
+      "type": "routing",
+      "weight": 70
+    },
+    {
+      "source": "default.productpage",
+      "target": "default.productpage",
+      "type": "routing",
+      "weight": 30
+    },
+    {
+      "source": "default.reviews",
+      "target": "default.reviews",
+      "type": "routing",
+      "weight": 100
+    },
+    {
+      "source": "default.reviews",
+      "target": "default.reviews",
+      "type": "routing",
+      "weight": 100
+    },
+    {
+      "source": "online-boutique.adservice",
+      "target": "online-boutique.adservice",
+      "type": "routing",
+      "weight": 50
+    },
+    {
+      "source": "online-boutique.adservice",
+      "target": "online-boutique.adservice",
+      "type": "routing",
+      "weight": 50
+    },
+    {
+      "source": "online-boutique.frontend-ingress",
+      "target": "online-boutique.frontend",
+      "type": "routing",
+      "weight": 55
+    },
+    {
+      "source": "online-boutique.frontend-ingress",
+      "target": "online-boutique.frontend",
+      "type": "routing",
+      "weight": 45
+    },
+    {
+      "source": "online-boutique.frontend",
+      "target": "online-boutique.frontend",
+      "type": "routing",
+      "weight": 100
+    }
+  ],
+  "config_comparison": []
+}

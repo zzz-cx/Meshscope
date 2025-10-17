@@ -57,30 +57,30 @@ class StaticAnalyzer:
         Returns:
             包含策略、节点和边的分析结果
         """
-        logger.info(f"开始静态分析: 配置目录={self.config_dir}, 命名空间={self.namespace}")
+        logger.info(f"Starting static analysis: config_dir={self.config_dir}, namespace={self.namespace}")
         
         # 1. 解析控制平面配置
         self.control_plane_data = parse_control_plane_from_dir(
             self.config_dir,
             self.namespace
         )
-        logger.info(f"✓ 解析控制平面配置完成")
+        logger.info(f"[OK] Control plane config parsed")
         
         # 2. 解析数据平面配置
         self.data_plane_data = parse_data_plane_from_dir(self.config_dir)
-        logger.info(f"✓ 解析数据平面配置完成")
+        logger.info(f"[OK] Data plane config parsed")
         
         # 3. 提取静态策略
         self._extract_static_policies()
-        logger.info(f"✓ 提取静态策略: {len(self.static_policies)} 个")
+        logger.info(f"[OK] Extracted static policies: {len(self.static_policies)}")
         
         # 4. 构建服务图
         self._build_service_graph()
-        logger.info(f"✓ 构建服务图: {len(self.service_nodes)} 个节点, {len(self.config_edges)} 条边")
+        logger.info(f"[OK] Built service graph: {len(self.service_nodes)} nodes, {len(self.config_edges)} edges")
         
         # 5. 检测控制平面和数据平面一致性
         consistency_issues = self._check_plane_consistency()
-        logger.info(f"✓ 平面一致性检查: 发现 {len(consistency_issues)} 个问题")
+        logger.info(f"[OK] Plane consistency check: found {len(consistency_issues)} issues")
         
         return {
             "control_plane": self.control_plane_data,

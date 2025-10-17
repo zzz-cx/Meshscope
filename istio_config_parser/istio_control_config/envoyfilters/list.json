@@ -1,9 +1,0 @@
-{
-  "apiVersion": "networking.istio.io/v1alpha3",
-  "items": [],
-  "kind": "EnvoyFilterList",
-  "metadata": {
-    "continue": "",
-    "resourceVersion": "1757238"
-  }
-}

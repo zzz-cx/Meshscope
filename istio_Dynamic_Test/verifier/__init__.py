@@ -8,10 +8,10 @@ Istio 动态测试验证模块
 - report_generator.py: 输出 HTML / JSON 报告
 """
 
-from log_parser import EnvoyLogParser, LogEntry
-from behavior_model import BehaviorModel, ExpectedBehavior
-from result_comparator import ResultComparator, VerificationResult
-from report_generator import ReportGenerator
+from .log_parser import EnvoyLogParser, LogEntry
+from .behavior_model import BehaviorModel, ExpectedBehavior
+from .result_comparator import ResultComparator, VerificationResult
+from .report_generator import ReportGenerator
 
 __all__ = [
     'EnvoyLogParser', 'LogEntry',

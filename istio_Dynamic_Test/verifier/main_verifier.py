@@ -19,10 +19,10 @@ import argparse
 from datetime import datetime
 from typing import Dict, List
 
-from log_parser import EnvoyLogParser, parse_logs_from_files
-from behavior_model import BehaviorModel, parse_test_matrix
-from result_comparator import ResultComparator, compare_batch_results
-from report_generator import ReportGenerator
+from .log_parser import EnvoyLogParser, parse_logs_from_files
+from .behavior_model import BehaviorModel, parse_test_matrix
+from .result_comparator import ResultComparator, compare_batch_results
+from .report_generator import ReportGenerator
 
 def extract_http_results_from_traffic_driver(case_id: str) -> Dict:
     """
