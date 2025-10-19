@@ -1977,6 +1977,88 @@
         "service_name": "reviews",
         "namespace": "default",
         "functions": {
+          "traffic_shifting": {
+            "function_type": "traffic_shifting",
+            "service_name": "reviews",
+            "namespace": "default",
+            "plane_type": "data_plane",
+            "raw_config": {
+              "route": {
+                "match": {
+                  "prefix": "/"
+                },
+                "route": {
+                  "weightedClusters": {
+                    "clusters": [
+                      {
+                        "name": "outbound|9080|v1|reviews.default.svc.cluster.local",
+                        "weight": 80
+                      },
+                      {
+                        "name": "outbound|9080|v3|reviews.default.svc.cluster.local",
+                        "weight": 20
+                      }
+                    ]
+                  },
+                  "timeout": "0s",
+                  "retryPolicy": {
+                    "retryOn": "connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes",
+                    "numRetries": 2,
+                    "retryHostPredicate": [
+                      {
+                        "name": "envoy.retry_host_predicates.previous_hosts",
+                        "typedConfig": {
+                          "@type": "type.googleapis.com/envoy.extensions.retry.host.previous_hosts.v3.PreviousHostsPredicate"
+                        }
+                      }
+                    ],
+                    "hostSelectionRetryMaxAttempts": "5"
+                  },
+                  "maxGrpcTimeout": "0s"
+                },
+                "metadata": {
+                  "filterMetadata": {
+                    "istio": {
+                      "config": "/apis/networking.istio.io/v1/namespaces/default/virtual-service/reviews"
+                    }
+                  }
+                },
+                "decorator": {
+                  "operation": "reviews:9080/*"
+                }
+              }
+            },
+            "destinations": [
+              {
+                "host": "reviews.default.svc.cluster.local",
+                "subset": "v1",
+                "port": 9080,
+                "weight": 80
+              },
+              {
+                "host": "reviews.default.svc.cluster.local",
+                "subset": "v3",
+                "port": 9080,
+                "weight": 20
+              }
+            ],
+            "subsets": [
+              {
+                "name": "v1",
+                "version": "v1",
+                "labels": {
+                  "version": "v1"
+                }
+              },
+              {
+                "name": "v3",
+                "version": "v3",
+                "labels": {
+                  "version": "v3"
+                }
+              }
+            ]
+          },
           "routing": {
             "function_type": "routing",
             "service_name": "reviews",
@@ -2790,88 +2872,6 @@
                 }
               }
             }
-          },
-          "traffic_shifting": {
-            "function_type": "traffic_shifting",
-            "service_name": "reviews",
-            "namespace": "default",
-            "plane_type": "data_plane",
-            "raw_config": {
-              "route": {
-                "match": {
-                  "prefix": "/"
-                },
-                "route": {
-                  "weightedClusters": {
-                    "clusters": [
-                      {
-                        "name": "outbound|9080|v1|reviews.default.svc.cluster.local",
-                        "weight": 80
-                      },
-                      {
-                        "name": "outbound|9080|v3|reviews.default.svc.cluster.local",
-                        "weight": 20
-                      }
-                    ]
-                  },
-                  "timeout": "0s",
-                  "retryPolicy": {
-                    "retryOn": "connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes",
-                    "numRetries": 2,
-                    "retryHostPredicate": [
-                      {
-                        "name": "envoy.retry_host_predicates.previous_hosts",
-                        "typedConfig": {
-                          "@type": "type.googleapis.com/envoy.extensions.retry.host.previous_hosts.v3.PreviousHostsPredicate"
-                        }
-                      }
-                    ],
-                    "hostSelectionRetryMaxAttempts": "5"
-                  },
-                  "maxGrpcTimeout": "0s"
-                },
-                "metadata": {
-                  "filterMetadata": {
-                    "istio": {
-                      "config": "/apis/networking.istio.io/v1/namespaces/default/virtual-service/reviews"
-                    }
-                  }
-                },
-                "decorator": {
-                  "operation": "reviews:9080/*"
-                }
-              }
-            },
-            "destinations": [
-              {
-                "host": "reviews.default.svc.cluster.local",
-                "subset": "v1",
-                "port": 9080,
-                "weight": 80
-              },
-              {
-                "host": "reviews.default.svc.cluster.local",
-                "subset": "v3",
-                "port": 9080,
-                "weight": 20
-              }
-            ],
-            "subsets": [
-              {
-                "name": "v1",
-                "version": "v1",
-                "labels": {
-                  "version": "v1"
-                }
-              },
-              {
-                "name": "v3",
-                "version": "v3",
-                "labels": {
-                  "version": "v3"
-                }
-              }
-            ]
           }
         }
       },
@@ -9623,6 +9623,88 @@
         "service_name": "adservice",
         "namespace": "online-boutique",
         "functions": {
+          "traffic_shifting": {
+            "function_type": "traffic_shifting",
+            "service_name": "adservice",
+            "namespace": "online-boutique",
+            "plane_type": "data_plane",
+            "raw_config": {
+              "route": {
+                "match": {
+                  "prefix": "/"
+                },
+                "route": {
+                  "weightedClusters": {
+                    "clusters": [
+                      {
+                        "name": "outbound|9555|v1|adservice.online-boutique.svc.cluster.local",
+                        "weight": 70
+                      },
+                      {
+                        "name": "outbound|9555|v2|adservice.online-boutique.svc.cluster.local",
+                        "weight": 30
+                      }
+                    ]
+                  },
+                  "timeout": "0s",
+                  "retryPolicy": {
+                    "retryOn": "connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes",
+                    "numRetries": 2,
+                    "retryHostPredicate": [
+                      {
+                        "name": "envoy.retry_host_predicates.previous_hosts",
+                        "typedConfig": {
+                          "@type": "type.googleapis.com/envoy.extensions.retry.host.previous_hosts.v3.PreviousHostsPredicate"
+                        }
+                      }
+                    ],
+                    "hostSelectionRetryMaxAttempts": "5"
+                  },
+                  "maxGrpcTimeout": "0s"
+                },
+                "metadata": {
+                  "filterMetadata": {
+                    "istio": {
+                      "config": "/apis/networking.istio.io/v1/namespaces/online-boutique/virtual-service/adservice"
+                    }
+                  }
+                },
+                "decorator": {
+                  "operation": "adservice:9555/*"
+                }
+              }
+            },
+            "destinations": [
+              {
+                "host": "adservice.online-boutique.svc.cluster.local",
+                "subset": "v1",
+                "port": 9555,
+                "weight": 70
+              },
+              {
+                "host": "adservice.online-boutique.svc.cluster.local",
+                "subset": "v2",
+                "port": 9555,
+                "weight": 30
+              }
+            ],
+            "subsets": [
+              {
+                "name": "v1",
+                "version": "v1",
+                "labels": {
+                  "version": "v1"
+                }
+              },
+              {
+                "name": "v2",
+                "version": "v2",
+                "labels": {
+                  "version": "v2"
+                }
+              }
+            ]
+          },
           "routing": {
             "function_type": "routing",
             "service_name": "adservice",
@@ -10242,88 +10324,6 @@
                 }
               }
             }
-          },
-          "traffic_shifting": {
-            "function_type": "traffic_shifting",
-            "service_name": "adservice",
-            "namespace": "online-boutique",
-            "plane_type": "data_plane",
-            "raw_config": {
-              "route": {
-                "match": {
-                  "prefix": "/"
-                },
-                "route": {
-                  "weightedClusters": {
-                    "clusters": [
-                      {
-                        "name": "outbound|9555|v1|adservice.online-boutique.svc.cluster.local",
-                        "weight": 70
-                      },
-                      {
-                        "name": "outbound|9555|v2|adservice.online-boutique.svc.cluster.local",
-                        "weight": 30
-                      }
-                    ]
-                  },
-                  "timeout": "0s",
-                  "retryPolicy": {
-                    "retryOn": "connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes",
-                    "numRetries": 2,
-                    "retryHostPredicate": [
-                      {
-                        "name": "envoy.retry_host_predicates.previous_hosts",
-                        "typedConfig": {
-                          "@type": "type.googleapis.com/envoy.extensions.retry.host.previous_hosts.v3.PreviousHostsPredicate"
-                        }
-                      }
-                    ],
-                    "hostSelectionRetryMaxAttempts": "5"
-                  },
-                  "maxGrpcTimeout": "0s"
-                },
-                "metadata": {
-                  "filterMetadata": {
-                    "istio": {
-                      "config": "/apis/networking.istio.io/v1/namespaces/online-boutique/virtual-service/adservice"
-                    }
-                  }
-                },
-                "decorator": {
-                  "operation": "adservice:9555/*"
-                }
-              }
-            },
-            "destinations": [
-              {
-                "host": "adservice.online-boutique.svc.cluster.local",
-                "subset": "v1",
-                "port": 9555,
-                "weight": 70
-              },
-              {
-                "host": "adservice.online-boutique.svc.cluster.local",
-                "subset": "v2",
-                "port": 9555,
-                "weight": 30
-              }
-            ],
-            "subsets": [
-              {
-                "name": "v1",
-                "version": "v1",
-                "labels": {
-                  "version": "v1"
-                }
-              },
-              {
-                "name": "v2",
-                "version": "v2",
-                "labels": {
-                  "version": "v2"
-                }
-              }
-            ]
           }
         }
       },

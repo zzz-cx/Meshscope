@@ -3,7 +3,10 @@
 整合所有解析器，提供统一的解析接口
 """
 import logging
-from typing import Dict, List, Any, Optional
+import concurrent.futures
+import threading
+import os
+from typing import Dict, List, Any, Optional, Callable, Tuple
 from istio_config_parser.parsers.base_parser import ParserRegistry, global_parser_registry
 from istio_config_parser.parsers.routing_parser import RoutingParser
 from istio_config_parser.parsers.circuit_breaker_parser import CircuitBreakerParser
@@ -26,9 +29,19 @@ logger = logging.getLogger(__name__)
 class UnifiedParser:
     """统一解析器"""
     
-    def __init__(self):
+    def __init__(self, enable_parallel: bool = True, max_workers: Optional[int] = None):
+        """
+        初始化统一解析器
+        
+        Args:
+            enable_parallel: 是否启用并行处理
+            max_workers: 最大工作线程数，None表示使用CPU核心数
+        """
         self.registry = ParserRegistry()
+        self.enable_parallel = enable_parallel
+        self.max_workers = max_workers or min(32, os.cpu_count() + 4 if os.cpu_count() else 8)
         self._register_default_parsers()
+        logger.info(f"统一解析器初始化完成，并行处理: {enable_parallel}, 最大工作线程: {self.max_workers}")
     
     def _register_default_parsers(self):
         """注册默认解析器"""
@@ -37,6 +50,90 @@ class UnifiedParser:
         self.registry.register(FunctionType.RATE_LIMIT, RateLimitParser())
         self.registry.register(FunctionType.TRAFFIC_SHIFTING, TrafficShiftingParser())
         # 可以继续注册其他解析器
+    
+    def _parse_control_plane_parser_task(
+        self, 
+        func_type: FunctionType, 
+        config_data: Dict[str, Any], 
+        task_name: str
+    ) -> Tuple[str, List[AnyFunctionModel], Optional[Exception]]:
+        """
+        单个解析器任务的包装函数，用于并行执行
+        
+        Args:
+            func_type: 功能类型
+            config_data: 配置数据
+            task_name: 任务名称（用于日志）
+            
+        Returns:
+            (function_type, models, error)
+        """
+        try:
+            parser = self.registry.get_parser(func_type)
+            if not parser:
+                return func_type.value, [], None
+            
+            if func_type == FunctionType.ROUTING:
+                models = parser.parse_control_plane(config_data)
+            elif func_type == FunctionType.CIRCUIT_BREAKER:
+                models = parser.parse_control_plane(config_data)
+            elif func_type == FunctionType.RATE_LIMIT:
+                models = parser.parse_control_plane(config_data)
+            elif func_type == FunctionType.TRAFFIC_SHIFTING:
+                # 流量迁移需要特殊处理
+                combined_config = {
+                    'destination_rules': config_data.get('destination_rules', {}),
+                    'virtual_services': config_data.get('virtual_services', {})
+                }
+                models = parser.parse_control_plane(combined_config)
+            else:
+                models = []
+            
+            logger.info(f"[并行] {task_name}: 解析到 {len(models)} 个配置")
+            return func_type.value, models or [], None
+            
+        except Exception as e:
+            logger.error(f"[并行] {task_name}: 解析失败 - {str(e)}")
+            return func_type.value, [], e
+    
+    def _parse_data_plane_parser_task(
+        self, 
+        func_type: FunctionType, 
+        config_data: Dict[str, Any], 
+        task_name: str
+    ) -> Tuple[str, List[AnyFunctionModel], Optional[Exception]]:
+        """
+        单个数据平面解析器任务的包装函数，用于并行执行
+        
+        Args:
+            func_type: 功能类型
+            config_data: 配置数据
+            task_name: 任务名称（用于日志）
+            
+        Returns:
+            (function_type, models, error)
+        """
+        try:
+            parser = self.registry.get_parser(func_type)
+            if not parser:
+                return func_type.value, [], None
+            
+            models = []
+            if func_type == FunctionType.ROUTING and config_data.get('routes'):
+                models = parser.parse_data_plane(config_data['routes'])
+            elif func_type == FunctionType.CIRCUIT_BREAKER and config_data.get('clusters'):
+                models = parser.parse_data_plane(config_data['clusters'])
+            elif func_type == FunctionType.RATE_LIMIT and config_data.get('listeners'):
+                models = parser.parse_data_plane(config_data['listeners'])
+            elif func_type == FunctionType.TRAFFIC_SHIFTING and config_data.get('routes'):
+                models = parser.parse_data_plane(config_data['routes'])
+            
+            logger.info(f"[并行] {task_name}: 解析到 {len(models)} 个数据平面配置")
+            return func_type.value, models or [], None
+            
+        except Exception as e:
+            logger.error(f"[并行] {task_name}: 解析失败 - {str(e)}")
+            return func_type.value, [], e
     
     def parse_control_plane(
         self,
@@ -57,6 +154,70 @@ class UnifiedParser:
             
         Returns:
             {function_type: [models]}
+        """
+        if not self.enable_parallel:
+            # 串行处理（原有逻辑）
+            return self._parse_control_plane_serial(
+                services_config, virtual_services_config, 
+                destination_rules_config, envoy_filters_config
+            )
+        
+        # 并行处理
+        logger.info("[并行] 开始并行解析控制平面配置...")
+        results = {}
+        tasks = []
+        
+        # 准备任务数据
+        config_data = {
+            FunctionType.ROUTING: virtual_services_config,
+            FunctionType.CIRCUIT_BREAKER: destination_rules_config,
+            FunctionType.RATE_LIMIT: envoy_filters_config,
+            FunctionType.TRAFFIC_SHIFTING: {
+                'destination_rules': destination_rules_config,
+                'virtual_services': virtual_services_config
+            }
+        }
+        
+        # 创建任务列表
+        for func_type in [FunctionType.ROUTING, FunctionType.CIRCUIT_BREAKER, 
+                         FunctionType.RATE_LIMIT, FunctionType.TRAFFIC_SHIFTING]:
+            if func_type in config_data:
+                tasks.append((
+                    func_type, 
+                    config_data[func_type], 
+                    f"控制平面-{func_type.value}"
+                ))
+        
+        # 并行执行
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            future_to_task = {
+                executor.submit(self._parse_control_plane_parser_task, func_type, config, task_name): task_name
+                for func_type, config, task_name in tasks
+            }
+            
+            for future in concurrent.futures.as_completed(future_to_task):
+                task_name = future_to_task[future]
+                try:
+                    func_type_key, models, error = future.result()
+                    if error:
+                        logger.error(f"[并行] {task_name} 失败: {error}")
+                    elif models:
+                        results[func_type_key] = models
+                except Exception as e:
+                    logger.error(f"[并行] {task_name} 执行异常: {e}")
+        
+        logger.info(f"[并行] 控制平面解析完成，共 {len(results)} 个解析结果")
+        return results
+    
+    def _parse_control_plane_serial(
+        self,
+        services_config: Dict[str, Any],
+        virtual_services_config: Dict[str, Any],
+        destination_rules_config: Dict[str, Any],
+        envoy_filters_config: Dict[str, Any]
+    ) -> Dict[str, List[AnyFunctionModel]]:
+        """
+        串行解析控制平面配置（原有逻辑）
         """
         results = {}
         
@@ -128,6 +289,67 @@ class UnifiedParser:
             
         Returns:
             {function_type: [models]}
+        """
+        if not self.enable_parallel:
+            # 串行处理（原有逻辑）
+            return self._parse_data_plane_serial(routes_config, clusters_config, listeners_config)
+        
+        # 并行处理
+        logger.info("[并行] 开始并行解析数据平面配置...")
+        results = {}
+        tasks = []
+        
+        # 准备任务数据
+        config_data = {
+            'routes': routes_config,
+            'clusters': clusters_config,
+            'listeners': listeners_config
+        }
+        
+        # 创建任务列表 - 只处理有数据的配置
+        if routes_config:
+            tasks.append((FunctionType.ROUTING, config_data, "数据平面-路由"))
+            tasks.append((FunctionType.TRAFFIC_SHIFTING, config_data, "数据平面-流量迁移"))
+        
+        if clusters_config:
+            tasks.append((FunctionType.CIRCUIT_BREAKER, config_data, "数据平面-熔断"))
+        
+        if listeners_config:
+            tasks.append((FunctionType.RATE_LIMIT, config_data, "数据平面-限流"))
+        
+        if not tasks:
+            logger.info("[并行] 没有可解析的数据平面配置")
+            return results
+        
+        # 并行执行
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            future_to_task = {
+                executor.submit(self._parse_data_plane_parser_task, func_type, config, task_name): task_name
+                for func_type, config, task_name in tasks
+            }
+            
+            for future in concurrent.futures.as_completed(future_to_task):
+                task_name = future_to_task[future]
+                try:
+                    func_type_key, models, error = future.result()
+                    if error:
+                        logger.error(f"[并行] {task_name} 失败: {error}")
+                    elif models:
+                        results[func_type_key] = models
+                except Exception as e:
+                    logger.error(f"[并行] {task_name} 执行异常: {e}")
+        
+        logger.info(f"[并行] 数据平面解析完成，共 {len(results)} 个解析结果")
+        return results
+    
+    def _parse_data_plane_serial(
+        self,
+        routes_config: Any,
+        clusters_config: Any,
+        listeners_config: Any
+    ) -> Dict[str, List[AnyFunctionModel]]:
+        """
+        串行解析数据平面配置（原有逻辑）
         """
         results = {}
         
