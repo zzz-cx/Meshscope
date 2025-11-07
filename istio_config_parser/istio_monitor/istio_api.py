@@ -5,6 +5,59 @@ import os
 import yaml
 import platform
 from typing import Dict, List, Any, Optional, Union
+import sys
+
+# 添加环境检测工具
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+try:
+    from utils.env_detector import K8sEnvDetector
+except ImportError:
+    # 如果导入失败，创建一个简单的检测器
+    import socket
+    class K8sEnvDetector:
+        @classmethod
+        def is_host_local(cls, host) -> bool:
+            """判断主机地址是否为本机"""
+            if not host:
+                return True
+            host = host.strip().lower()
+            if host in ['localhost', '127.0.0.1', '::1', '0.0.0.0']:
+                return True
+            try:
+                hostname = socket.gethostname()
+                local_ip = socket.gethostbyname(hostname)
+                if host == local_ip.lower():
+                    return True
+                resolved_ip = socket.gethostbyname(host)
+                if resolved_ip == local_ip:
+                    return True
+            except:
+                pass
+            return False
+        
+        @classmethod
+        def should_use_ssh(cls, ssh_client=None, use_vm: bool = True, vm_host=None) -> bool:
+            if not use_vm:
+                return False
+            # 如果提供了vm_host，检查是否为本机
+            if vm_host:
+                if not cls.is_host_local(vm_host):
+                    # 主机地址和本机不一致，使用SSH
+                    return ssh_client is not None
+            # 检查是否在 K8s 环境中
+            if os.path.exists('/var/run/secrets/kubernetes.io/serviceaccount/token'):
+                return False
+            if os.environ.get('KUBERNETES_SERVICE_HOST'):
+                return False
+            # 检查 kubectl 是否可用
+            try:
+                result = subprocess.run(['kubectl', 'version', '--client'], 
+                                      capture_output=True, timeout=5)
+                if result.returncode == 0:
+                    return False
+            except:
+                pass
+            return ssh_client is not None
 
 # 添加 paramiko 导入
 try:
@@ -61,13 +114,22 @@ class IstioAPI:
             print("警告: 在 Windows 上使用 SSH 连接需要安装 paramiko 库")
             print("请运行: pip install paramiko")
         
-        # 如果使用虚拟机，检查 SSH 连接
-        if self.use_vm and self.vm_host:
+        # 检测是否应该使用 SSH
+        ssh_client_dict = {'hostname': vm_host} if vm_host else None
+        if use_vm and vm_host:
+            self._should_use_ssh = K8sEnvDetector.should_use_ssh(ssh_client=ssh_client_dict, use_vm=use_vm, vm_host=vm_host)
+        else:
+            self._should_use_ssh = False
+        
+        # 如果应该使用 SSH 且配置了虚拟机，检查 SSH 连接
+        if self._should_use_ssh and self.use_vm and self.vm_host:
             try:
                 self._execute_vm_command("echo 'SSH connection test'")
                 print(f"成功连接到虚拟机 {self.vm_host}")
             except Exception as e:
                 print(f"无法连接到虚拟机: {str(e)}")
+        elif not self._should_use_ssh:
+            print("检测到 K8s 环境或 kubectl 可用，将使用本地执行")
     
     def _execute_vm_command(self, command: str) -> str:
         """
@@ -141,7 +203,7 @@ class IstioAPI:
     
     def _execute_kubectl(self, command: str) -> str:
         """
-        执行 kubectl 命令
+        执行 kubectl 命令，自动检测环境
         
         参数:
             command: kubectl 命令（不包含 kubectl 前缀）
@@ -154,7 +216,8 @@ class IstioAPI:
         if self.kubeconfig:
             kubectl_cmd += f" --kubeconfig={self.kubeconfig}"
         
-        if self.use_vm and self.vm_host:
+        # 根据环境检测结果决定执行方式
+        if self._should_use_ssh and self.use_vm and self.vm_host:
             return self._execute_vm_command(kubectl_cmd)
         else:
             result = subprocess.run(kubectl_cmd, shell=True, capture_output=True, text=True)
@@ -201,10 +264,11 @@ class IstioAPI:
     def get_istio_version(self) -> Dict:
         """获取 Istio 版本信息"""
         try:
-            if self.use_vm and self.vm_host:
+            if self._should_use_ssh and self.use_vm and self.vm_host:
                 output = self._execute_vm_command("istioctl version --short")
             else:
-                output = subprocess.run("istioctl version --short", shell=True, capture_output=True, text=True).stdout
+                result = subprocess.run("istioctl version --short", shell=True, capture_output=True, text=True)
+                output = result.stdout
             
             lines = output.strip().split('\n')
             version_info = {}
@@ -332,10 +396,11 @@ class IstioAPI:
     def get_proxies(self) -> List[str]:
         """获取所有代理（Sidecar）的列表"""
         try:
-            if self.use_vm and self.vm_host:
+            if self._should_use_ssh and self.use_vm and self.vm_host:
                 output = self._execute_vm_command("istioctl proxy-status")
             else:
-                output = subprocess.run("istioctl proxy-status", shell=True, capture_output=True, text=True).stdout
+                result = subprocess.run("istioctl proxy-status", shell=True, capture_output=True, text=True)
+                output = result.stdout
             
             lines = output.strip().split('\n')
             if len(lines) <= 1:  # 只有标题行
@@ -369,11 +434,12 @@ class IstioAPI:
             raise ValueError(f"无效的配置类型: {config_type}，有效类型: {', '.join(valid_types)}")
         
         try:
-            if self.use_vm and self.vm_host:
+            if self._should_use_ssh and self.use_vm and self.vm_host:
                 output = self._execute_vm_command(f"istioctl proxy-config {config_type} {proxy_id} -o json")
             else:
-                output = subprocess.run(f"istioctl proxy-config {config_type} {proxy_id} -o json", 
-                                       shell=True, capture_output=True, text=True).stdout
+                result = subprocess.run(f"istioctl proxy-config {config_type} {proxy_id} -o json", 
+                                       shell=True, capture_output=True, text=True)
+                output = result.stdout
             
             return json.loads(output)
         except Exception as e:
@@ -405,7 +471,7 @@ class IstioAPI:
             # 获取指标
             metrics_url = f"http://{pod_ip}:15090/stats/prometheus"
             
-            if self.use_vm and self.vm_host:
+            if self._should_use_ssh and self.use_vm and self.vm_host:
                 # 在虚拟机上使用 curl 获取指标
                 output = self._execute_vm_command(f"curl -s {metrics_url}")
             else:

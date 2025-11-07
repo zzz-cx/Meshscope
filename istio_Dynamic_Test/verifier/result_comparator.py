@@ -630,7 +630,7 @@ class ResultComparator:
                     elif entry.response_flags in ['UH', 'UC', 'UF']:
                         upstream_connection_errors.append(entry)
         
-        print(f"🔍 熔断分析 - 503错误: {len(circuit_breaker_errors)}个, UO溢出: {len(upstream_overflow_errors)}个, 连接错误: {len(upstream_connection_errors)}个")
+        print(f"[ANALYZE] 熔断分析 - 503错误: {len(circuit_breaker_errors)}个, UO溢出: {len(upstream_overflow_errors)}个, 连接错误: {len(upstream_connection_errors)}个")
         
         # 计算错误率
         error_rate = len(error_entries) / len(all_entries)

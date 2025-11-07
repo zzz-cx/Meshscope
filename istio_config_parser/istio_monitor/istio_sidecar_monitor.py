@@ -749,10 +749,19 @@ def main():
 
     args = parser.parse_args()
 
-    # 检查必填参数
-    if not args.vm_host:
+    # 检查是否在 K8s 环境中
+    try:
+        from utils.env_detector import K8sEnvDetector
+        is_in_k8s = K8sEnvDetector.is_in_kubernetes() or K8sEnvDetector.is_kubectl_available()
+    except:
+        # 简单检测
+        is_in_k8s = os.path.exists('/var/run/secrets/kubernetes.io/serviceaccount/token') or os.environ.get('KUBERNETES_SERVICE_HOST')
+    
+    # 如果不在 K8s 环境中且未提供 SSH 配置，则报错
+    if not is_in_k8s and not args.vm_host:
         parser.print_help()
-        print("\n错误：--vm-host 是必填参数，请指定虚拟机主机名或IP。")
+        print("\n错误：不在 K8s 环境中时，--vm-host 是必填参数，请指定虚拟机主机名或IP。")
+        print("提示：如果在 K8s Pod 中运行或本地有 kubectl 配置，则不需要 SSH 配置。")
         sys.exit(1)
 
     # 解析配置类型

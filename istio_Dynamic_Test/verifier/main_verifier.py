@@ -154,7 +154,16 @@ def run_verification(matrix_file: str, log_dir: str, output_dir: str = "results/
         output_dir: 输出目录路径
         istio_config_file: Istio配置文件路径（可选）
     """
-    print("🔍 开始 Istio 动态测试验证流程")
+    # 设置输出编码（Windows 兼容）
+    import sys
+    import io
+    if sys.platform == 'win32' and hasattr(sys.stdout, 'buffer'):
+        try:
+            sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+        except:
+            pass
+    
+    print("[INFO] 开始 Istio 动态测试验证流程")
     print("=" * 60)
     
     # 收集验证过程信息
@@ -276,7 +285,7 @@ def run_verification(matrix_file: str, log_dir: str, output_dir: str = "results/
     verification_process["steps"].append(step2_info)
     
     # 3. 执行对比验证
-    print("\n🔍 第三步：执行对比验证")
+    print("\n[STEP 3] 第三步：执行对比验证")
     step3_start = datetime.now()
     comparator = ResultComparator()
     # 传入 http_results 目录，启用多维度验证（HTTP + 日志）
@@ -443,7 +452,7 @@ def analyze_single_case(case_id: str, log_dir: str, matrix_file: str, istio_conf
         log_dir: 日志目录
         matrix_file: 测试矩阵文件
     """
-    print(f"🔍 分析单个用例: {case_id}")
+    print(f"[ANALYZE] 分析单个用例: {case_id}")
     print("=" * 40)
     
     # 1. 加载期望行为
@@ -490,7 +499,7 @@ def analyze_single_case(case_id: str, log_dir: str, matrix_file: str, istio_conf
     for key, value in result.metrics.items():
         print(f"  {key}: {value}")
     
-    print(f"\n🔍 验证详情:")
+    print(f"\n[DETAIL] 验证详情:")
     for verification in result.individual_results:
         status_symbol = {
             'passed': '✅',

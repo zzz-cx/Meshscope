@@ -1,7 +1,10 @@
 import time
 import json
 from typing import Dict, List, Any, Optional
-from utils.ssh_utils import SSHClient
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from istio_Dynamic_Test.utils.ssh_utils import SSHClient
 
 class OrthogonalHandler:
     """

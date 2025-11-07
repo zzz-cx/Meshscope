@@ -174,7 +174,7 @@ class ReportGenerator:
         </section>
         
         <section class="verification-process">
-            <h2>🔍 验证过程详情</h2>
+            <h2>[DETAIL] 验证过程详情</h2>
             {self._generate_verification_process_html(test_config)}
         </section>
         
@@ -359,7 +359,7 @@ class ReportGenerator:
             if 'retry_indicators' in verification.details:
                 indicators = verification.details['retry_indicators']
                 if indicators:
-                    details_html.append('<p>🔍 重试指标:</p>')
+                    details_html.append('<p>[METRICS] 重试指标:</p>')
                     details_html.append('<ul>')
                     for indicator in indicators:
                         details_html.append(f'<li>{indicator}</li>')
@@ -397,7 +397,7 @@ class ReportGenerator:
             if 'cb_indicators' in verification.details:
                 indicators = verification.details['cb_indicators']
                 if indicators:
-                    details_html.append('<p>🔍 熔断指标:</p>')
+                    details_html.append('<p>[METRICS] 熔断指标:</p>')
                     details_html.append('<ul>')
                     for indicator in indicators:
                         details_html.append(f'<li>{indicator}</li>')

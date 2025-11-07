@@ -2,6 +2,10 @@ import time
 import os
 import paramiko
 import yaml
+import shutil
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from utils.env_detector import K8sEnvDetector
 
 class FaultInjector:
     """
@@ -11,24 +15,40 @@ class FaultInjector:
     - 高负载+错误场景 (用于熔断测试)
     - 故障+超时组合测试
     - 多种触发机制正交组合
+    
+    自动检测环境：如果在 K8s 环境中直接执行，否则使用 SSH。
     """
-    def __init__(self, ssh_client, vs_name='reviews', route_host='reviews', namespace='default'):
+    def __init__(self, ssh_client=None, vs_name='reviews', route_host='reviews', namespace='default'):
         self.ssh_client = ssh_client
         self._vs_name = vs_name
         self._route_host = route_host
         self._namespace = namespace
+        self._use_ssh = K8sEnvDetector.should_use_ssh(ssh_client)
         self._backup_path = f'/tmp/{vs_name}_vs_backup.yaml'
         self._patched_path = f'/tmp/{vs_name}_vs_patched.yaml'
         self._new_path = f'/tmp/{vs_name}_vs_new.yaml'
         self._injected = False
         self._created = False
         self._fault_type = None  # 记录当前故障类型
-        print(f"🔧 FaultInjector initialized for VS: {vs_name}, route_host: {route_host}")
+        print(f"🔧 FaultInjector initialized for VS: {vs_name}, route_host: {route_host} (使用{'SSH' if self._use_ssh else '本地'}执行)")
 
     def _remote(self, cmd):
-        return self.ssh_client.run_command(cmd)
+        """执行命令，自动检测环境"""
+        if self.ssh_client:
+            return self.ssh_client.run_command(cmd)
+        else:
+            import subprocess
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+            return result.stdout, result.stderr
 
     def _upload_file(self, local_path, remote_path):
+        """上传文件，如果在本地环境则直接复制"""
+        if not self._use_ssh or not self.ssh_client or not self.ssh_client.hostname:
+            # 本地环境：直接复制文件
+            shutil.copy2(local_path, remote_path)
+            return
+        
+        # SSH 环境：使用 paramiko 上传
         transport = paramiko.Transport((self.ssh_client.hostname, self.ssh_client.port))
         if self.ssh_client.password:
             transport.connect(username=self.ssh_client.username, password=self.ssh_client.password)
@@ -40,12 +60,26 @@ class FaultInjector:
         transport.close()
 
     def _download_vs_to_local(self, remote_path, local_path):
+        """下载文件，如果在本地环境则直接复制"""
         # 确保本地目录存在
-        import os
         local_dir = os.path.dirname(local_path)
         if local_dir and not os.path.exists(local_dir):
             os.makedirs(local_dir, exist_ok=True)
         
+        if not self._use_ssh or not self.ssh_client or not self.ssh_client.hostname:
+            # 本地环境：直接复制文件
+            if os.path.exists(remote_path):
+                shutil.copy2(remote_path, local_path)
+            else:
+                # 如果远程路径不存在，尝试从 kubectl 获取
+                cmd = f"kubectl get virtualservice {self._vs_name} -n {self._namespace} -o yaml"
+                output, error = self._remote(cmd)
+                if not error:
+                    with open(local_path, 'w', encoding='utf-8') as f:
+                        f.write(output)
+            return
+        
+        # SSH 环境：使用 paramiko 下载
         transport = paramiko.Transport((self.ssh_client.hostname, self.ssh_client.port))
         if self.ssh_client.password:
             transport.connect(username=self.ssh_client.username, password=self.ssh_client.password)
@@ -335,16 +369,32 @@ class FaultInjector:
         local_patched = f'checker/{self._vs_name}_vs_patched.yaml'
         
         # 备份当前VS
-        dump_cmd = f"kubectl get virtualservice {self._vs_name} -n {self._namespace} -o yaml > {remote_backup}"
-        self._remote(dump_cmd)
-        self._download_vs_to_local(remote_backup, local_backup)
+        if self._use_ssh and self.ssh_client and self.ssh_client.hostname:
+            # SSH 环境：先保存到远程，再下载
+            dump_cmd = f"kubectl get virtualservice {self._vs_name} -n {self._namespace} -o yaml > {remote_backup}"
+            self._remote(dump_cmd)
+            self._download_vs_to_local(remote_backup, local_backup)
+        else:
+            # 本地环境：直接获取并保存
+            dump_cmd = f"kubectl get virtualservice {self._vs_name} -n {self._namespace} -o yaml"
+            output, error = self._remote(dump_cmd)
+            if error:
+                raise RuntimeError(f"获取 VirtualService 失败: {error}")
+            with open(local_backup, 'w', encoding='utf-8') as f:
+                f.write(output)
         
         # 应用patch
         patch_method(local_backup, local_patched, *args, **kwargs)
         
         # 上传并应用
-        self._upload_file(local_patched, self._patched_path)
-        apply_cmd = f"kubectl apply -f {self._patched_path}"
+        if self._use_ssh and self.ssh_client and self.ssh_client.hostname:
+            # SSH 环境：上传到远程再应用
+            self._upload_file(local_patched, self._patched_path)
+            apply_cmd = f"kubectl apply -f {self._patched_path}"
+        else:
+            # 本地环境：直接应用本地文件
+            apply_cmd = f"kubectl apply -f {local_patched}"
+        
         out, err = self._remote(apply_cmd)
         print(f"  - patch VS输出: {out.strip()}")
         if err:
@@ -384,8 +434,14 @@ class FaultInjector:
         with open(local_new, 'w', encoding='utf-8') as f:
             yaml.safe_dump(vs, f)
         
-        self._upload_file(local_new, self._new_path)
-        apply_cmd = f"kubectl apply -f {self._new_path}"
+        if self._use_ssh and self.ssh_client and self.ssh_client.hostname:
+            # SSH 环境：上传到远程再应用
+            self._upload_file(local_new, self._new_path)
+            apply_cmd = f"kubectl apply -f {self._new_path}"
+        else:
+            # 本地环境：直接应用本地文件
+            apply_cmd = f"kubectl apply -f {local_new}"
+        
         out, err = self._remote(apply_cmd)
         print(f"  - 新建配置故障VS输出: {out.strip()}")
         if err:
@@ -432,8 +488,14 @@ class FaultInjector:
         with open(local_new, 'w', encoding='utf-8') as f:
             yaml.safe_dump(vs, f)
         
-        self._upload_file(local_new, self._new_path)
-        apply_cmd = f"kubectl apply -f {self._new_path}"
+        if self._use_ssh and self.ssh_client and self.ssh_client.hostname:
+            # SSH 环境：上传到远程再应用
+            self._upload_file(local_new, self._new_path)
+            apply_cmd = f"kubectl apply -f {self._new_path}"
+        else:
+            # 本地环境：直接应用本地文件
+            apply_cmd = f"kubectl apply -f {local_new}"
+        
         out, err = self._remote(apply_cmd)
         print(f"  - 新建高负载VS输出: {out.strip()}")
         if err:
@@ -467,8 +529,14 @@ class FaultInjector:
         with open(local_new, 'w', encoding='utf-8') as f:
             yaml.safe_dump(vs, f)
         
-        self._upload_file(local_new, self._new_path)
-        apply_cmd = f"kubectl apply -f {self._new_path}"
+        if self._use_ssh and self.ssh_client and self.ssh_client.hostname:
+            # SSH 环境：上传到远程再应用
+            self._upload_file(local_new, self._new_path)
+            apply_cmd = f"kubectl apply -f {self._new_path}"
+        else:
+            # 本地环境：直接应用本地文件
+            apply_cmd = f"kubectl apply -f {local_new}"
+        
         out, err = self._remote(apply_cmd)
         print(f"  - 新建故障+超时VS输出: {out.strip()}")
         if err:

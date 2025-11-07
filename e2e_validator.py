@@ -217,15 +217,18 @@ class E2EValidator:
             
             # 手动创建监控器逻辑，避免导入 IstioSidecarMonitor
             # 这里简化实现，直接使用 IstioAPI
+            # 自动检测环境：如果主机地址和本机不一致，就使用SSH
+            # 否则检查kubectl是否可用
+            use_vm = bool(self.vm_host)  # 如果提供了 vm_host，则尝试使用 SSH（会根据主机地址自动检测）
             api = IstioAPI(
                 host="localhost",
                 port=8080,
                 namespace="istio-system",
-                use_vm=True,
-                vm_host=self.vm_host,
+                use_vm=use_vm,
+                vm_host=self.vm_host if use_vm else None,
                 vm_port=22,
-                vm_user=self.vm_user,
-                vm_password=self.vm_password
+                vm_user=self.vm_user if use_vm else None,
+                vm_password=self.vm_password if use_vm else None
             )
             
             # 获取控制平面配置
@@ -383,11 +386,15 @@ class E2EValidator:
         
         from istio_Dynamic_Test.checker.traffic_driver import TrafficDriver
         
-        ssh_config = {
-            'hostname': self.vm_host,  # 注意：SSHClient使用hostname而不是host
-            'username': self.vm_user,
-            'password': self.vm_password
-        }
+        # 自动检测环境：如果主机地址和本机不一致，就使用SSH
+        # 否则检查kubectl是否可用
+        ssh_config = None
+        if self.vm_host:
+            ssh_config = {
+                'hostname': self.vm_host,  # 注意：SSHClient使用hostname而不是host
+                'username': self.vm_user,
+                'password': self.vm_password
+            }
         
         # 设置统一的结果目录
         results_dir = project_root / "results"
@@ -398,10 +405,10 @@ class E2EValidator:
         http_results_dir.mkdir(parents=True, exist_ok=True)
         envoy_logs_dir.mkdir(parents=True, exist_ok=True)
         
-        # 创建TrafficDriver实例
+        # 创建TrafficDriver实例（会自动检测环境）
         driver = TrafficDriver(
             matrix_file=matrix_file,
-            ssh_config=ssh_config,
+            ssh_config=ssh_config,  # 如果为 None，将自动检测环境
             namespace=self.namespace
         )
         

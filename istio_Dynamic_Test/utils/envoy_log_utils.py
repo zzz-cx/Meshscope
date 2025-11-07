@@ -5,6 +5,7 @@ import os
 from typing import Optional
 import time
 import json
+from .env_detector import K8sEnvDetector
 
 class EnvoyLogEnabler:
     @staticmethod
@@ -13,13 +14,18 @@ class EnvoyLogEnabler:
         检查deployment是否已经启用了access log配置
         如果已经配置，返回True，避免重复patch和restart
         """
-        if ssh_client:
-            cmd = f"kubectl get deployment {deployment} -n {namespace} -o jsonpath='{{.spec.template.metadata.annotations}}'"
+        cmd = f"kubectl get deployment {deployment} -n {namespace} -o jsonpath='{{.spec.template.metadata.annotations}}'"
+        
+        if ssh_client and K8sEnvDetector.should_use_ssh(ssh_client):
             output, error = ssh_client.run_command(cmd)
-            if output and "proxy.istio.io/config" in output:
-                # 检查是否包含access log配置
-                if "accessLogFile" in output or "accessLogFormat" in output:
-                    return True
+        else:
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+            output, error = result.stdout, result.stderr
+        
+        if output and "proxy.istio.io/config" in output:
+            # 检查是否包含access log配置
+            if "accessLogFile" in output or "accessLogFormat" in output:
+                return True
         return False
     
     @staticmethod
@@ -28,27 +34,37 @@ class EnvoyLogEnabler:
         快速检查deployment的pods是否ready，而不是等待完整的rollout
         如果pod已经ready，可以提前返回
         """
-        if ssh_client:
-            # 获取deployment的replicas数量
-            replicas_cmd = f"kubectl get deployment {deployment} -n {namespace} -o jsonpath='{{.spec.replicas}}'"
+        use_ssh = ssh_client and K8sEnvDetector.should_use_ssh(ssh_client)
+        
+        # 获取deployment的replicas数量
+        replicas_cmd = f"kubectl get deployment {deployment} -n {namespace} -o jsonpath='{{.spec.replicas}}'"
+        if use_ssh:
             replicas_output, _ = ssh_client.run_command(replicas_cmd)
-            try:
-                expected_replicas = int(replicas_output.strip() or "1")
-            except:
-                expected_replicas = 1
-            
-            # 检查ready pods数量
-            for i in range(timeout // 2):  # 每2秒检查一次
-                ready_cmd = f"kubectl get deployment {deployment} -n {namespace} -o jsonpath='{{.status.readyReplicas}}'"
+        else:
+            result = subprocess.run(replicas_cmd, shell=True, capture_output=True, text=True)
+            replicas_output = result.stdout
+        
+        try:
+            expected_replicas = int(replicas_output.strip() or "1")
+        except:
+            expected_replicas = 1
+        
+        # 检查ready pods数量
+        for i in range(timeout // 2):  # 每2秒检查一次
+            ready_cmd = f"kubectl get deployment {deployment} -n {namespace} -o jsonpath='{{.status.readyReplicas}}'"
+            if use_ssh:
                 ready_output, _ = ssh_client.run_command(ready_cmd)
-                try:
-                    ready_replicas = int(ready_output.strip() or "0")
-                    if ready_replicas >= expected_replicas:
-                        return True
-                except:
-                    pass
-                time.sleep(2)
-            return False
+            else:
+                result = subprocess.run(ready_cmd, shell=True, capture_output=True, text=True)
+                ready_output = result.stdout
+            
+            try:
+                ready_replicas = int(ready_output.strip() or "0")
+                if ready_replicas >= expected_replicas:
+                    return True
+            except:
+                pass
+            time.sleep(2)
         return False
     
     @staticmethod
@@ -112,7 +128,9 @@ class EnvoyLogEnabler:
             }
         }
         
-        if ssh_client:
+        use_ssh = ssh_client and K8sEnvDetector.should_use_ssh(ssh_client)
+        
+        if use_ssh:
             # 通过 SSH 执行，使用临时文件
             patch_json = json.dumps(patch, indent=2)
             
@@ -174,7 +192,7 @@ class EnvoyLogEnabler:
                     time.sleep(5)
         else:
             # 本地执行（保持原有逻辑）
-            with tempfile.NamedTemporaryFile('w', delete=False) as f:
+            with tempfile.NamedTemporaryFile('w', delete=False, suffix='.yaml') as f:
                 yaml.safe_dump(patch, f)
                 patch_file = f.name
             try:
@@ -200,30 +218,40 @@ class EnvoyLogEnabler:
         """
         验证 deployment 的 access log 配置是否正确
         """
-        if ssh_client:
-            # 检查 deployment annotations
-            cmd = f"kubectl get deployment {deployment} -n {namespace} -o jsonpath='{{.spec.template.metadata.annotations}}'"
+        use_ssh = ssh_client and K8sEnvDetector.should_use_ssh(ssh_client)
+        
+        # 检查 deployment annotations
+        cmd = f"kubectl get deployment {deployment} -n {namespace} -o jsonpath='{{.spec.template.metadata.annotations}}'"
+        if use_ssh:
             output, error = ssh_client.run_command(cmd)
-            if error:
-                print(f"❌ 无法获取 deployment annotations: {error}")
-                return False
-            
-            print(f"📋 Deployment {deployment} annotations:")
-            print(output)
-            
-            if "proxy.istio.io/config" not in output:
-                print("❌ 缺少 proxy.istio.io/config 注解")
-                return False
-            
-            # 检查 pod 是否有正确的注解
-            pod_cmd = f"kubectl get pods -n {namespace} -l app={deployment.split('-')[0]} -o jsonpath='{{.items[0].metadata.annotations}}'"
+        else:
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+            output, error = result.stdout, result.stderr
+        
+        if error:
+            print(f"❌ 无法获取 deployment annotations: {error}")
+            return False
+        
+        print(f"📋 Deployment {deployment} annotations:")
+        print(output)
+        
+        if "proxy.istio.io/config" not in output:
+            print("❌ 缺少 proxy.istio.io/config 注解")
+            return False
+        
+        # 检查 pod 是否有正确的注解
+        pod_cmd = f"kubectl get pods -n {namespace} -l app={deployment.split('-')[0]} -o jsonpath='{{.items[0].metadata.annotations}}'"
+        if use_ssh:
             pod_output, pod_error = ssh_client.run_command(pod_cmd)
-            if not pod_error:
-                print(f"📋 Pod annotations:")
-                print(pod_output)
-            
-            return True
-        return False
+        else:
+            result = subprocess.run(pod_cmd, shell=True, capture_output=True, text=True)
+            pod_output, pod_error = result.stdout, result.stderr
+        
+        if not pod_error:
+            print(f"📋 Pod annotations:")
+            print(pod_output)
+        
+        return True
 
     @staticmethod
     def get_envoy_logs(pod_name: str, namespace: str = 'default', tail_lines: int = 200) -> str:

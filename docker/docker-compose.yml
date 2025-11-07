@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  meshscope:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: meshscope:latest
+    container_name: meshscope
+    volumes:
+      # 挂载结果目录，方便查看输出（相对于 docker-compose.yml 所在目录）
+      - ../results:/app/results
+      # 挂载配置文件目录（如果需要，相对于 docker-compose.yml 所在目录）
+      - ../istio_config_parser/istio_monitor/istio_control_config:/app/istio_config_parser/istio_monitor/istio_control_config:ro
+      - ../istio_config_parser/istio_monitor/istio_sidecar_config:/app/istio_config_parser/istio_monitor/istio_sidecar_config:ro
+      # 挂载 kubeconfig（如果需要访问 Kubernetes 集群）
+      - ~/.kube/config:/root/.kube/config:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app
+    ports:
+      # Web 服务端口
+      - "8080:8080"
+      - "5000:5000"
+    # 如果需要访问 Kubernetes 集群，取消注释以下行
+    # network_mode: host
+    # 或者使用 host 网络模式（Linux）
+    # network_mode: "host"
+    # 如果需要 SSH 访问，可能需要挂载 SSH 密钥
+    # volumes:
+    #   - ~/.ssh:/root/.ssh:ro
+    command: >
+      python e2e_validator.py
+      --vm-host ${VM_HOST:-192.168.92.131}
+      --vm-user ${VM_USER:-root}
+      --vm-password ${VM_PASSWORD:-}
+      --namespace ${NAMESPACE:-default}
+      --ingress-url ${INGRESS_URL:-}
+      --output-dir ${OUTPUT_DIR:-results/e2e_validation}
+    restart: unless-stopped
+
+  # 可选：Web 可视化服务
+  meshscope-web:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: meshscope:latest
+    container_name: meshscope-web
+    volumes:
+      - ../results:/app/results
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app
+    ports:
+      - "8080:8080"
+    command: >
+      python -m consistency_checker.main
+      --mode web
+      --port 8080
+    restart: unless-stopped
+    profiles:
+      - web
+

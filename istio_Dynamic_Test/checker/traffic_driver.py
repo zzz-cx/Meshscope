@@ -1,14 +1,21 @@
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# 添加项目路径
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+# 添加 istio_Dynamic_Test 路径
+dynamic_test_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if dynamic_test_root not in sys.path:
+    sys.path.insert(0, dynamic_test_root)
 
 import json
 import argparse
 import time
 from collections import Counter
-from utils.ssh_utils import SSHClient
-from checker.fault_injector import FaultInjector
-from recorder.envoy_log_collector import EnvoyLogCollector
+from istio_Dynamic_Test.utils.ssh_utils import SSHClient
+from istio_Dynamic_Test.checker.fault_injector import FaultInjector
+from istio_Dynamic_Test.recorder.envoy_log_collector import EnvoyLogCollector
 
 class TrafficDriver:
     """
@@ -19,7 +26,7 @@ class TrafficDriver:
     - 全局/局部策略正交验证
     - 策略触发机制正交验证
     """
-    def __init__(self, matrix_file, ssh_config, namespace='default'):
+    def __init__(self, matrix_file, ssh_config=None, namespace='default'):
         try:
             with open(matrix_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
@@ -27,7 +34,13 @@ class TrafficDriver:
             self.global_settings = data.get("global_settings", {})
             self.test_cases = data.get("test_cases", [])
             self.ingress_url = self.global_settings.get("ingress_url")
-            self.ssh_client = SSHClient(**ssh_config)
+            
+            # 如果提供了 ssh_config，创建 SSHClient；否则为 None（将自动检测环境）
+            if ssh_config:
+                self.ssh_client = SSHClient(**ssh_config)
+            else:
+                self.ssh_client = SSHClient()  # 自动检测环境
+            
             # 支持多个故障注入器，针对不同服务
             self.fault_injectors = {}
             self.namespace = namespace
@@ -607,10 +620,10 @@ class TrafficDriver:
             print(f"    ⚠️ 警告: 503测试失败: {e}")
 
 def main():
-    parser = argparse.ArgumentParser(description="Istio 测试执行驱动 (SSH 远程+mesh内流量模式)")
+    parser = argparse.ArgumentParser(description="Istio 测试执行驱动 (自动检测环境：K8s 或 SSH)")
     parser.add_argument("-i", "--input", default="output_matrix.json", help="输入的测试矩阵文件路径")
-    parser.add_argument("--ssh-host", required=True, help="SSH 主机地址")
-    parser.add_argument("--ssh-user", required=True, help="SSH 用户名")
+    parser.add_argument("--ssh-host", default=None, help="SSH 主机地址 (可选，如果不在 K8s 环境中则需要)")
+    parser.add_argument("--ssh-user", default=None, help="SSH 用户名 (可选)")
     parser.add_argument("--ssh-password", default=None, help="SSH 密码 (可选)")
     parser.add_argument("--ssh-key", default=None, help="SSH 私钥路径 (可选)")
     parser.add_argument("--ssh-port", type=int, default=22, help="SSH 端口 (默认22)")
@@ -618,13 +631,16 @@ def main():
     parser.add_argument("--single-case", default=None, help="只运行指定的单个测试用例 (例如: case_005)")
     args = parser.parse_args()
 
-    ssh_config = {
-        'hostname': args.ssh_host,
-        'username': args.ssh_user,
-        'password': args.ssh_password,
-        'key_filename': args.ssh_key,
-        'port': args.ssh_port
-    }
+    # 如果提供了 SSH 配置，使用它；否则为 None（将自动检测环境）
+    ssh_config = None
+    if args.ssh_host:
+        ssh_config = {
+            'hostname': args.ssh_host,
+            'username': args.ssh_user,
+            'password': args.ssh_password,
+            'key_filename': args.ssh_key,
+            'port': args.ssh_port
+        }
 
     driver = TrafficDriver(args.input, ssh_config, namespace=args.namespace)
     
