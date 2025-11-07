@@ -8,7 +8,51 @@ import json
 
 class EnvoyLogEnabler:
     @staticmethod
-    def enable_envoy_access_log(deployment: str, ssh_client=None, namespace: str = 'default', log_path: str = '/dev/stdout', wait_ready: bool = True):
+    def check_access_log_enabled(deployment: str, ssh_client=None, namespace: str = 'default') -> bool:
+        """
+        检查deployment是否已经启用了access log配置
+        如果已经配置，返回True，避免重复patch和restart
+        """
+        if ssh_client:
+            cmd = f"kubectl get deployment {deployment} -n {namespace} -o jsonpath='{{.spec.template.metadata.annotations}}'"
+            output, error = ssh_client.run_command(cmd)
+            if output and "proxy.istio.io/config" in output:
+                # 检查是否包含access log配置
+                if "accessLogFile" in output or "accessLogFormat" in output:
+                    return True
+        return False
+    
+    @staticmethod
+    def check_pods_ready(deployment: str, ssh_client=None, namespace: str = 'default', timeout: int = 30) -> bool:
+        """
+        快速检查deployment的pods是否ready，而不是等待完整的rollout
+        如果pod已经ready，可以提前返回
+        """
+        if ssh_client:
+            # 获取deployment的replicas数量
+            replicas_cmd = f"kubectl get deployment {deployment} -n {namespace} -o jsonpath='{{.spec.replicas}}'"
+            replicas_output, _ = ssh_client.run_command(replicas_cmd)
+            try:
+                expected_replicas = int(replicas_output.strip() or "1")
+            except:
+                expected_replicas = 1
+            
+            # 检查ready pods数量
+            for i in range(timeout // 2):  # 每2秒检查一次
+                ready_cmd = f"kubectl get deployment {deployment} -n {namespace} -o jsonpath='{{.status.readyReplicas}}'"
+                ready_output, _ = ssh_client.run_command(ready_cmd)
+                try:
+                    ready_replicas = int(ready_output.strip() or "0")
+                    if ready_replicas >= expected_replicas:
+                        return True
+                except:
+                    pass
+                time.sleep(2)
+            return False
+        return False
+    
+    @staticmethod
+    def enable_envoy_access_log(deployment: str, ssh_client=None, namespace: str = 'default', log_path: str = '/dev/stdout', wait_ready: bool = True, skip_if_enabled: bool = True):
         """
         Patch deployment 的 pod template annotations，启用 Envoy 访问日志（适用于新建 pod），并自定义 access log 格式。
         patch 后自动 rollout restart deployment，等待新 pod ready。
@@ -18,7 +62,13 @@ class EnvoyLogEnabler:
         :param namespace: K8s 命名空间
         :param log_path: 日志输出路径
         :param wait_ready: 是否等待 pod ready
+        :param skip_if_enabled: 如果已经启用，跳过patch和restart
         """
+        # 检查是否已经配置了access log
+        if skip_if_enabled and EnvoyLogEnabler.check_access_log_enabled(deployment, ssh_client, namespace):
+            print(f"ℹ️  deployment/{deployment} 已经配置了 access log，跳过重复配置")
+            return
+        
         # 使用增强的访问日志格式，确保记录所有错误（包括故障注入的503）
         access_log_format = (
             '[%START_TIME%] "%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%" '
@@ -101,19 +151,27 @@ class EnvoyLogEnabler:
                 raise RuntimeError(f"重启 deployment 失败: {error}")
             print(f"已重启 deployment/{deployment}，等待新 pod 带上日志配置")
             
-            # 等待 rollout 完成
+            # 等待 rollout 完成（优化：使用快速检查）
             if wait_ready:
                 print("等待 rollout 完成...")
-                wait_cmd = f"kubectl rollout status deployment/{deployment} -n {namespace} --timeout=120s"
-                output, error = ssh_client.run_command(wait_cmd)
-                if error:
-                    print(f"⚠️  等待 rollout 完成超时: {error}")
+                # 先尝试快速检查pod是否ready（最多30秒）
+                if EnvoyLogEnabler.check_pods_ready(deployment, ssh_client, namespace, timeout=30):
+                    print("✅ Pods 已就绪（快速检查）")
+                    # 减少等待时间，因为pod已经ready
+                    print("等待 3 秒让新配置生效...")
+                    time.sleep(3)
                 else:
-                    print("✅ Rollout 完成")
-                
-                # 额外等待一些时间让新配置生效
-                print("等待 10 秒让新配置生效...")
-                time.sleep(10)
+                    # 如果快速检查失败，使用完整的rollout status（最多60秒）
+                    wait_cmd = f"kubectl rollout status deployment/{deployment} -n {namespace} --timeout=60s"
+                    output, error = ssh_client.run_command(wait_cmd)
+                    if error:
+                        print(f"⚠️  等待 rollout 完成超时: {error}")
+                    else:
+                        print("✅ Rollout 完成")
+                    
+                    # 减少等待时间（从10秒减少到5秒）
+                    print("等待 5 秒让新配置生效...")
+                    time.sleep(5)
         else:
             # 本地执行（保持原有逻辑）
             with tempfile.NamedTemporaryFile('w', delete=False) as f:
@@ -131,9 +189,9 @@ class EnvoyLogEnabler:
                 print(f"已重启 deployment/{deployment}，等待新 pod 带上日志配置")
                 if wait_ready:
                     subprocess.run([
-                        "kubectl", "rollout", "status", f"deployment/{deployment}", "-n", namespace, "--timeout=120s"
+                        "kubectl", "rollout", "status", f"deployment/{deployment}", "-n", namespace, "--timeout=60s"
                     ], check=True)
-                    time.sleep(10)
+                    time.sleep(5)  # 减少等待时间
             finally:
                 os.remove(patch_file)
 

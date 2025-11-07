@@ -97,7 +97,8 @@ class TrafficDriver:
         if deployment not in self.enabled_deployments:
             print(f"🔧 为 deployment/{deployment} 启用 Envoy access log...")
             try:
-                self.envoy_log_collector.ensure_envoy_access_log(deployment)
+                # 使用skip_if_enabled=True，避免重复配置
+                self.envoy_log_collector.ensure_envoy_access_log(deployment, skip_if_enabled=True)
                 self.enabled_deployments.add(deployment)
                 print(f"✅ deployment/{deployment} 的 Envoy access log 已启用")
             except Exception as e:
@@ -373,7 +374,7 @@ class TrafficDriver:
                 
                 print(f"    ➤ 测试服务 {host} -> {destination}")
                 self._send_single_request_to_host(host, match_condition, case)
-                time.sleep(0.5)  # 短暂间隔避免请求过密
+                time.sleep(0.2)  # 减少等待时间（从0.5秒减少到0.2秒）
         else:
             # 传统单服务请求
             logical_host = params.get('host')
@@ -593,9 +594,8 @@ class TrafficDriver:
             else:
                 print(f"    ⚠️ 测试请求返回: {output} (期望503)")
             
-            # 等待日志写入
-            import time
-            time.sleep(2)
+            # 等待日志写入（减少等待时间）
+            time.sleep(1)  # 从2秒减少到1秒
             
             # 收集测试后的日志
             print("    📋 收集测试503后的日志...")

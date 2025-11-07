@@ -114,10 +114,12 @@ class DynamicAnalyzer:
             return
         
         try:
-            # 查找综合报告文件
+            # 查找综合报告文件（支持多种文件名格式）
             report_files = [
                 f for f in os.listdir(self.verification_dir)
-                if f.startswith('comprehensive_report_') and f.endswith('.json')
+                if (f.startswith('comprehensive_report_') or f.startswith('istio_verification_')) 
+                and f.endswith('.json')
+                and not f.endswith('_summary.json')  # 排除摘要文件
             ]
             
             if not report_files:
@@ -134,14 +136,44 @@ class DynamicAnalyzer:
             with open(report_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
                 
-                # 提取各用例的验证结果
-                for case_id, result in data.get('verification_results', {}).items():
+                # 尝试从不同位置提取验证结果
+                # 格式1: verification_results 字典
+                verification_results = data.get('verification_results', {})
+                
+                # 格式2: 从 verification_summary 数组中提取（istio_verification格式）
+                if not verification_results:
+                    # 查找步骤3的verification_summary
+                    for step in data.get('execution_steps', []):
+                        if step.get('step') == 3 and 'verification_summary' in step:
+                            for result in step.get('verification_summary', []):
+                                case_id = result.get('case_id')
+                                if case_id:
+                                    # 转换为DynamicAnalyzer期望的格式
+                                    verification_results[case_id] = {
+                                        'overall_result': {
+                                            'passed': result.get('overall_status') == 'passed',
+                                            'status': result.get('overall_status')
+                                        },
+                                        'actual_behavior': result.get('metrics', {}),
+                                        'dimension_results': result.get('dimension_results', {})
+                                    }
+                            break
+                
+                # 格式3: 从 results 字段提取
+                if not verification_results and 'results' in data:
+                    for case_id, result in data.get('results', {}).items():
+                        verification_results[case_id] = result
+                
+                # 存储验证结果
+                for case_id, result in verification_results.items():
                     self.verification_results[case_id] = result
                     
-            logger.info(f"从 {latest_report} 加载验证结果")
+            logger.info(f"从 {latest_report} 加载验证结果: {len(self.verification_results)} 个用例")
             
         except Exception as e:
             logger.error(f"加载验证结果失败: {e}")
+            import traceback
+            logger.debug(traceback.format_exc())
     
     def _load_http_results(self):
         """加载HTTP测试结果"""
@@ -150,16 +182,19 @@ class DynamicAnalyzer:
             return
         
         try:
+            import re
             for filename in os.listdir(self.http_results_dir):
-                if filename.endswith('_http_result.json') or filename.endswith('_http_result_*.json'):
-                    # 提取case_id
-                    parts = filename.replace('_http_result', '').replace('.json', '').split('_')
-                    if len(parts) >= 2:
-                        case_id = f"{parts[0]}_{parts[1]}"
+                # 匹配格式: case_xxx_http_result.json 或 case_xxx_http_result_YYYYMMDD_HHMMSS.json
+                if re.match(r'case_\d+_http_result(_\d{8}_\d{6})?\.json$', filename):
+                    # 提取case_id: case_001 -> case_001
+                    match = re.match(r'(case_\d+)_http_result.*\.json$', filename)
+                    if match:
+                        case_id = match.group(1)
                         
                         file_path = os.path.join(self.http_results_dir, filename)
                         with open(file_path, 'r', encoding='utf-8') as f:
                             data = json.load(f)
+                            # 支持两种格式：直接包含http_result字段，或者整个数据就是http_result
                             self.http_results[case_id] = data.get('http_result', data)
         except Exception as e:
             logger.error(f"加载HTTP结果失败: {e}")

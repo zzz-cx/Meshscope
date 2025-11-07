@@ -9,9 +9,9 @@ class EnvoyLogCollector:
         self.result_dir = result_dir
         os.makedirs(self.result_dir, exist_ok=True)
 
-    def ensure_envoy_access_log(self, deployment):
+    def ensure_envoy_access_log(self, deployment, skip_if_enabled=True):
         # 直接调用 EnvoyLogEnabler，自动 patch+rollout restart+等待，传递 ssh_client
-        EnvoyLogEnabler.enable_envoy_access_log(deployment, ssh_client=self.ssh_client, namespace=self.namespace)
+        EnvoyLogEnabler.enable_envoy_access_log(deployment, ssh_client=self.ssh_client, namespace=self.namespace, skip_if_enabled=skip_if_enabled)
 
     def collect_envoy_logs(self, case_id, service, subset=None, tail_lines=100, deployment=None):
         """

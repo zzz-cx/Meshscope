@@ -31,7 +31,9 @@ from .ir_models import (
     FunctionIR,
     ServiceIR,
     SystemIR,
-    IRBuilder
+    IRBuilder,
+    SimpleIR,
+    SimpleIRConverter
 )
 
 __all__ = [
@@ -59,5 +61,9 @@ __all__ = [
     'FunctionIR',
     'ServiceIR',
     'SystemIR',
-    'IRBuilder'
+    'IRBuilder',
+    
+    # 简化IR模型
+    'SimpleIR',
+    'SimpleIRConverter'
 ]

@@ -128,6 +128,59 @@
         "includeRequestAttemptCount": true
       },
       {
+        "name": "details.default.svc.cluster.local:80",
+        "domains": [
+          "details.default.svc.cluster.local"
+        ],
+        "routes": [
+          {
+            "match": {
+              "prefix": "/"
+            },
+            "route": {
+              "weightedClusters": {
+                "clusters": [
+                  {
+                    "name": "outbound|80|v1|details.default.svc.cluster.local",
+                    "weight": 30
+                  },
+                  {
+                    "name": "outbound|80|v2|details.default.svc.cluster.local",
+                    "weight": 70
+                  }
+                ]
+              },
+              "timeout": "0s",
+              "retryPolicy": {
+                "retryOn": "connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes",
+                "numRetries": 2,
+                "retryHostPredicate": [
+                  {
+                    "name": "envoy.retry_host_predicates.previous_hosts",
+                    "typedConfig": {
+                      "@type": "type.googleapis.com/envoy.extensions.retry.host.previous_hosts.v3.PreviousHostsPredicate"
+                    }
+                  }
+                ],
+                "hostSelectionRetryMaxAttempts": "5"
+              },
+              "maxGrpcTimeout": "0s"
+            },
+            "metadata": {
+              "filterMetadata": {
+                "istio": {
+                  "config": "/apis/networking.istio.io/v1/namespaces/default/virtual-service/details"
+                }
+              }
+            },
+            "decorator": {
+              "operation": "details:80/*"
+            }
+          }
+        ],
+        "includeRequestAttemptCount": true
+      },
+      {
         "name": "frontend.online-boutique.svc.cluster.local:80",
         "domains": [
           "frontend.online-boutique.svc.cluster.local",
@@ -295,19 +348,21 @@
         "routes": [
           {
             "match": {
-              "prefix": "/",
-              "caseSensitive": true,
-              "headers": [
-                {
-                  "name": "end-user",
-                  "stringMatch": {
-                    "exact": "zcx"
-                  }
-                }
-              ]
+              "prefix": "/"
             },
             "route": {
-              "cluster": "outbound|80|v1|productpage.default.svc.cluster.local",
+              "weightedClusters": {
+                "clusters": [
+                  {
+                    "name": "outbound|80|v1|productpage.default.svc.cluster.local",
+                    "weight": 80
+                  },
+                  {
+                    "name": "outbound|80|v2|productpage.default.svc.cluster.local",
+                    "weight": 20
+                  }
+                ]
+              },
               "timeout": "0s",
               "retryPolicy": {
                 "retryOn": "connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes",
@@ -332,15 +387,35 @@
               }
             },
             "decorator": {
-              "operation": "productpage.default.svc.cluster.local:80/*"
+              "operation": "productpage:80/*"
             }
-          },
+          }
+        ],
+        "includeRequestAttemptCount": true
+      },
+      {
+        "name": "ratings.default.svc.cluster.local:80",
+        "domains": [
+          "ratings.default.svc.cluster.local"
+        ],
+        "routes": [
           {
             "match": {
               "prefix": "/"
             },
             "route": {
-              "cluster": "outbound|80|v2|productpage.default.svc.cluster.local",
+              "weightedClusters": {
+                "clusters": [
+                  {
+                    "name": "outbound|80|v1|ratings.default.svc.cluster.local",
+                    "weight": 50
+                  },
+                  {
+                    "name": "outbound|80|v2|ratings.default.svc.cluster.local",
+                    "weight": 50
+                  }
+                ]
+              },
               "timeout": "0s",
               "retryPolicy": {
                 "retryOn": "connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes",
@@ -360,12 +435,12 @@
             "metadata": {
               "filterMetadata": {
                 "istio": {
-                  "config": "/apis/networking.istio.io/v1/namespaces/default/virtual-service/productpage"
+                  "config": "/apis/networking.istio.io/v1/namespaces/default/virtual-service/ratings"
                 }
               }
             },
             "decorator": {
-              "operation": "productpage.default.svc.cluster.local:80/*"
+              "operation": "ratings:80/*"
             }
           }
         ],
@@ -463,48 +538,6 @@
         "routes": [
           {
             "match": {
-              "prefix": "/",
-              "caseSensitive": true,
-              "headers": [
-                {
-                  "name": "user-agent",
-                  "stringMatch": {
-                    "exact": "jason"
-                  }
-                }
-              ]
-            },
-            "route": {
-              "cluster": "outbound|80|v2|reviews.default.svc.cluster.local",
-              "timeout": "0s",
-              "retryPolicy": {
-                "retryOn": "connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes",
-                "numRetries": 2,
-                "retryHostPredicate": [
-                  {
-                    "name": "envoy.retry_host_predicates.previous_hosts",
-                    "typedConfig": {
-                      "@type": "type.googleapis.com/envoy.extensions.retry.host.previous_hosts.v3.PreviousHostsPredicate"
-                    }
-                  }
-                ],
-                "hostSelectionRetryMaxAttempts": "5"
-              },
-              "maxGrpcTimeout": "0s"
-            },
-            "metadata": {
-              "filterMetadata": {
-                "istio": {
-                  "config": "/apis/networking.istio.io/v1/namespaces/default/virtual-service/reviews"
-                }
-              }
-            },
-            "decorator": {
-              "operation": "reviews.default.svc.cluster.local:80/*"
-            }
-          },
-          {
-            "match": {
               "prefix": "/"
             },
             "route": {
@@ -512,11 +545,11 @@
                 "clusters": [
                   {
                     "name": "outbound|80|v1|reviews.default.svc.cluster.local",
-                    "weight": 80
+                    "weight": 20
                   },
                   {
-                    "name": "outbound|80|v3|reviews.default.svc.cluster.local",
-                    "weight": 20
+                    "name": "outbound|80|v2|reviews.default.svc.cluster.local",
+                    "weight": 80
                   }
                 ]
               },
@@ -1399,12 +1432,22 @@
         ],
         "routes": [
           {
-            "name": "default",
             "match": {
               "prefix": "/"
             },
             "route": {
-              "cluster": "outbound|9080||details.default.svc.cluster.local",
+              "weightedClusters": {
+                "clusters": [
+                  {
+                    "name": "outbound|9080|v1|details.default.svc.cluster.local",
+                    "weight": 30
+                  },
+                  {
+                    "name": "outbound|9080|v2|details.default.svc.cluster.local",
+                    "weight": 70
+                  }
+                ]
+              },
               "timeout": "0s",
               "retryPolicy": {
                 "retryOn": "connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes",
@@ -1421,8 +1464,15 @@
               },
               "maxGrpcTimeout": "0s"
             },
+            "metadata": {
+              "filterMetadata": {
+                "istio": {
+                  "config": "/apis/networking.istio.io/v1/namespaces/default/virtual-service/details"
+                }
+              }
+            },
             "decorator": {
-              "operation": "details.default.svc.cluster.local:9080/*"
+              "operation": "details:9080/*"
             }
           }
         ],
@@ -1440,52 +1490,21 @@
         "routes": [
           {
             "match": {
-              "prefix": "/",
-              "caseSensitive": true,
-              "headers": [
-                {
-                  "name": "end-user",
-                  "stringMatch": {
-                    "exact": "zcx"
-                  }
-                }
-              ]
-            },
-            "route": {
-              "cluster": "outbound|9080|v1|productpage.default.svc.cluster.local",
-              "timeout": "0s",
-              "retryPolicy": {
-                "retryOn": "connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes",
-                "numRetries": 2,
-                "retryHostPredicate": [
-                  {
-                    "name": "envoy.retry_host_predicates.previous_hosts",
-                    "typedConfig": {
-                      "@type": "type.googleapis.com/envoy.extensions.retry.host.previous_hosts.v3.PreviousHostsPredicate"
-                    }
-                  }
-                ],
-                "hostSelectionRetryMaxAttempts": "5"
-              },
-              "maxGrpcTimeout": "0s"
-            },
-            "metadata": {
-              "filterMetadata": {
-                "istio": {
-                  "config": "/apis/networking.istio.io/v1/namespaces/default/virtual-service/productpage"
-                }
-              }
-            },
-            "decorator": {
-              "operation": "productpage.default.svc.cluster.local:9080/*"
-            }
-          },
-          {
-            "match": {
               "prefix": "/"
             },
             "route": {
-              "cluster": "outbound|9080|v2|productpage.default.svc.cluster.local",
+              "weightedClusters": {
+                "clusters": [
+                  {
+                    "name": "outbound|9080|v1|productpage.default.svc.cluster.local",
+                    "weight": 80
+                  },
+                  {
+                    "name": "outbound|9080|v2|productpage.default.svc.cluster.local",
+                    "weight": 20
+                  }
+                ]
+              },
               "timeout": "0s",
               "retryPolicy": {
                 "retryOn": "connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes",
@@ -1510,7 +1529,7 @@
               }
             },
             "decorator": {
-              "operation": "productpage.default.svc.cluster.local:9080/*"
+              "operation": "productpage:9080/*"
             }
           }
         ],
@@ -1527,12 +1546,22 @@
         ],
         "routes": [
           {
-            "name": "default",
             "match": {
               "prefix": "/"
             },
             "route": {
-              "cluster": "outbound|9080||ratings.default.svc.cluster.local",
+              "weightedClusters": {
+                "clusters": [
+                  {
+                    "name": "outbound|9080|v1|ratings.default.svc.cluster.local",
+                    "weight": 50
+                  },
+                  {
+                    "name": "outbound|9080|v2|ratings.default.svc.cluster.local",
+                    "weight": 50
+                  }
+                ]
+              },
               "timeout": "0s",
               "retryPolicy": {
                 "retryOn": "connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes",
@@ -1549,8 +1578,15 @@
               },
               "maxGrpcTimeout": "0s"
             },
+            "metadata": {
+              "filterMetadata": {
+                "istio": {
+                  "config": "/apis/networking.istio.io/v1/namespaces/default/virtual-service/ratings"
+                }
+              }
+            },
             "decorator": {
-              "operation": "ratings.default.svc.cluster.local:9080/*"
+              "operation": "ratings:9080/*"
             }
           }
         ],
@@ -1568,48 +1604,6 @@
         "routes": [
           {
             "match": {
-              "prefix": "/",
-              "caseSensitive": true,
-              "headers": [
-                {
-                  "name": "user-agent",
-                  "stringMatch": {
-                    "exact": "jason"
-                  }
-                }
-              ]
-            },
-            "route": {
-              "cluster": "outbound|9080|v2|reviews.default.svc.cluster.local",
-              "timeout": "0s",
-              "retryPolicy": {
-                "retryOn": "connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes",
-                "numRetries": 2,
-                "retryHostPredicate": [
-                  {
-                    "name": "envoy.retry_host_predicates.previous_hosts",
-                    "typedConfig": {
-                      "@type": "type.googleapis.com/envoy.extensions.retry.host.previous_hosts.v3.PreviousHostsPredicate"
-                    }
-                  }
-                ],
-                "hostSelectionRetryMaxAttempts": "5"
-              },
-              "maxGrpcTimeout": "0s"
-            },
-            "metadata": {
-              "filterMetadata": {
-                "istio": {
-                  "config": "/apis/networking.istio.io/v1/namespaces/default/virtual-service/reviews"
-                }
-              }
-            },
-            "decorator": {
-              "operation": "reviews.default.svc.cluster.local:9080/*"
-            }
-          },
-          {
-            "match": {
               "prefix": "/"
             },
             "route": {
@@ -1617,11 +1611,11 @@
                 "clusters": [
                   {
                     "name": "outbound|9080|v1|reviews.default.svc.cluster.local",
-                    "weight": 80
+                    "weight": 20
                   },
                   {
-                    "name": "outbound|9080|v3|reviews.default.svc.cluster.local",
-                    "weight": 20
+                    "name": "outbound|9080|v2|reviews.default.svc.cluster.local",
+                    "weight": 80
                   }
                 ]
               },
@@ -1681,101 +1675,39 @@
     "ignorePortInHostMatching": true
   },
   {
-    "name": "9090",
+    "name": "webhook-service.metallb-system.svc.cluster.local:443",
     "virtualHosts": [
       {
-        "name": "kiali.istio-system.svc.cluster.local:9090",
-        "domains": [
-          "kiali.istio-system.svc.cluster.local",
-          "kiali.istio-system",
-          "kiali.istio-system.svc",
-          "10.105.162.47"
-        ],
-        "routes": [
-          {
-            "name": "default",
-            "match": {
-              "prefix": "/"
-            },
-            "route": {
-              "cluster": "outbound|9090||kiali.istio-system.svc.cluster.local",
-              "timeout": "0s",
-              "retryPolicy": {
-                "retryOn": "connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes",
-                "numRetries": 2,
-                "retryHostPredicate": [
-                  {
-                    "name": "envoy.retry_host_predicates.previous_hosts",
-                    "typedConfig": {
-                      "@type": "type.googleapis.com/envoy.extensions.retry.host.previous_hosts.v3.PreviousHostsPredicate"
-                    }
-                  }
-                ],
-                "hostSelectionRetryMaxAttempts": "5"
-              },
-              "maxGrpcTimeout": "0s"
-            },
-            "decorator": {
-              "operation": "kiali.istio-system.svc.cluster.local:9090/*"
-            }
-          }
-        ],
-        "includeRequestAttemptCount": true
-      },
-      {
-        "name": "prometheus.istio-system.svc.cluster.local:9090",
-        "domains": [
-          "prometheus.istio-system.svc.cluster.local",
-          "prometheus.istio-system",
-          "prometheus.istio-system.svc",
-          "10.102.156.241"
-        ],
-        "routes": [
-          {
-            "name": "default",
-            "match": {
-              "prefix": "/"
-            },
-            "route": {
-              "cluster": "outbound|9090||prometheus.istio-system.svc.cluster.local",
-              "timeout": "0s",
-              "retryPolicy": {
-                "retryOn": "connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes",
-                "numRetries": 2,
-                "retryHostPredicate": [
-                  {
-                    "name": "envoy.retry_host_predicates.previous_hosts",
-                    "typedConfig": {
-                      "@type": "type.googleapis.com/envoy.extensions.retry.host.previous_hosts.v3.PreviousHostsPredicate"
-                    }
-                  }
-                ],
-                "hostSelectionRetryMaxAttempts": "5"
-              },
-              "maxGrpcTimeout": "0s"
-            },
-            "decorator": {
-              "operation": "prometheus.istio-system.svc.cluster.local:9090/*"
-            }
-          }
-        ],
-        "includeRequestAttemptCount": true
-      },
-      {
-        "name": "allow_any",
+        "name": "webhook-service.metallb-system.svc.cluster.local:443",
         "domains": [
           "*"
         ],
         "routes": [
           {
-            "name": "allow_any",
+            "name": "default",
             "match": {
               "prefix": "/"
             },
             "route": {
-              "cluster": "PassthroughCluster",
+              "cluster": "outbound|443||webhook-service.metallb-system.svc.cluster.local",
               "timeout": "0s",
+              "retryPolicy": {
+                "retryOn": "connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes",
+                "numRetries": 2,
+                "retryHostPredicate": [
+                  {
+                    "name": "envoy.retry_host_predicates.previous_hosts",
+                    "typedConfig": {
+                      "@type": "type.googleapis.com/envoy.extensions.retry.host.previous_hosts.v3.PreviousHostsPredicate"
+                    }
+                  }
+                ],
+                "hostSelectionRetryMaxAttempts": "5"
+              },
               "maxGrpcTimeout": "0s"
+            },
+            "decorator": {
+              "operation": "webhook-service.metallb-system.svc.cluster.local:443/*"
             }
           }
         ],
@@ -1787,91 +1719,21 @@
     "ignorePortInHostMatching": true
   },
   {
-    "name": "9095",
+    "name": "jaeger-collector.istio-system.svc.cluster.local:14268",
     "virtualHosts": [
       {
-        "name": "loki.istio-system.svc.cluster.local:9095",
-        "domains": [
-          "loki.istio-system.svc.cluster.local",
-          "loki.istio-system",
-          "loki.istio-system.svc",
-          "10.97.147.235"
-        ],
-        "routes": [
-          {
-            "name": "default",
-            "match": {
-              "prefix": "/"
-            },
-            "route": {
-              "cluster": "outbound|9095||loki.istio-system.svc.cluster.local",
-              "timeout": "0s",
-              "retryPolicy": {
-                "retryOn": "connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes",
-                "numRetries": 2,
-                "retryHostPredicate": [
-                  {
-                    "name": "envoy.retry_host_predicates.previous_hosts",
-                    "typedConfig": {
-                      "@type": "type.googleapis.com/envoy.extensions.retry.host.previous_hosts.v3.PreviousHostsPredicate"
-                    }
-                  }
-                ],
-                "hostSelectionRetryMaxAttempts": "5"
-              },
-              "maxGrpcTimeout": "0s"
-            },
-            "decorator": {
-              "operation": "loki.istio-system.svc.cluster.local:9095/*"
-            }
-          }
-        ],
-        "includeRequestAttemptCount": true
-      },
-      {
-        "name": "allow_any",
+        "name": "jaeger-collector.istio-system.svc.cluster.local:14268",
         "domains": [
           "*"
         ],
         "routes": [
           {
-            "name": "allow_any",
-            "match": {
-              "prefix": "/"
-            },
-            "route": {
-              "cluster": "PassthroughCluster",
-              "timeout": "0s",
-              "maxGrpcTimeout": "0s"
-            }
-          }
-        ],
-        "includeRequestAttemptCount": true
-      }
-    ],
-    "validateClusters": false,
-    "maxDirectResponseBodySizeBytes": 1048576,
-    "ignorePortInHostMatching": true
-  },
-  {
-    "name": "9411",
-    "virtualHosts": [
-      {
-        "name": "jaeger-collector.istio-system.svc.cluster.local:9411",
-        "domains": [
-          "jaeger-collector.istio-system.svc.cluster.local",
-          "jaeger-collector.istio-system",
-          "jaeger-collector.istio-system.svc",
-          "10.111.121.135"
-        ],
-        "routes": [
-          {
             "name": "default",
             "match": {
               "prefix": "/"
             },
             "route": {
-              "cluster": "outbound|9411||jaeger-collector.istio-system.svc.cluster.local",
+              "cluster": "outbound|14268||jaeger-collector.istio-system.svc.cluster.local",
               "timeout": "0s",
               "retryPolicy": {
                 "retryOn": "connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes",
@@ -1889,66 +1751,7 @@
               "maxGrpcTimeout": "0s"
             },
             "decorator": {
-              "operation": "jaeger-collector.istio-system.svc.cluster.local:9411/*"
-            }
-          }
-        ],
-        "includeRequestAttemptCount": true
-      },
-      {
-        "name": "zipkin.istio-system.svc.cluster.local:9411",
-        "domains": [
-          "zipkin.istio-system.svc.cluster.local",
-          "zipkin.istio-system",
-          "zipkin.istio-system.svc",
-          "10.110.81.206"
-        ],
-        "routes": [
-          {
-            "name": "default",
-            "match": {
-              "prefix": "/"
-            },
-            "route": {
-              "cluster": "outbound|9411||zipkin.istio-system.svc.cluster.local",
-              "timeout": "0s",
-              "retryPolicy": {
-                "retryOn": "connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes",
-                "numRetries": 2,
-                "retryHostPredicate": [
-                  {
-                    "name": "envoy.retry_host_predicates.previous_hosts",
-                    "typedConfig": {
-                      "@type": "type.googleapis.com/envoy.extensions.retry.host.previous_hosts.v3.PreviousHostsPredicate"
-                    }
-                  }
-                ],
-                "hostSelectionRetryMaxAttempts": "5"
-              },
-              "maxGrpcTimeout": "0s"
-            },
-            "decorator": {
-              "operation": "zipkin.istio-system.svc.cluster.local:9411/*"
-            }
-          }
-        ],
-        "includeRequestAttemptCount": true
-      },
-      {
-        "name": "allow_any",
-        "domains": [
-          "*"
-        ],
-        "routes": [
-          {
-            "name": "allow_any",
-            "match": {
-              "prefix": "/"
-            },
-            "route": {
-              "cluster": "PassthroughCluster",
-              "timeout": "0s",
-              "maxGrpcTimeout": "0s"
+              "operation": "jaeger-collector.istio-system.svc.cluster.local:14268/*"
             }
           }
         ],
@@ -2013,140 +1816,6 @@
             },
             "decorator": {
               "operation": "adservice:9555/*"
-            }
-          }
-        ],
-        "includeRequestAttemptCount": true
-      },
-      {
-        "name": "allow_any",
-        "domains": [
-          "*"
-        ],
-        "routes": [
-          {
-            "name": "allow_any",
-            "match": {
-              "prefix": "/"
-            },
-            "route": {
-              "cluster": "PassthroughCluster",
-              "timeout": "0s",
-              "maxGrpcTimeout": "0s"
-            }
-          }
-        ],
-        "includeRequestAttemptCount": true
-      }
-    ],
-    "validateClusters": false,
-    "maxDirectResponseBodySizeBytes": 1048576,
-    "ignorePortInHostMatching": true
-  },
-  {
-    "name": "15010",
-    "virtualHosts": [
-      {
-        "name": "istiod.istio-system.svc.cluster.local:15010",
-        "domains": [
-          "istiod.istio-system.svc.cluster.local",
-          "istiod.istio-system",
-          "istiod.istio-system.svc",
-          "10.111.172.136"
-        ],
-        "routes": [
-          {
-            "name": "default",
-            "match": {
-              "prefix": "/"
-            },
-            "route": {
-              "cluster": "outbound|15010||istiod.istio-system.svc.cluster.local",
-              "timeout": "0s",
-              "retryPolicy": {
-                "retryOn": "connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes",
-                "numRetries": 2,
-                "retryHostPredicate": [
-                  {
-                    "name": "envoy.retry_host_predicates.previous_hosts",
-                    "typedConfig": {
-                      "@type": "type.googleapis.com/envoy.extensions.retry.host.previous_hosts.v3.PreviousHostsPredicate"
-                    }
-                  }
-                ],
-                "hostSelectionRetryMaxAttempts": "5"
-              },
-              "maxGrpcTimeout": "0s"
-            },
-            "decorator": {
-              "operation": "istiod.istio-system.svc.cluster.local:15010/*"
-            }
-          }
-        ],
-        "includeRequestAttemptCount": true
-      },
-      {
-        "name": "allow_any",
-        "domains": [
-          "*"
-        ],
-        "routes": [
-          {
-            "name": "allow_any",
-            "match": {
-              "prefix": "/"
-            },
-            "route": {
-              "cluster": "PassthroughCluster",
-              "timeout": "0s",
-              "maxGrpcTimeout": "0s"
-            }
-          }
-        ],
-        "includeRequestAttemptCount": true
-      }
-    ],
-    "validateClusters": false,
-    "maxDirectResponseBodySizeBytes": 1048576,
-    "ignorePortInHostMatching": true
-  },
-  {
-    "name": "15014",
-    "virtualHosts": [
-      {
-        "name": "istiod.istio-system.svc.cluster.local:15014",
-        "domains": [
-          "istiod.istio-system.svc.cluster.local",
-          "istiod.istio-system",
-          "istiod.istio-system.svc",
-          "10.111.172.136"
-        ],
-        "routes": [
-          {
-            "name": "default",
-            "match": {
-              "prefix": "/"
-            },
-            "route": {
-              "cluster": "outbound|15014||istiod.istio-system.svc.cluster.local",
-              "timeout": "0s",
-              "retryPolicy": {
-                "retryOn": "connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes",
-                "numRetries": 2,
-                "retryHostPredicate": [
-                  {
-                    "name": "envoy.retry_host_predicates.previous_hosts",
-                    "typedConfig": {
-                      "@type": "type.googleapis.com/envoy.extensions.retry.host.previous_hosts.v3.PreviousHostsPredicate"
-                    }
-                  }
-                ],
-                "hostSelectionRetryMaxAttempts": "5"
-              },
-              "maxGrpcTimeout": "0s"
-            },
-            "decorator": {
-              "operation": "istiod.istio-system.svc.cluster.local:15014/*"
             }
           }
         ],
@@ -2289,12 +1958,15 @@
     "ignorePortInHostMatching": true
   },
   {
-    "name": "jaeger-collector.istio-system.svc.cluster.local:14250",
+    "name": "9090",
     "virtualHosts": [
       {
-        "name": "jaeger-collector.istio-system.svc.cluster.local:14250",
+        "name": "kiali.istio-system.svc.cluster.local:9090",
         "domains": [
-          "*"
+          "kiali.istio-system.svc.cluster.local",
+          "kiali.istio-system",
+          "kiali.istio-system.svc",
+          "10.105.162.47"
         ],
         "routes": [
           {
@@ -2303,7 +1975,7 @@
               "prefix": "/"
             },
             "route": {
-              "cluster": "outbound|14250||jaeger-collector.istio-system.svc.cluster.local",
+              "cluster": "outbound|9090||kiali.istio-system.svc.cluster.local",
               "timeout": "0s",
               "retryPolicy": {
                 "retryOn": "connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes",
@@ -2321,7 +1993,66 @@
               "maxGrpcTimeout": "0s"
             },
             "decorator": {
-              "operation": "jaeger-collector.istio-system.svc.cluster.local:14250/*"
+              "operation": "kiali.istio-system.svc.cluster.local:9090/*"
+            }
+          }
+        ],
+        "includeRequestAttemptCount": true
+      },
+      {
+        "name": "prometheus.istio-system.svc.cluster.local:9090",
+        "domains": [
+          "prometheus.istio-system.svc.cluster.local",
+          "prometheus.istio-system",
+          "prometheus.istio-system.svc",
+          "10.102.156.241"
+        ],
+        "routes": [
+          {
+            "name": "default",
+            "match": {
+              "prefix": "/"
+            },
+            "route": {
+              "cluster": "outbound|9090||prometheus.istio-system.svc.cluster.local",
+              "timeout": "0s",
+              "retryPolicy": {
+                "retryOn": "connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes",
+                "numRetries": 2,
+                "retryHostPredicate": [
+                  {
+                    "name": "envoy.retry_host_predicates.previous_hosts",
+                    "typedConfig": {
+                      "@type": "type.googleapis.com/envoy.extensions.retry.host.previous_hosts.v3.PreviousHostsPredicate"
+                    }
+                  }
+                ],
+                "hostSelectionRetryMaxAttempts": "5"
+              },
+              "maxGrpcTimeout": "0s"
+            },
+            "decorator": {
+              "operation": "prometheus.istio-system.svc.cluster.local:9090/*"
+            }
+          }
+        ],
+        "includeRequestAttemptCount": true
+      },
+      {
+        "name": "allow_any",
+        "domains": [
+          "*"
+        ],
+        "routes": [
+          {
+            "name": "allow_any",
+            "match": {
+              "prefix": "/"
+            },
+            "route": {
+              "cluster": "PassthroughCluster",
+              "timeout": "0s",
+              "maxGrpcTimeout": "0s"
             }
           }
         ],
@@ -2333,12 +2064,15 @@
     "ignorePortInHostMatching": true
   },
   {
-    "name": "istio-ingressgateway.istio-system.svc.cluster.local:15021",
+    "name": "9411",
     "virtualHosts": [
       {
-        "name": "istio-ingressgateway.istio-system.svc.cluster.local:15021",
+        "name": "jaeger-collector.istio-system.svc.cluster.local:9411",
         "domains": [
-          "*"
+          "jaeger-collector.istio-system.svc.cluster.local",
+          "jaeger-collector.istio-system",
+          "jaeger-collector.istio-system.svc",
+          "10.111.121.135"
         ],
         "routes": [
           {
@@ -2347,7 +2081,7 @@
               "prefix": "/"
             },
             "route": {
-              "cluster": "outbound|15021||istio-ingressgateway.istio-system.svc.cluster.local",
+              "cluster": "outbound|9411||jaeger-collector.istio-system.svc.cluster.local",
               "timeout": "0s",
               "retryPolicy": {
                 "retryOn": "connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes",
@@ -2365,7 +2099,66 @@
               "maxGrpcTimeout": "0s"
             },
             "decorator": {
-              "operation": "istio-ingressgateway.istio-system.svc.cluster.local:15021/*"
+              "operation": "jaeger-collector.istio-system.svc.cluster.local:9411/*"
+            }
+          }
+        ],
+        "includeRequestAttemptCount": true
+      },
+      {
+        "name": "zipkin.istio-system.svc.cluster.local:9411",
+        "domains": [
+          "zipkin.istio-system.svc.cluster.local",
+          "zipkin.istio-system",
+          "zipkin.istio-system.svc",
+          "10.110.81.206"
+        ],
+        "routes": [
+          {
+            "name": "default",
+            "match": {
+              "prefix": "/"
+            },
+            "route": {
+              "cluster": "outbound|9411||zipkin.istio-system.svc.cluster.local",
+              "timeout": "0s",
+              "retryPolicy": {
+                "retryOn": "connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes",
+                "numRetries": 2,
+                "retryHostPredicate": [
+                  {
+                    "name": "envoy.retry_host_predicates.previous_hosts",
+                    "typedConfig": {
+                      "@type": "type.googleapis.com/envoy.extensions.retry.host.previous_hosts.v3.PreviousHostsPredicate"
+                    }
+                  }
+                ],
+                "hostSelectionRetryMaxAttempts": "5"
+              },
+              "maxGrpcTimeout": "0s"
+            },
+            "decorator": {
+              "operation": "zipkin.istio-system.svc.cluster.local:9411/*"
+            }
+          }
+        ],
+        "includeRequestAttemptCount": true
+      },
+      {
+        "name": "allow_any",
+        "domains": [
+          "*"
+        ],
+        "routes": [
+          {
+            "name": "allow_any",
+            "match": {
+              "prefix": "/"
+            },
+            "route": {
+              "cluster": "PassthroughCluster",
+              "timeout": "0s",
+              "maxGrpcTimeout": "0s"
             }
           }
         ],
@@ -2377,12 +2170,15 @@
     "ignorePortInHostMatching": true
   },
   {
-    "name": "webhook-service.metallb-system.svc.cluster.local:443",
+    "name": "15014",
     "virtualHosts": [
       {
-        "name": "webhook-service.metallb-system.svc.cluster.local:443",
+        "name": "istiod.istio-system.svc.cluster.local:15014",
         "domains": [
-          "*"
+          "istiod.istio-system.svc.cluster.local",
+          "istiod.istio-system",
+          "istiod.istio-system.svc",
+          "10.111.172.136"
         ],
         "routes": [
           {
@@ -2391,7 +2187,7 @@
               "prefix": "/"
             },
             "route": {
-              "cluster": "outbound|443||webhook-service.metallb-system.svc.cluster.local",
+              "cluster": "outbound|15014||istiod.istio-system.svc.cluster.local",
               "timeout": "0s",
               "retryPolicy": {
                 "retryOn": "connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes",
@@ -2409,51 +2205,27 @@
               "maxGrpcTimeout": "0s"
             },
             "decorator": {
-              "operation": "webhook-service.metallb-system.svc.cluster.local:443/*"
+              "operation": "istiod.istio-system.svc.cluster.local:15014/*"
             }
           }
         ],
         "includeRequestAttemptCount": true
-      }
-    ],
-    "validateClusters": false,
-    "maxDirectResponseBodySizeBytes": 1048576,
-    "ignorePortInHostMatching": true
-  },
-  {
-    "name": "jaeger-collector.istio-system.svc.cluster.local:14268",
-    "virtualHosts": [
+      },
       {
-        "name": "jaeger-collector.istio-system.svc.cluster.local:14268",
+        "name": "allow_any",
         "domains": [
           "*"
         ],
         "routes": [
           {
-            "name": "default",
+            "name": "allow_any",
             "match": {
               "prefix": "/"
             },
             "route": {
-              "cluster": "outbound|14268||jaeger-collector.istio-system.svc.cluster.local",
+              "cluster": "PassthroughCluster",
               "timeout": "0s",
-              "retryPolicy": {
-                "retryOn": "connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes",
-                "numRetries": 2,
-                "retryHostPredicate": [
-                  {
-                    "name": "envoy.retry_host_predicates.previous_hosts",
-                    "typedConfig": {
-                      "@type": "type.googleapis.com/envoy.extensions.retry.host.previous_hosts.v3.PreviousHostsPredicate"
-                    }
-                  }
-                ],
-                "hostSelectionRetryMaxAttempts": "5"
-              },
               "maxGrpcTimeout": "0s"
-            },
-            "decorator": {
-              "operation": "jaeger-collector.istio-system.svc.cluster.local:14268/*"
             }
           }
         ],
@@ -2571,6 +2343,73 @@
     "ignorePortInHostMatching": true
   },
   {
+    "name": "15010",
+    "virtualHosts": [
+      {
+        "name": "istiod.istio-system.svc.cluster.local:15010",
+        "domains": [
+          "istiod.istio-system.svc.cluster.local",
+          "istiod.istio-system",
+          "istiod.istio-system.svc",
+          "10.111.172.136"
+        ],
+        "routes": [
+          {
+            "name": "default",
+            "match": {
+              "prefix": "/"
+            },
+            "route": {
+              "cluster": "outbound|15010||istiod.istio-system.svc.cluster.local",
+              "timeout": "0s",
+              "retryPolicy": {
+                "retryOn": "connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes",
+                "numRetries": 2,
+                "retryHostPredicate": [
+                  {
+                    "name": "envoy.retry_host_predicates.previous_hosts",
+                    "typedConfig": {
+                      "@type": "type.googleapis.com/envoy.extensions.retry.host.previous_hosts.v3.PreviousHostsPredicate"
+                    }
+                  }
+                ],
+                "hostSelectionRetryMaxAttempts": "5"
+              },
+              "maxGrpcTimeout": "0s"
+            },
+            "decorator": {
+              "operation": "istiod.istio-system.svc.cluster.local:15010/*"
+            }
+          }
+        ],
+        "includeRequestAttemptCount": true
+      },
+      {
+        "name": "allow_any",
+        "domains": [
+          "*"
+        ],
+        "routes": [
+          {
+            "name": "allow_any",
+            "match": {
+              "prefix": "/"
+            },
+            "route": {
+              "cluster": "PassthroughCluster",
+              "timeout": "0s",
+              "maxGrpcTimeout": "0s"
+            }
+          }
+        ],
+        "includeRequestAttemptCount": true
+      }
+    ],
+    "validateClusters": false,
+    "maxDirectResponseBodySizeBytes": 1048576,
+    "ignorePortInHostMatching": true
+  },
+  {
     "name": "kube-dns.kube-system.svc.cluster.local:9153",
     "virtualHosts": [
       {
@@ -2615,10 +2454,10 @@
     "ignorePortInHostMatching": true
   },
   {
-    "name": "InboundPassthroughCluster",
+    "name": "istio-ingressgateway.istio-system.svc.cluster.local:15021",
     "virtualHosts": [
       {
-        "name": "inbound|http|0",
+        "name": "istio-ingressgateway.istio-system.svc.cluster.local:15021",
         "domains": [
           "*"
         ],
@@ -2629,31 +2468,40 @@
               "prefix": "/"
             },
             "route": {
-              "cluster": "InboundPassthroughCluster",
+              "cluster": "outbound|15021||istio-ingressgateway.istio-system.svc.cluster.local",
               "timeout": "0s",
               "retryPolicy": {
-                "retryOn": "reset-before-request",
-                "numRetries": 2
+                "retryOn": "connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes",
+                "numRetries": 2,
+                "retryHostPredicate": [
+                  {
+                    "name": "envoy.retry_host_predicates.previous_hosts",
+                    "typedConfig": {
+                      "@type": "type.googleapis.com/envoy.extensions.retry.host.previous_hosts.v3.PreviousHostsPredicate"
+                    }
+                  }
+                ],
+                "hostSelectionRetryMaxAttempts": "5"
               },
-              "maxStreamDuration": {
-                "maxStreamDuration": "0s",
-                "grpcTimeoutHeaderMax": "0s"
-              }
+              "maxGrpcTimeout": "0s"
             },
             "decorator": {
-              "operation": ":0/*"
+              "operation": "istio-ingressgateway.istio-system.svc.cluster.local:15021/*"
             }
           }
-        ]
+        ],
+        "includeRequestAttemptCount": true
       }
     ],
-    "validateClusters": false
+    "validateClusters": false,
+    "maxDirectResponseBodySizeBytes": 1048576,
+    "ignorePortInHostMatching": true
   },
   {
-    "name": "InboundPassthroughCluster",
+    "name": "jaeger-collector.istio-system.svc.cluster.local:14250",
     "virtualHosts": [
       {
-        "name": "inbound|http|0",
+        "name": "jaeger-collector.istio-system.svc.cluster.local:14250",
         "domains": [
           "*"
         ],
@@ -2664,25 +2512,101 @@
               "prefix": "/"
             },
             "route": {
-              "cluster": "InboundPassthroughCluster",
+              "cluster": "outbound|14250||jaeger-collector.istio-system.svc.cluster.local",
               "timeout": "0s",
               "retryPolicy": {
-                "retryOn": "reset-before-request",
-                "numRetries": 2
+                "retryOn": "connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes",
+                "numRetries": 2,
+                "retryHostPredicate": [
+                  {
+                    "name": "envoy.retry_host_predicates.previous_hosts",
+                    "typedConfig": {
+                      "@type": "type.googleapis.com/envoy.extensions.retry.host.previous_hosts.v3.PreviousHostsPredicate"
+                    }
+                  }
+                ],
+                "hostSelectionRetryMaxAttempts": "5"
               },
-              "maxStreamDuration": {
-                "maxStreamDuration": "0s",
-                "grpcTimeoutHeaderMax": "0s"
-              }
+              "maxGrpcTimeout": "0s"
             },
             "decorator": {
-              "operation": ":0/*"
+              "operation": "jaeger-collector.istio-system.svc.cluster.local:14250/*"
             }
           }
-        ]
+        ],
+        "includeRequestAttemptCount": true
       }
     ],
-    "validateClusters": false
+    "validateClusters": false,
+    "maxDirectResponseBodySizeBytes": 1048576,
+    "ignorePortInHostMatching": true
+  },
+  {
+    "name": "9095",
+    "virtualHosts": [
+      {
+        "name": "loki.istio-system.svc.cluster.local:9095",
+        "domains": [
+          "loki.istio-system.svc.cluster.local",
+          "loki.istio-system",
+          "loki.istio-system.svc",
+          "10.97.147.235"
+        ],
+        "routes": [
+          {
+            "name": "default",
+            "match": {
+              "prefix": "/"
+            },
+            "route": {
+              "cluster": "outbound|9095||loki.istio-system.svc.cluster.local",
+              "timeout": "0s",
+              "retryPolicy": {
+                "retryOn": "connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes",
+                "numRetries": 2,
+                "retryHostPredicate": [
+                  {
+                    "name": "envoy.retry_host_predicates.previous_hosts",
+                    "typedConfig": {
+                      "@type": "type.googleapis.com/envoy.extensions.retry.host.previous_hosts.v3.PreviousHostsPredicate"
+                    }
+                  }
+                ],
+                "hostSelectionRetryMaxAttempts": "5"
+              },
+              "maxGrpcTimeout": "0s"
+            },
+            "decorator": {
+              "operation": "loki.istio-system.svc.cluster.local:9095/*"
+            }
+          }
+        ],
+        "includeRequestAttemptCount": true
+      },
+      {
+        "name": "allow_any",
+        "domains": [
+          "*"
+        ],
+        "routes": [
+          {
+            "name": "allow_any",
+            "match": {
+              "prefix": "/"
+            },
+            "route": {
+              "cluster": "PassthroughCluster",
+              "timeout": "0s",
+              "maxGrpcTimeout": "0s"
+            }
+          }
+        ],
+        "includeRequestAttemptCount": true
+      }
+    ],
+    "validateClusters": false,
+    "maxDirectResponseBodySizeBytes": 1048576,
+    "ignorePortInHostMatching": true
   },
   {
     "virtualHosts": [
@@ -2698,26 +2622,6 @@
             },
             "route": {
               "cluster": "agent"
-            }
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "virtualHosts": [
-      {
-        "name": "backend",
-        "domains": [
-          "*"
-        ],
-        "routes": [
-          {
-            "match": {
-              "prefix": "/stats/prometheus"
-            },
-            "route": {
-              "cluster": "prometheus_stats"
             }
           }
         ]
@@ -2752,6 +2656,96 @@
             },
             "decorator": {
               "operation": "details.default.svc.cluster.local:9080/*"
+            }
+          }
+        ]
+      }
+    ],
+    "validateClusters": false
+  },
+  {
+    "name": "InboundPassthroughCluster",
+    "virtualHosts": [
+      {
+        "name": "inbound|http|0",
+        "domains": [
+          "*"
+        ],
+        "routes": [
+          {
+            "name": "default",
+            "match": {
+              "prefix": "/"
+            },
+            "route": {
+              "cluster": "InboundPassthroughCluster",
+              "timeout": "0s",
+              "retryPolicy": {
+                "retryOn": "reset-before-request",
+                "numRetries": 2
+              },
+              "maxStreamDuration": {
+                "maxStreamDuration": "0s",
+                "grpcTimeoutHeaderMax": "0s"
+              }
+            },
+            "decorator": {
+              "operation": ":0/*"
+            }
+          }
+        ]
+      }
+    ],
+    "validateClusters": false
+  },
+  {
+    "virtualHosts": [
+      {
+        "name": "backend",
+        "domains": [
+          "*"
+        ],
+        "routes": [
+          {
+            "match": {
+              "prefix": "/stats/prometheus"
+            },
+            "route": {
+              "cluster": "prometheus_stats"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "InboundPassthroughCluster",
+    "virtualHosts": [
+      {
+        "name": "inbound|http|0",
+        "domains": [
+          "*"
+        ],
+        "routes": [
+          {
+            "name": "default",
+            "match": {
+              "prefix": "/"
+            },
+            "route": {
+              "cluster": "InboundPassthroughCluster",
+              "timeout": "0s",
+              "retryPolicy": {
+                "retryOn": "reset-before-request",
+                "numRetries": 2
+              },
+              "maxStreamDuration": {
+                "maxStreamDuration": "0s",
+                "grpcTimeoutHeaderMax": "0s"
+              }
+            },
+            "decorator": {
+              "operation": ":0/*"
             }
           }
         ]

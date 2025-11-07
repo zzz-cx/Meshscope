@@ -16,8 +16,8 @@ class GlobalConfig:
     project_root: str = field(default_factory=lambda: os.path.dirname(os.path.dirname(__file__)))
     
     # 静态分析配置
-    control_plane_config_dir: str = "istio_config_parser/istio_control_config"
-    data_plane_config_dir: str = "istio_config_parser/istio_control_config"
+    control_plane_config_dir: str = "istio_config_parser/istio_monitor/istio_control_config"
+    data_plane_config_dir: str = "istio_config_parser/istio_monitor/istio_sidecar_config"
     
     # 动态测试配置
     test_matrix_file: str = "istio_Dynamic_Test/generator/output_matrix.json"

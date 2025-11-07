@@ -322,3 +322,258 @@ class IRBuilder:
         
         return function_ir
 
+
+@dataclass
+class SimpleIR:
+    """简化版IR表示
+    格式:
+    {
+        "service": str,
+        "policy_type": str,
+        "match": Dict[str, Any],
+        "action": Dict[str, Any],
+        "source": str  # "control_plane" or "data_plane"
+    }
+    """
+    service: str
+    policy_type: str
+    match: Dict[str, Any] = field(default_factory=dict)
+    action: Dict[str, Any] = field(default_factory=dict)
+    source: str = ""
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """转换为字典格式"""
+        return {
+            'service': self.service,
+            'policy_type': self.policy_type,
+            'match': self.match,
+            'action': self.action,
+            'source': self.source
+        }
+
+
+class SimpleIRConverter:
+    """简化IR转换器"""
+    
+    @staticmethod
+    def function_type_to_policy_type(function_type: FunctionType) -> str:
+        """将功能类型转换为策略类型"""
+        mapping = {
+            FunctionType.ROUTING: "route",
+            FunctionType.TRAFFIC_SHIFTING: "route",
+            FunctionType.CIRCUIT_BREAKER: "circuit_breaker",
+            FunctionType.RATE_LIMIT: "rate_limit",
+            FunctionType.RETRY: "retry",
+            FunctionType.TIMEOUT: "timeout",
+            FunctionType.FAULT_INJECTION: "fault_injection",
+            FunctionType.LOAD_BALANCING: "load_balancing",
+        }
+        return mapping.get(function_type, function_type.value)
+    
+    @staticmethod
+    def extract_match_from_model(model_dict: Dict[str, Any], function_type: FunctionType) -> Dict[str, Any]:
+        """从功能模型中提取匹配条件"""
+        match = {}
+        
+        if function_type == FunctionType.ROUTING:
+            # 从路由规则中提取第一个匹配条件
+            routes = model_dict.get('routes', [])
+            if routes and len(routes) > 0:
+                route_match = routes[0].get('match', {})
+                if route_match:
+                    # 提取path信息
+                    uri = route_match.get('uri', {})
+                    if uri:
+                        # 优先使用prefix/exact/regex
+                        if 'prefix' in uri:
+                            match['path'] = uri['prefix']
+                        elif 'exact' in uri:
+                            match['path'] = uri['exact']
+                        elif 'regex' in uri:
+                            match['path'] = uri['regex']
+                    # 提取headers
+                    headers = route_match.get('headers', {})
+                    if headers:
+                        match['headers'] = headers
+                    # 提取method
+                    method = route_match.get('method')
+                    if method:
+                        match['method'] = method
+        elif function_type == FunctionType.TRAFFIC_SHIFTING:
+            # 流量分流通常使用默认匹配（所有路径）
+            match['path'] = "/"
+        
+        return match if match else {"path": "/"}
+    
+    @staticmethod
+    def extract_action_from_model(model_dict: Dict[str, Any], function_type: FunctionType) -> Dict[str, Any]:
+        """从功能模型中提取动作"""
+        action = {}
+        
+        if function_type == FunctionType.TRAFFIC_SHIFTING:
+            # 从destinations中提取权重分配
+            destinations = model_dict.get('destinations', [])
+            route_weights = {}
+            
+            total_weight = sum(d.get('weight', 0) for d in destinations)
+            if total_weight > 0:
+                for dest in destinations:
+                    subset = dest.get('subset')
+                    weight = dest.get('weight', 0)
+                    # 转换为0-1之间的比例
+                    if subset:
+                        route_weights[subset] = round(weight / total_weight, 2)
+                
+                if route_weights:
+                    action['route_weights'] = route_weights
+        
+        elif function_type == FunctionType.ROUTING:
+            # 从路由规则中提取目标
+            routes = model_dict.get('routes', [])
+            if routes and len(routes) > 0:
+                destinations = routes[0].get('destinations', [])
+                if destinations:
+                    action['destinations'] = destinations
+        
+        elif function_type == FunctionType.CIRCUIT_BREAKER:
+            # 提取熔断配置
+            connection_pool = model_dict.get('connection_pool')
+            outlier_detection = model_dict.get('outlier_detection')
+            if connection_pool:
+                action['connection_pool'] = connection_pool
+            if outlier_detection:
+                action['outlier_detection'] = outlier_detection
+        
+        elif function_type == FunctionType.RATE_LIMIT:
+            # 提取限流配置
+            rules = model_dict.get('rules', [])
+            if rules:
+                action['rules'] = rules
+        
+        elif function_type == FunctionType.RETRY:
+            # 提取重试配置
+            retry_policy = model_dict.get('retry_policy')
+            if retry_policy:
+                action['retry_policy'] = retry_policy
+        
+        elif function_type == FunctionType.TIMEOUT:
+            # 提取超时配置
+            timeout = model_dict.get('timeout')
+            if timeout:
+                action['timeout'] = timeout
+        
+        elif function_type == FunctionType.FAULT_INJECTION:
+            # 提取故障注入配置
+            delay = model_dict.get('delay')
+            abort = model_dict.get('abort')
+            if delay:
+                action['delay'] = delay
+            if abort:
+                action['abort'] = abort
+        
+        return action
+    
+    @staticmethod
+    def convert_function_ir_to_simple(function_ir: FunctionIR, plane_type: str = "control_plane") -> List[SimpleIR]:
+        """
+        将FunctionIR转换为简化IR列表
+        
+        Args:
+            function_ir: 功能IR
+            plane_type: 平面类型 ("control_plane" 或 "data_plane")
+            
+        Returns:
+            简化IR列表（可能包含多个规则）
+        """
+        simple_irs = []
+        
+        # 获取对应平面的配置
+        plane_config = function_ir.config.get(plane_type, {})
+        if not plane_config:
+            return simple_irs
+        
+        policy_type = SimpleIRConverter.function_type_to_policy_type(function_ir.function_type)
+        
+        # 提取match和action
+        match = SimpleIRConverter.extract_match_from_model(plane_config, function_ir.function_type)
+        action = SimpleIRConverter.extract_action_from_model(plane_config, function_ir.function_type)
+        
+        # 创建简化IR
+        simple_ir = SimpleIR(
+            service=function_ir.service_name,
+            policy_type=policy_type,
+            match=match,
+            action=action,
+            source=plane_type
+        )
+        
+        simple_irs.append(simple_ir)
+        
+        return simple_irs
+    
+    @staticmethod
+    def convert_service_ir_to_simple(service_ir: ServiceIR, plane_type: str = "control_plane") -> List[SimpleIR]:
+        """
+        将ServiceIR转换为简化IR列表
+        
+        Args:
+            service_ir: 服务IR
+            plane_type: 平面类型
+            
+        Returns:
+            简化IR列表
+        """
+        simple_irs = []
+        
+        for func_ir in service_ir.functions.values():
+            irs = SimpleIRConverter.convert_function_ir_to_simple(func_ir, plane_type)
+            simple_irs.extend(irs)
+        
+        return simple_irs
+    
+    @staticmethod
+    def convert_system_ir_to_simple(system_ir: SystemIR, plane_type: str = "control_plane") -> List[SimpleIR]:
+        """
+        将SystemIR转换为简化IR列表
+        
+        Args:
+            system_ir: 系统IR
+            plane_type: 平面类型
+            
+        Returns:
+            简化IR列表
+        """
+        simple_irs = []
+        
+        for service_ir in system_ir.services.values():
+            irs = SimpleIRConverter.convert_service_ir_to_simple(service_ir, plane_type)
+            simple_irs.extend(irs)
+        
+        return simple_irs
+    
+    @staticmethod
+    def convert_function_ir_to_both_planes(function_ir: FunctionIR) -> Dict[str, List[SimpleIR]]:
+        """
+        将FunctionIR转换为控制平面和数据平面的简化IR
+        
+        Returns:
+            {"control_plane": [...], "data_plane": [...]}
+        """
+        result = {
+            "control_plane": [],
+            "data_plane": []
+        }
+        
+        # 转换控制平面
+        if "control_plane" in function_ir.config:
+            result["control_plane"] = SimpleIRConverter.convert_function_ir_to_simple(
+                function_ir, "control_plane"
+            )
+        
+        # 转换数据平面
+        if "data_plane" in function_ir.config:
+            result["data_plane"] = SimpleIRConverter.convert_function_ir_to_simple(
+                function_ir, "data_plane"
+            )
+        
+        return result
