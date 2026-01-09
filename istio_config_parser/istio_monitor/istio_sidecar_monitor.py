@@ -10,6 +10,7 @@ import logging
 import argparse
 import threading
 import datetime
+import shutil
 from typing import Dict, List, Any, Optional, Set
 from queue import Queue
 from watchdog.observers import Observer
@@ -135,6 +136,15 @@ class IstioSidecarMonitor:
         
         # 初始化 Kubernetes 客户端
         self._init_k8s_client()
+
+    def _reset_directory(self, directory_path: str) -> None:
+        """清空并重建目录，确保本地配置与集群状态同步"""
+        try:
+            if os.path.exists(directory_path):
+                shutil.rmtree(directory_path)
+            os.makedirs(directory_path, exist_ok=True)
+        except Exception as e:
+            logger.error(f"重置目录 {directory_path} 失败: {str(e)}")
 
     def _init_k8s_client(self) -> None:
         """初始化 Kubernetes 客户端"""
@@ -292,8 +302,7 @@ class IstioSidecarMonitor:
                         
                         # 为每种资源类型创建子目录
                         resource_dir = os.path.join(self.control_plane_dir, plural)
-                        if not os.path.exists(resource_dir):
-                            os.makedirs(resource_dir)
+                        self._reset_directory(resource_dir)
                         
                         # 保存每个资源的 YAML 文件
                         for item in response.get('items', []):
@@ -342,8 +351,7 @@ class IstioSidecarMonitor:
                     
                     # 保存服务配置
                     services_dir = os.path.join(self.control_plane_dir, "services")
-                    if not os.path.exists(services_dir):
-                        os.makedirs(services_dir)
+                    self._reset_directory(services_dir)
                     
                     # 按命名空间组织服务
                     for service in services.items:

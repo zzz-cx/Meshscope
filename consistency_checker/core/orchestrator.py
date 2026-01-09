@@ -9,6 +9,7 @@ import json
 import logging
 from typing import Dict, Optional, Any
 from datetime import datetime
+from dataclasses import asdict, is_dataclass
 
 from consistency_checker.config import get_config
 from consistency_checker.core.static_analyzer import StaticAnalyzer
@@ -113,7 +114,7 @@ class Pipeline:
     def _run_static_analysis(self) -> Dict[str, Any]:
         """运行静态分析"""
         self.static_analyzer = StaticAnalyzer(
-            config_dir=self.config.control_plane_config_dir,
+            config_dir=None,  # 使用配置中的默认路径
             namespace=self.namespace
         )
         
@@ -266,26 +267,25 @@ class Pipeline:
             return {k: self._make_serializable(v) for k, v in obj.items()}
         elif isinstance(obj, list):
             return [self._make_serializable(item) for item in obj]
+        elif is_dataclass(obj):
+            # 处理dataclass对象
+            return self._make_serializable(asdict(obj))
+        elif isinstance(obj, datetime):
+            return obj.isoformat()
+        elif hasattr(obj, 'value') and not isinstance(obj, (str, int, float, bool)):
+            # Enum类型
+            return obj.value
         elif hasattr(obj, '__dict__'):
-            # 处理dataclass等对象
+            # 处理其他对象
             result = {}
             for k, v in obj.__dict__.items():
                 if k.startswith('_'):
                     continue
                 try:
-                    if hasattr(v, 'value'):  # Enum
-                        result[k] = v.value
-                    elif isinstance(v, datetime):
-                        result[k] = v.isoformat()
-                    else:
-                        result[k] = self._make_serializable(v)
+                    result[k] = self._make_serializable(v)
                 except:
                     result[k] = str(v)
             return result
-        elif isinstance(obj, datetime):
-            return obj.isoformat()
-        elif hasattr(obj, 'value'):  # Enum
-            return obj.value
         else:
             return obj
 

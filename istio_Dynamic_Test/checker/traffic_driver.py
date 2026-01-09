@@ -12,7 +12,9 @@ if dynamic_test_root not in sys.path:
 import json
 import argparse
 import time
+import re
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from istio_Dynamic_Test.utils.ssh_utils import SSHClient
 from istio_Dynamic_Test.checker.fault_injector import FaultInjector
 from istio_Dynamic_Test.recorder.envoy_log_collector import EnvoyLogCollector
@@ -47,6 +49,7 @@ class TrafficDriver:
             self.envoy_log_collector = EnvoyLogCollector(self.ssh_client, namespace=namespace)
             self.enabled_deployments = set()  # 记录已启用 access log 的 deployment
             self.http_results = {}  # 存储HTTP测试结果
+            self.service_aliases = self._build_service_aliases()
             
             if not self.ingress_url:
                 print(f"错误: 在测试矩阵文件 '{matrix_file}' 中未找到 'global_settings.ingress_url'。")
@@ -96,6 +99,12 @@ class TrafficDriver:
             print(f"⚠️  警告: 发现服务版本时出错: {e}")
             return []
 
+    def _check_deployment_exists(self, deployment):
+        """检查 deployment 是否存在"""
+        cmd = f"kubectl get deployment {deployment} -n {self.namespace} --ignore-not-found=true -o name"
+        output, error = self.ssh_client.run_command(cmd)
+        return output.strip() != "" and not error
+
     def enable_access_log_for_service(self, service, subset=None):
         """
         为指定服务/版本启用 Envoy access log。
@@ -106,6 +115,11 @@ class TrafficDriver:
             deployment = f"{service}-{subset}"
         else:
             deployment = service
+        
+        # 先检查 deployment 是否存在
+        if not self._check_deployment_exists(deployment):
+            print(f"⚠️  警告: deployment/{deployment} 不存在，跳过 access log 启用")
+            return
             
         if deployment not in self.enabled_deployments:
             print(f"🔧 为 deployment/{deployment} 启用 Envoy access log...")
@@ -123,7 +137,7 @@ class TrafficDriver:
         """
         执行所有测试用例。
         """
-        print(f"▶️  开始执行 {len(self.test_cases)} 个测试用例...")
+        print(f"[RUN] 开始执行 {len(self.test_cases)} 个测试用例...")
         
         # 预先分析所有用例，提前启用需要的服务的 access log
         services_to_enable = set()
@@ -132,11 +146,11 @@ class TrafficDriver:
             if case.get('test_strategies') and 'orthogonal_matching' in case.get('test_strategies', []):
                 target_hosts = case.get('target_hosts', [])
                 for host in target_hosts:
-                    services_to_enable.add((host, None))
+                    self._add_service_to_enable(services_to_enable, host, None, case)
                     # 从 orthogonal_hits 中获取每个服务的目标版本
                     for hit in case.get('expected_outcome', {}).get('orthogonal_hits', []):
                         if hit['host'] == host:
-                            services_to_enable.add((host, hit['destination']))
+                            self._add_service_to_enable(services_to_enable, host, hit['destination'], case)
             else:
                 # 传统单服务测试
                 service = case['request_params'].get('host')
@@ -149,20 +163,20 @@ class TrafficDriver:
                     # 权重分布测试：为所有涉及的版本启用access log
                     distribution = case['expected_outcome']['distribution']
                     for version in distribution.keys():
-                        services_to_enable.add((service, version))
+                        self._add_service_to_enable(services_to_enable, service, version, case)
                 elif subset:
                     # 普通测试：只启用指定的版本
-                    services_to_enable.add((service, subset))
+                    self._add_service_to_enable(services_to_enable, service, subset, case)
                 else:
                     # 没有指定版本的情况：动态发现所有相关版本并启用access log
                     versions = self.discover_service_versions(service)
                     if versions:
                         # 为所有发现的版本启用access log
                         for version in versions:
-                            services_to_enable.add((service, version))
+                            self._add_service_to_enable(services_to_enable, service, version, case)
                     else:
                         # 如果没有发现版本，尝试启用服务本身（可能不存在，但让错误处理）
-                        services_to_enable.add((service, None))
+                        self._add_service_to_enable(services_to_enable, service, None, case)
         
         print(f"🔧 预先为 {len(services_to_enable)} 个服务/版本启用 Envoy access log...")
         for service, subset in services_to_enable:
@@ -172,6 +186,10 @@ class TrafficDriver:
         for case in self.test_cases:
             self._execute_case(case)
         print("✅ 所有测试用例执行完毕。")
+        
+        # 关闭 SSH 连接以释放资源
+        if self.ssh_client:
+            self.ssh_client.close()
 
     def run_single_case(self, case_id):
         """
@@ -190,17 +208,17 @@ class TrafficDriver:
             print(f"可用的测试用例: {', '.join(available_cases)}")
             return
         
-        print(f"▶️  开始执行单个测试用例: {case_id}")
+        print(f"[RUN] 开始执行单个测试用例: {case_id}")
         
         # 只为这个用例启用访问日志
         services_to_enable = set()
         if target_case.get('test_strategies') and 'orthogonal_matching' in target_case.get('test_strategies', []):
             target_hosts = target_case.get('target_hosts', [])
             for host in target_hosts:
-                services_to_enable.add((host, None))
+                self._add_service_to_enable(services_to_enable, host, None, target_case)
                 for hit in target_case.get('expected_outcome', {}).get('orthogonal_hits', []):
                     if hit['host'] == host:
-                        services_to_enable.add((host, hit['destination']))
+                        self._add_service_to_enable(services_to_enable, host, hit['destination'], target_case)
         else:
             service = target_case['request_params'].get('host')
             subset = None
@@ -210,16 +228,16 @@ class TrafficDriver:
             if 'expected_outcome' in target_case and 'distribution' in target_case['expected_outcome']:
                 distribution = target_case['expected_outcome']['distribution']
                 for version in distribution.keys():
-                    services_to_enable.add((service, version))
+                    self._add_service_to_enable(services_to_enable, service, version, target_case)
             elif subset:
-                services_to_enable.add((service, subset))
+                self._add_service_to_enable(services_to_enable, service, subset, target_case)
             else:
                 versions = self.discover_service_versions(service)
                 if versions:
                     for version in versions:
-                        services_to_enable.add((service, version))
+                        self._add_service_to_enable(services_to_enable, service, version, target_case)
                 else:
-                    services_to_enable.add((service, None))
+                    self._add_service_to_enable(services_to_enable, service, None, target_case)
         
         print(f"🔧 为 {len(services_to_enable)} 个服务/版本启用 Envoy access log...")
         for service, subset in services_to_enable:
@@ -229,6 +247,10 @@ class TrafficDriver:
         # 执行测试用例
         self._execute_case(target_case)
         print(f"✅ 测试用例 {case_id} 执行完毕。")
+        
+        # 关闭 SSH 连接以释放资源
+        if self.ssh_client:
+            self.ssh_client.close()
 
     def _execute_case(self, case):
         """
@@ -554,30 +576,66 @@ class TrafficDriver:
         print(f"    💾 HTTP结果已保存到: {filepath}")
 
     def _collect_logs_for_case(self, case):
-        """为测试用例收集Envoy access log"""
+        """为测试用例收集Envoy access log（支持并行采集）"""
         case_id = case['case_id']
+        tail_lines = 200 if case.get('type') == 'load_test' else 100
+        
+        # 收集所有需要采集的服务/版本
+        log_tasks = []
         
         # 处理正交匹配组合测试的多个服务
         if case.get('test_strategies') and 'orthogonal_matching' in case.get('test_strategies', []):
-            target_hosts = case.get('target_hosts', [])
             orthogonal_hits = case.get('expected_outcome', {}).get('orthogonal_hits', [])
-            
             for hit in orthogonal_hits:
                 host = hit['host']
                 destination = hit['destination']
-                print(f"    📋 收集 {host}->{destination} 的日志...")
-                # 对于负载测试，需要收集更多日志
-                tail_lines = 200 if case.get('type') == 'load_test' else 100
-                self.envoy_log_collector.collect_envoy_logs(f"{case_id}_{host}", host, subset=destination, tail_lines=tail_lines)
+                resolved_service, resolved_subset = self._resolve_service_and_subset(case, host, destination)
+                if resolved_service:
+                    log_tasks.append({
+                        'case_id': f"{case_id}_{resolved_service}",
+                        'service': resolved_service,
+                        'subset': resolved_subset,
+                        'tail_lines': tail_lines
+                    })
         else:
             # 传统单服务日志收集
             service = case['request_params'].get('host')
             subset = None
             if 'expected_outcome' in case and 'destination' in case['expected_outcome']:
                 subset = case['expected_outcome']['destination']
-            # 对于负载测试（特别是熔断测试），需要收集更多日志
-            tail_lines = 200 if case.get('type') == 'load_test' else 100
-            self.envoy_log_collector.collect_envoy_logs(case_id, service, subset=subset, tail_lines=tail_lines)
+            resolved_service, resolved_subset = self._resolve_service_and_subset(case, service, subset)
+            if resolved_service:
+                log_tasks.append({
+                    'case_id': case_id,
+                    'service': resolved_service,
+                    'subset': resolved_subset,
+                    'tail_lines': tail_lines
+                })
+        
+        if not log_tasks:
+            print(f"    ⚠️ 警告: 没有需要收集日志的服务")
+            return
+        
+        # 并行采集日志
+        print(f"    📋 并行收集 {len(log_tasks)} 个服务/版本的日志...")
+        with ThreadPoolExecutor(max_workers=min(5, len(log_tasks))) as executor:
+            futures = []
+            for task in log_tasks:
+                future = executor.submit(
+                    self.envoy_log_collector.collect_envoy_logs,
+                    task['case_id'],
+                    task['service'],
+                    subset=task['subset'],
+                    tail_lines=task['tail_lines']
+                )
+                futures.append((future, task))
+            
+            # 等待所有任务完成
+            for future, task in futures:
+                try:
+                    future.result(timeout=30)  # 每个任务最多30秒超时
+                except Exception as e:
+                    print(f"    ⚠️ 警告: 收集 {task['service']} 日志失败: {e}")
 
     def _collect_gateway_logs(self, case):
         """收集Istio Gateway的访问日志，可能包含故障注入的503错误"""
@@ -618,6 +676,55 @@ class TrafficDriver:
             
         except Exception as e:
             print(f"    ⚠️ 警告: 503测试失败: {e}")
+
+    def _build_service_aliases(self):
+        """预先构建无效服务名到实际服务的映射"""
+        aliases = {}
+        for case in self.test_cases:
+            request_params = case.get('request_params', {})
+            host = request_params.get('host')
+            destination = case.get('expected_outcome', {}).get('destination')
+            if host and destination:
+                if not self._is_valid_label_value(host) and self._is_valid_label_value(destination):
+                    aliases[host] = destination
+        return aliases
+
+    @staticmethod
+    def _is_valid_label_value(value):
+        if not value or not isinstance(value, str):
+            return False
+        pattern = r'^[A-Za-z0-9]([A-Za-z0-9\-_.]*[A-Za-z0-9])?$'
+        return re.fullmatch(pattern, value) is not None
+
+    def _resolve_service_and_subset(self, case, service, subset):
+        """将测试用例中的 host/subset 解析为合法的 K8s label"""
+        resolved_service = service
+        resolved_subset = subset
+
+        if not self._is_valid_label_value(resolved_service):
+            alias = self.service_aliases.get(service)
+            if not alias:
+                alias = case.get('expected_outcome', {}).get('destination')
+            if alias and self._is_valid_label_value(alias):
+                resolved_service = alias
+                if resolved_subset == alias:
+                    resolved_subset = None
+            else:
+                print(f"⚠️  警告: 服务标识 '{service}' 无法映射到有效的K8s标签。")
+                return None, None
+
+        if resolved_subset:
+            if not self._is_valid_label_value(resolved_subset) or resolved_subset == resolved_service:
+                if not self._is_valid_label_value(resolved_subset):
+                    print(f"⚠️  警告: 版本标识 '{resolved_subset}' 对服务 '{resolved_service}' 非法，忽略版本过滤。")
+                resolved_subset = None
+
+        return resolved_service, resolved_subset
+
+    def _add_service_to_enable(self, accumulator, service, subset, case):
+        resolved_service, resolved_subset = self._resolve_service_and_subset(case, service, subset)
+        if resolved_service:
+            accumulator.add((resolved_service, resolved_subset))
 
 def main():
     parser = argparse.ArgumentParser(description="Istio 测试执行驱动 (自动检测环境：K8s 或 SSH)")

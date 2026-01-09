@@ -37,11 +37,12 @@ class StaticAnalyzer:
         初始化静态分析器
         
         Args:
-            config_dir: 配置目录路径
+            config_dir: 控制平面配置目录路径
             namespace: Kubernetes命名空间
         """
         self.config = get_config()
-        self.config_dir = config_dir or self.config.control_plane_config_dir
+        self.control_plane_config_dir = config_dir or self.config.control_plane_config_dir
+        self.data_plane_config_dir = self.config.data_plane_config_dir
         self.namespace = namespace or self.config.namespace
         
         self.control_plane_data = None
@@ -57,17 +58,17 @@ class StaticAnalyzer:
         Returns:
             包含策略、节点和边的分析结果
         """
-        logger.info(f"Starting static analysis: config_dir={self.config_dir}, namespace={self.namespace}")
+        logger.info(f"Starting static analysis: control_plane_dir={self.control_plane_config_dir}, data_plane_dir={self.data_plane_config_dir}, namespace={self.namespace}")
         
         # 1. 解析控制平面配置
         self.control_plane_data = parse_control_plane_from_dir(
-            self.config_dir,
+            self.control_plane_config_dir,
             self.namespace
         )
         logger.info(f"[OK] Control plane config parsed")
         
         # 2. 解析数据平面配置
-        self.data_plane_data = parse_data_plane_from_dir(self.config_dir)
+        self.data_plane_data = parse_data_plane_from_dir(self.data_plane_config_dir)
         logger.info(f"[OK] Data plane config parsed")
         
         # 3. 提取静态策略
