@@ -6,7 +6,7 @@ metadata:
 
       '
   creationTimestamp: '2025-02-12T07:39:29Z'
-  generation: 3
+  generation: 6
   managedFields:
   - apiVersion: networking.istio.io/v1alpha3
     fieldsType: FieldsV1
@@ -30,10 +30,10 @@ metadata:
         f:servers: {}
     manager: kiali
     operation: Update
-    time: '2025-03-19T13:58:25Z'
+    time: '2025-05-27T06:14:07Z'
   name: frontend-gateway
   namespace: online-boutique
-  resourceVersion: '1322150'
+  resourceVersion: '2105431'
   uid: 76ae080b-ccba-4b60-bd4c-eaee80d74ff8
 spec:
   selector:
@@ -43,5 +43,5 @@ spec:
     - '*'
     port:
       name: http
-      number: 80
+      number: 81
       protocol: HTTP

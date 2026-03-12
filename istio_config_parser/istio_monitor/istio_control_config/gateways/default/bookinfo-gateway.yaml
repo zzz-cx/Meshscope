@@ -6,7 +6,7 @@ metadata:
 
       '
   creationTimestamp: '2025-04-03T07:15:27Z'
-  generation: 1
+  generation: 10
   managedFields:
   - apiVersion: networking.istio.io/v1
     fieldsType: FieldsV1
@@ -23,10 +23,10 @@ metadata:
         f:servers: {}
     manager: kubectl-client-side-apply
     operation: Update
-    time: '2025-04-03T07:15:27Z'
+    time: '2026-03-04T02:50:55Z'
   name: bookinfo-gateway
   namespace: default
-  resourceVersion: '1480694'
+  resourceVersion: '3429724'
   uid: 7ba651bc-4308-4913-ad3e-31d066f14afc
 spec:
   selector:

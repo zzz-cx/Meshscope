@@ -532,141 +532,17 @@
     "kind": null,
     "metadata": {
       "annotations": {
-        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app.kubernetes.io/instance\":\"grafana\",\"app.kubernetes.io/managed-by\":\"Helm\",\"app.kubernetes.io/name\":\"grafana\",\"app.kubernetes.io/version\":\"11.2.2-security-01\",\"helm.sh/chart\":\"grafana-8.5.8\"},\"name\":\"grafana\",\"namespace\":\"istio-system\"},\"spec\":{\"ports\":[{\"name\":\"service\",\"port\":3000,\"protocol\":\"TCP\",\"targetPort\":3000}],\"selector\":{\"app.kubernetes.io/instance\":\"grafana\",\"app.kubernetes.io/name\":\"grafana\"},\"type\":\"ClusterIP\"}}\n"
+        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"sleep\",\"service\":\"sleep\"},\"name\":\"sleep\",\"namespace\":\"default\"},\"spec\":{\"ports\":[{\"name\":\"http\",\"port\":80}],\"selector\":{\"app\":\"sleep\"}}}\n"
       },
-      "creation_timestamp": "2024-12-09T09:32:05+00:00",
+      "creation_timestamp": "2025-05-21T02:31:53+00:00",
       "deletion_grace_period_seconds": null,
       "deletion_timestamp": null,
       "finalizers": null,
       "generate_name": null,
       "generation": null,
       "labels": {
-        "app.kubernetes.io/instance": "grafana",
-        "app.kubernetes.io/managed-by": "Helm",
-        "app.kubernetes.io/name": "grafana",
-        "app.kubernetes.io/version": "11.2.2-security-01",
-        "helm.sh/chart": "grafana-8.5.8"
-      },
-      "managed_fields": [
-        {
-          "api_version": "v1",
-          "fields_type": "FieldsV1",
-          "fields_v1": {
-            "f:metadata": {
-              "f:annotations": {
-                ".": {},
-                "f:kubectl.kubernetes.io/last-applied-configuration": {}
-              },
-              "f:labels": {
-                ".": {},
-                "f:app.kubernetes.io/instance": {},
-                "f:app.kubernetes.io/managed-by": {},
-                "f:app.kubernetes.io/name": {},
-                "f:app.kubernetes.io/version": {},
-                "f:helm.sh/chart": {}
-              }
-            },
-            "f:spec": {
-              "f:internalTrafficPolicy": {},
-              "f:ports": {
-                ".": {},
-                "k:{\"port\":3000,\"protocol\":\"TCP\"}": {
-                  ".": {},
-                  "f:name": {},
-                  "f:port": {},
-                  "f:protocol": {},
-                  "f:targetPort": {}
-                }
-              },
-              "f:selector": {},
-              "f:sessionAffinity": {},
-              "f:type": {}
-            }
-          },
-          "manager": "kubectl-client-side-apply",
-          "operation": "Update",
-          "subresource": null,
-          "time": "2024-12-09T09:32:05+00:00"
-        }
-      ],
-      "name": "grafana",
-      "namespace": "istio-system",
-      "owner_references": null,
-      "resource_version": "159306",
-      "self_link": null,
-      "uid": "a642d4d6-106b-40de-bc01-db0897d6d284"
-    },
-    "spec": {
-      "allocate_load_balancer_node_ports": null,
-      "cluster_ip": "10.102.211.204",
-      "cluster_i_ps": [
-        "10.102.211.204"
-      ],
-      "external_i_ps": null,
-      "external_name": null,
-      "external_traffic_policy": null,
-      "health_check_node_port": null,
-      "internal_traffic_policy": "Cluster",
-      "ip_families": [
-        "IPv4"
-      ],
-      "ip_family_policy": "SingleStack",
-      "load_balancer_class": null,
-      "load_balancer_ip": null,
-      "load_balancer_source_ranges": null,
-      "ports": [
-        {
-          "app_protocol": null,
-          "name": "service",
-          "node_port": null,
-          "port": 3000,
-          "protocol": "TCP",
-          "target_port": 3000
-        }
-      ],
-      "publish_not_ready_addresses": null,
-      "selector": {
-        "app.kubernetes.io/instance": "grafana",
-        "app.kubernetes.io/name": "grafana"
-      },
-      "session_affinity": "None",
-      "session_affinity_config": null,
-      "traffic_distribution": null,
-      "type": "ClusterIP"
-    },
-    "status": {
-      "conditions": null,
-      "load_balancer": {
-        "ingress": null
-      }
-    }
-  },
-  {
-    "api_version": null,
-    "kind": null,
-    "metadata": {
-      "annotations": {
-        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"istio-egressgateway\",\"app.kubernetes.io/instance\":\"istio\",\"app.kubernetes.io/managed-by\":\"Helm\",\"app.kubernetes.io/name\":\"istio-egressgateway\",\"app.kubernetes.io/part-of\":\"istio\",\"app.kubernetes.io/version\":\"1.24.0\",\"helm.sh/chart\":\"istio-egress-1.24.0\",\"install.operator.istio.io/owning-resource\":\"unknown\",\"istio\":\"egressgateway\",\"istio.io/rev\":\"default\",\"operator.istio.io/component\":\"EgressGateways\",\"release\":\"istio\"},\"name\":\"istio-egressgateway\",\"namespace\":\"istio-system\"},\"spec\":{\"ports\":[{\"name\":\"http2\",\"port\":80,\"protocol\":\"TCP\",\"targetPort\":8080},{\"name\":\"https\",\"port\":443,\"protocol\":\"TCP\",\"targetPort\":8443}],\"selector\":{\"app\":\"istio-egressgateway\",\"istio\":\"egressgateway\"},\"type\":\"ClusterIP\"}}\n"
-      },
-      "creation_timestamp": "2024-12-05T04:10:22+00:00",
-      "deletion_grace_period_seconds": null,
-      "deletion_timestamp": null,
-      "finalizers": null,
-      "generate_name": null,
-      "generation": null,
-      "labels": {
-        "app": "istio-egressgateway",
-        "app.kubernetes.io/instance": "istio",
-        "app.kubernetes.io/managed-by": "Helm",
-        "app.kubernetes.io/name": "istio-egressgateway",
-        "app.kubernetes.io/part-of": "istio",
-        "app.kubernetes.io/version": "1.24.0",
-        "helm.sh/chart": "istio-egress-1.24.0",
-        "install.operator.istio.io/owning-resource": "unknown",
-        "istio": "egressgateway",
-        "istio.io/rev": "default",
-        "operator.istio.io/component": "EgressGateways",
-        "release": "istio"
+        "app": "sleep",
+        "service": "sleep"
       },
       "managed_fields": [
         {
@@ -681,17 +557,7 @@
               "f:labels": {
                 ".": {},
                 "f:app": {},
-                "f:app.kubernetes.io/instance": {},
-                "f:app.kubernetes.io/managed-by": {},
-                "f:app.kubernetes.io/name": {},
-                "f:app.kubernetes.io/part-of": {},
-                "f:app.kubernetes.io/version": {},
-                "f:helm.sh/chart": {},
-                "f:install.operator.istio.io/owning-resource": {},
-                "f:istio": {},
-                "f:istio.io/rev": {},
-                "f:operator.istio.io/component": {},
-                "f:release": {}
+                "f:service": {}
               }
             },
             "f:spec": {
@@ -699,13 +565,6 @@
               "f:ports": {
                 ".": {},
                 "k:{\"port\":80,\"protocol\":\"TCP\"}": {
-                  ".": {},
-                  "f:name": {},
-                  "f:port": {},
-                  "f:protocol": {},
-                  "f:targetPort": {}
-                },
-                "k:{\"port\":443,\"protocol\":\"TCP\"}": {
                   ".": {},
                   "f:name": {},
                   "f:port": {},
@@ -721,21 +580,21 @@
           "manager": "kubectl-client-side-apply",
           "operation": "Update",
           "subresource": null,
-          "time": "2024-12-05T04:10:22+00:00"
+          "time": "2025-05-21T02:31:53+00:00"
         }
       ],
-      "name": "istio-egressgateway",
-      "namespace": "istio-system",
+      "name": "sleep",
+      "namespace": "default",
       "owner_references": null,
-      "resource_version": "60139",
+      "resource_version": "1976879",
       "self_link": null,
-      "uid": "3b452770-475e-4746-bae2-7c194cb45522"
+      "uid": "dcd0eae7-a74b-4d0c-b653-e5817ae64298"
     },
     "spec": {
       "allocate_load_balancer_node_ports": null,
-      "cluster_ip": "10.106.107.217",
+      "cluster_ip": "10.108.160.125",
       "cluster_i_ps": [
-        "10.106.107.217"
+        "10.108.160.125"
       ],
       "external_i_ps": null,
       "external_name": null,
@@ -752,25 +611,16 @@
       "ports": [
         {
           "app_protocol": null,
-          "name": "http2",
+          "name": "http",
           "node_port": null,
           "port": 80,
           "protocol": "TCP",
-          "target_port": 8080
-        },
-        {
-          "app_protocol": null,
-          "name": "https",
-          "node_port": null,
-          "port": 443,
-          "protocol": "TCP",
-          "target_port": 8443
+          "target_port": 80
         }
       ],
       "publish_not_ready_addresses": null,
       "selector": {
-        "app": "istio-egressgateway",
-        "istio": "egressgateway"
+        "app": "sleep"
       },
       "session_affinity": "None",
       "session_affinity_config": null,
@@ -789,10 +639,9 @@
     "kind": null,
     "metadata": {
       "annotations": {
-        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{\"metallb.universe.tf/ip-allocated-from-pool\":\"first-pool\"},\"creationTimestamp\":\"2024-12-05T04:10:22Z\",\"labels\":{\"app\":\"istio-ingressgateway\",\"app.kubernetes.io/instance\":\"istio\",\"app.kubernetes.io/managed-by\":\"Helm\",\"app.kubernetes.io/name\":\"istio-ingressgateway\",\"app.kubernetes.io/part-of\":\"istio\",\"app.kubernetes.io/version\":\"1.24.0\",\"helm.sh/chart\":\"istio-ingress-1.24.0\",\"install.operator.istio.io/owning-resource\":\"unknown\",\"istio\":\"ingressgateway\",\"istio.io/rev\":\"default\",\"operator.istio.io/component\":\"IngressGateways\",\"release\":\"istio\"},\"name\":\"istio-ingressgateway\",\"namespace\":\"istio-system\",\"resourceVersion\":\"552581\",\"uid\":\"dfad83c0-fd6a-4141-91e4-0815b1411fb3\"},\"spec\":{\"allocateLoadBalancerNodePorts\":true,\"clusterIP\":\"10.96.191.30\",\"clusterIPs\":[\"10.96.191.30\"],\"externalTrafficPolicy\":\"Cluster\",\"internalTrafficPolicy\":\"Cluster\",\"ipFamilies\":[\"IPv4\"],\"ipFamilyPolicy\":\"SingleStack\",\"ports\":[{\"name\":\"status-port\",\"nodePort\":30625,\"port\":15021,\"protocol\":\"TCP\",\"targetPort\":15021},{\"name\":\"http2\",\"nodePort\":30476,\"port\":80,\"protocol\":\"TCP\",\"targetPort\":8080},{\"name\":\"https\",\"nodePort\":31060,\"port\":443,\"protocol\":\"TCP\",\"targetPort\":8443},{\"name\":\"tcp\",\"nodePort\":30107,\"port\":31400,\"protocol\":\"TCP\",\"targetPort\":31400},{\"name\":\"tls\",\"nodePort\":31688,\"port\":15443,\"protocol\":\"TCP\",\"targetPort\":15443}],\"selector\":{\"app\":\"istio-ingressgateway\",\"istio\":\"ingressgateway\"},\"sessionAffinity\":\"None\",\"type\":\"NodePort\"}}\n",
         "metallb.universe.tf/ip-allocated-from-pool": "first-pool"
       },
-      "creation_timestamp": "2024-12-05T04:10:22+00:00",
+      "creation_timestamp": "2026-03-04T02:07:31+00:00",
       "deletion_grace_period_seconds": null,
       "deletion_timestamp": null,
       "finalizers": null,
@@ -807,9 +656,12 @@
         "app.kubernetes.io/version": "1.24.0",
         "helm.sh/chart": "istio-ingress-1.24.0",
         "install.operator.istio.io/owning-resource": "unknown",
+        "install.operator.istio.io/owning-resource-namespace": "istio-system",
         "istio": "ingressgateway",
         "istio.io/rev": "default",
         "operator.istio.io/component": "IngressGateways",
+        "operator.istio.io/managed": "Reconcile",
+        "operator.istio.io/version": "1.24.0",
         "release": "istio"
       },
       "managed_fields": [
@@ -818,12 +670,8 @@
           "fields_type": "FieldsV1",
           "fields_v1": {
             "f:metadata": {
-              "f:annotations": {
-                ".": {},
-                "f:kubectl.kubernetes.io/last-applied-configuration": {}
-              },
+              "f:annotations": {},
               "f:labels": {
-                ".": {},
                 "f:app": {},
                 "f:app.kubernetes.io/instance": {},
                 "f:app.kubernetes.io/managed-by": {},
@@ -832,19 +680,20 @@
                 "f:app.kubernetes.io/version": {},
                 "f:helm.sh/chart": {},
                 "f:install.operator.istio.io/owning-resource": {},
+                "f:install.operator.istio.io/owning-resource-namespace": {},
                 "f:istio": {},
                 "f:istio.io/rev": {},
                 "f:operator.istio.io/component": {},
+                "f:operator.istio.io/managed": {},
+                "f:operator.istio.io/version": {},
                 "f:release": {}
               }
             },
             "f:spec": {
-              "f:externalTrafficPolicy": {},
-              "f:internalTrafficPolicy": {},
               "f:ports": {
-                ".": {},
                 "k:{\"port\":80,\"protocol\":\"TCP\"}": {
                   ".": {},
+                  "f:name": {},
                   "f:port": {},
                   "f:protocol": {},
                   "f:targetPort": {}
@@ -862,30 +711,16 @@
                   "f:port": {},
                   "f:protocol": {},
                   "f:targetPort": {}
-                },
-                "k:{\"port\":15443,\"protocol\":\"TCP\"}": {
-                  ".": {},
-                  "f:name": {},
-                  "f:port": {},
-                  "f:protocol": {},
-                  "f:targetPort": {}
-                },
-                "k:{\"port\":31400,\"protocol\":\"TCP\"}": {
-                  ".": {},
-                  "f:name": {},
-                  "f:port": {},
-                  "f:protocol": {},
-                  "f:targetPort": {}
                 }
               },
               "f:selector": {},
-              "f:sessionAffinity": {}
+              "f:type": {}
             }
           },
-          "manager": "kubectl-client-side-apply",
-          "operation": "Update",
+          "manager": "istio-operator",
+          "operation": "Apply",
           "subresource": null,
-          "time": "2025-02-12T08:10:35+00:00"
+          "time": "2026-03-04T02:07:31+00:00"
         },
         {
           "api_version": "v1",
@@ -893,6 +728,7 @@
           "fields_v1": {
             "f:metadata": {
               "f:annotations": {
+                ".": {},
                 "f:metallb.universe.tf/ip-allocated-from-pool": {}
               }
             },
@@ -905,40 +741,21 @@
           "manager": "controller",
           "operation": "Update",
           "subresource": "status",
-          "time": "2025-03-20T09:51:48+00:00"
-        },
-        {
-          "api_version": "v1",
-          "fields_type": "FieldsV1",
-          "fields_v1": {
-            "f:spec": {
-              "f:allocateLoadBalancerNodePorts": {},
-              "f:ports": {
-                "k:{\"port\":80,\"protocol\":\"TCP\"}": {
-                  "f:name": {}
-                }
-              },
-              "f:type": {}
-            }
-          },
-          "manager": "kubectl-edit",
-          "operation": "Update",
-          "subresource": null,
-          "time": "2025-03-20T09:51:48+00:00"
+          "time": "2026-03-04T02:07:31+00:00"
         }
       ],
       "name": "istio-ingressgateway",
       "namespace": "istio-system",
       "owner_references": null,
-      "resource_version": "1347327",
+      "resource_version": "3424044",
       "self_link": null,
-      "uid": "dfad83c0-fd6a-4141-91e4-0815b1411fb3"
+      "uid": "fad5d84f-4eae-4daf-a618-194466e9b6f5"
     },
     "spec": {
       "allocate_load_balancer_node_ports": true,
-      "cluster_ip": "10.96.191.30",
+      "cluster_ip": "10.106.72.50",
       "cluster_i_ps": [
-        "10.96.191.30"
+        "10.106.72.50"
       ],
       "external_i_ps": null,
       "external_name": null,
@@ -956,15 +773,15 @@
         {
           "app_protocol": null,
           "name": "status-port",
-          "node_port": 30625,
+          "node_port": 30733,
           "port": 15021,
           "protocol": "TCP",
           "target_port": 15021
         },
         {
           "app_protocol": null,
-          "name": "http",
-          "node_port": 30476,
+          "name": "http2",
+          "node_port": 32469,
           "port": 80,
           "protocol": "TCP",
           "target_port": 8080
@@ -972,26 +789,10 @@
         {
           "app_protocol": null,
           "name": "https",
-          "node_port": 31060,
+          "node_port": 31073,
           "port": 443,
           "protocol": "TCP",
           "target_port": 8443
-        },
-        {
-          "app_protocol": null,
-          "name": "tcp",
-          "node_port": 30107,
-          "port": 31400,
-          "protocol": "TCP",
-          "target_port": 31400
-        },
-        {
-          "app_protocol": null,
-          "name": "tls",
-          "node_port": 31688,
-          "port": 15443,
-          "protocol": "TCP",
-          "target_port": 15443
         }
       ],
       "publish_not_ready_addresses": null,
@@ -1022,10 +823,8 @@
     "api_version": null,
     "kind": null,
     "metadata": {
-      "annotations": {
-        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"istiod\",\"app.kubernetes.io/instance\":\"istio\",\"app.kubernetes.io/managed-by\":\"Helm\",\"app.kubernetes.io/name\":\"istiod\",\"app.kubernetes.io/part-of\":\"istio\",\"app.kubernetes.io/version\":\"1.24.0\",\"helm.sh/chart\":\"istiod-1.24.0\",\"install.operator.istio.io/owning-resource\":\"unknown\",\"istio\":\"pilot\",\"istio.io/rev\":\"default\",\"operator.istio.io/component\":\"Pilot\",\"release\":\"istio\"},\"name\":\"istiod\",\"namespace\":\"istio-system\"},\"spec\":{\"ports\":[{\"name\":\"grpc-xds\",\"port\":15010,\"protocol\":\"TCP\"},{\"name\":\"https-dns\",\"port\":15012,\"protocol\":\"TCP\"},{\"name\":\"https-webhook\",\"port\":443,\"protocol\":\"TCP\",\"targetPort\":15017},{\"name\":\"http-monitoring\",\"port\":15014,\"protocol\":\"TCP\"}],\"selector\":{\"app\":\"istiod\",\"istio\":\"pilot\"}}}\n"
-      },
-      "creation_timestamp": "2024-12-05T04:10:16+00:00",
+      "annotations": null,
+      "creation_timestamp": "2026-03-04T01:58:54+00:00",
       "deletion_grace_period_seconds": null,
       "deletion_timestamp": null,
       "finalizers": null,
@@ -1106,37 +905,21 @@
           "manager": "istio-operator",
           "operation": "Apply",
           "subresource": null,
-          "time": "2024-12-05T04:10:16+00:00"
-        },
-        {
-          "api_version": "v1",
-          "fields_type": "FieldsV1",
-          "fields_v1": {
-            "f:metadata": {
-              "f:annotations": {
-                ".": {},
-                "f:kubectl.kubernetes.io/last-applied-configuration": {}
-              }
-            }
-          },
-          "manager": "kubectl-client-side-apply",
-          "operation": "Update",
-          "subresource": null,
-          "time": "2024-12-05T04:10:22+00:00"
+          "time": "2026-03-04T01:58:54+00:00"
         }
       ],
       "name": "istiod",
       "namespace": "istio-system",
       "owner_references": null,
-      "resource_version": "60151",
+      "resource_version": "3420857",
       "self_link": null,
-      "uid": "9de759db-39ef-45ea-b093-f826c013bee7"
+      "uid": "d9802513-f4f6-478f-a3ce-2e196bc4c286"
     },
     "spec": {
       "allocate_load_balancer_node_ports": null,
-      "cluster_ip": "10.111.172.136",
+      "cluster_ip": "10.108.165.215",
       "cluster_i_ps": [
-        "10.111.172.136"
+        "10.108.165.215"
       ],
       "external_i_ps": null,
       "external_name": null,
@@ -1206,174 +989,9 @@
     "kind": null,
     "metadata": {
       "annotations": {
-        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"jaeger\"},\"name\":\"jaeger-collector\",\"namespace\":\"istio-system\"},\"spec\":{\"ports\":[{\"name\":\"jaeger-collector-http\",\"port\":14268,\"protocol\":\"TCP\",\"targetPort\":14268},{\"name\":\"jaeger-collector-grpc\",\"port\":14250,\"protocol\":\"TCP\",\"targetPort\":14250},{\"name\":\"http-zipkin\",\"port\":9411,\"targetPort\":9411},{\"name\":\"grpc-otel\",\"port\":4317},{\"name\":\"http-otel\",\"port\":4318}],\"selector\":{\"app\":\"jaeger\"},\"type\":\"ClusterIP\"}}\n"
-      },
-      "creation_timestamp": "2024-12-09T09:32:05+00:00",
-      "deletion_grace_period_seconds": null,
-      "deletion_timestamp": null,
-      "finalizers": null,
-      "generate_name": null,
-      "generation": null,
-      "labels": {
-        "app": "jaeger"
-      },
-      "managed_fields": [
-        {
-          "api_version": "v1",
-          "fields_type": "FieldsV1",
-          "fields_v1": {
-            "f:metadata": {
-              "f:annotations": {
-                ".": {},
-                "f:kubectl.kubernetes.io/last-applied-configuration": {}
-              },
-              "f:labels": {
-                ".": {},
-                "f:app": {}
-              }
-            },
-            "f:spec": {
-              "f:internalTrafficPolicy": {},
-              "f:ports": {
-                ".": {},
-                "k:{\"port\":4317,\"protocol\":\"TCP\"}": {
-                  ".": {},
-                  "f:name": {},
-                  "f:port": {},
-                  "f:protocol": {},
-                  "f:targetPort": {}
-                },
-                "k:{\"port\":4318,\"protocol\":\"TCP\"}": {
-                  ".": {},
-                  "f:name": {},
-                  "f:port": {},
-                  "f:protocol": {},
-                  "f:targetPort": {}
-                },
-                "k:{\"port\":9411,\"protocol\":\"TCP\"}": {
-                  ".": {},
-                  "f:name": {},
-                  "f:port": {},
-                  "f:protocol": {},
-                  "f:targetPort": {}
-                },
-                "k:{\"port\":14250,\"protocol\":\"TCP\"}": {
-                  ".": {},
-                  "f:name": {},
-                  "f:port": {},
-                  "f:protocol": {},
-                  "f:targetPort": {}
-                },
-                "k:{\"port\":14268,\"protocol\":\"TCP\"}": {
-                  ".": {},
-                  "f:name": {},
-                  "f:port": {},
-                  "f:protocol": {},
-                  "f:targetPort": {}
-                }
-              },
-              "f:selector": {},
-              "f:sessionAffinity": {},
-              "f:type": {}
-            }
-          },
-          "manager": "kubectl-client-side-apply",
-          "operation": "Update",
-          "subresource": null,
-          "time": "2024-12-09T09:32:05+00:00"
-        }
-      ],
-      "name": "jaeger-collector",
-      "namespace": "istio-system",
-      "owner_references": null,
-      "resource_version": "159346",
-      "self_link": null,
-      "uid": "aa5ab5fc-2367-47fe-8f41-4881aca42f22"
-    },
-    "spec": {
-      "allocate_load_balancer_node_ports": null,
-      "cluster_ip": "10.111.121.135",
-      "cluster_i_ps": [
-        "10.111.121.135"
-      ],
-      "external_i_ps": null,
-      "external_name": null,
-      "external_traffic_policy": null,
-      "health_check_node_port": null,
-      "internal_traffic_policy": "Cluster",
-      "ip_families": [
-        "IPv4"
-      ],
-      "ip_family_policy": "SingleStack",
-      "load_balancer_class": null,
-      "load_balancer_ip": null,
-      "load_balancer_source_ranges": null,
-      "ports": [
-        {
-          "app_protocol": null,
-          "name": "jaeger-collector-http",
-          "node_port": null,
-          "port": 14268,
-          "protocol": "TCP",
-          "target_port": 14268
-        },
-        {
-          "app_protocol": null,
-          "name": "jaeger-collector-grpc",
-          "node_port": null,
-          "port": 14250,
-          "protocol": "TCP",
-          "target_port": 14250
-        },
-        {
-          "app_protocol": null,
-          "name": "http-zipkin",
-          "node_port": null,
-          "port": 9411,
-          "protocol": "TCP",
-          "target_port": 9411
-        },
-        {
-          "app_protocol": null,
-          "name": "grpc-otel",
-          "node_port": null,
-          "port": 4317,
-          "protocol": "TCP",
-          "target_port": 4317
-        },
-        {
-          "app_protocol": null,
-          "name": "http-otel",
-          "node_port": null,
-          "port": 4318,
-          "protocol": "TCP",
-          "target_port": 4318
-        }
-      ],
-      "publish_not_ready_addresses": null,
-      "selector": {
-        "app": "jaeger"
-      },
-      "session_affinity": "None",
-      "session_affinity_config": null,
-      "traffic_distribution": null,
-      "type": "ClusterIP"
-    },
-    "status": {
-      "conditions": null,
-      "load_balancer": {
-        "ingress": null
-      }
-    }
-  },
-  {
-    "api_version": null,
-    "kind": null,
-    "metadata": {
-      "annotations": {
         "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"kiali\",\"app.kubernetes.io/instance\":\"kiali\",\"app.kubernetes.io/managed-by\":\"Helm\",\"app.kubernetes.io/name\":\"kiali\",\"app.kubernetes.io/part-of\":\"kiali\",\"app.kubernetes.io/version\":\"v2.0.0\",\"helm.sh/chart\":\"kiali-server-2.0.0\",\"version\":\"v2.0.0\"},\"name\":\"kiali\",\"namespace\":\"istio-system\"},\"spec\":{\"ports\":[{\"appProtocol\":\"http\",\"name\":\"http\",\"port\":20001,\"protocol\":\"TCP\"},{\"appProtocol\":\"http\",\"name\":\"http-metrics\",\"port\":9090,\"protocol\":\"TCP\"}],\"selector\":{\"app.kubernetes.io/instance\":\"kiali\",\"app.kubernetes.io/name\":\"kiali\"}}}\n"
       },
-      "creation_timestamp": "2024-12-09T09:32:06+00:00",
+      "creation_timestamp": "2026-03-04T02:56:36+00:00",
       "deletion_grace_period_seconds": null,
       "deletion_timestamp": null,
       "finalizers": null,
@@ -1439,7 +1057,7 @@
           "manager": "kubectl-client-side-apply",
           "operation": "Update",
           "subresource": null,
-          "time": "2024-12-09T09:32:06+00:00"
+          "time": "2026-03-04T02:56:36+00:00"
         },
         {
           "api_version": "v1",
@@ -1450,24 +1068,24 @@
               "f:type": {}
             }
           },
-          "manager": "kubectl-edit",
+          "manager": "kubectl-patch",
           "operation": "Update",
           "subresource": null,
-          "time": "2024-12-09T09:56:10+00:00"
+          "time": "2026-03-04T03:00:48+00:00"
         }
       ],
       "name": "kiali",
       "namespace": "istio-system",
       "owner_references": null,
-      "resource_version": "162953",
+      "resource_version": "3431442",
       "self_link": null,
-      "uid": "c714e80c-866f-4997-a27f-adeb8023a440"
+      "uid": "94e75f85-c2d3-43ba-999a-ba28ef25bc97"
     },
     "spec": {
       "allocate_load_balancer_node_ports": null,
-      "cluster_ip": "10.105.162.47",
+      "cluster_ip": "10.104.231.135",
       "cluster_i_ps": [
-        "10.105.162.47"
+        "10.104.231.135"
       ],
       "external_i_ps": null,
       "external_name": null,
@@ -1485,7 +1103,7 @@
         {
           "app_protocol": "http",
           "name": "http",
-          "node_port": 32480,
+          "node_port": 30163,
           "port": 20001,
           "protocol": "TCP",
           "target_port": 20001
@@ -1493,7 +1111,7 @@
         {
           "app_protocol": "http",
           "name": "http-metrics",
-          "node_port": 30642,
+          "node_port": 30426,
           "port": 9090,
           "protocol": "TCP",
           "target_port": 9090
@@ -1521,374 +1139,9 @@
     "kind": null,
     "metadata": {
       "annotations": {
-        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app.kubernetes.io/instance\":\"loki\",\"app.kubernetes.io/managed-by\":\"Helm\",\"app.kubernetes.io/name\":\"loki\",\"app.kubernetes.io/version\":\"3.2.0\",\"helm.sh/chart\":\"loki-6.18.0\"},\"name\":\"loki\",\"namespace\":\"istio-system\"},\"spec\":{\"ports\":[{\"name\":\"http-metrics\",\"port\":3100,\"protocol\":\"TCP\",\"targetPort\":\"http-metrics\"},{\"name\":\"grpc\",\"port\":9095,\"protocol\":\"TCP\",\"targetPort\":\"grpc\"}],\"selector\":{\"app.kubernetes.io/component\":\"single-binary\",\"app.kubernetes.io/instance\":\"loki\",\"app.kubernetes.io/name\":\"loki\"},\"type\":\"ClusterIP\"}}\n"
-      },
-      "creation_timestamp": "2024-12-09T09:32:06+00:00",
-      "deletion_grace_period_seconds": null,
-      "deletion_timestamp": null,
-      "finalizers": null,
-      "generate_name": null,
-      "generation": null,
-      "labels": {
-        "app.kubernetes.io/instance": "loki",
-        "app.kubernetes.io/managed-by": "Helm",
-        "app.kubernetes.io/name": "loki",
-        "app.kubernetes.io/version": "3.2.0",
-        "helm.sh/chart": "loki-6.18.0"
-      },
-      "managed_fields": [
-        {
-          "api_version": "v1",
-          "fields_type": "FieldsV1",
-          "fields_v1": {
-            "f:metadata": {
-              "f:annotations": {
-                ".": {},
-                "f:kubectl.kubernetes.io/last-applied-configuration": {}
-              },
-              "f:labels": {
-                ".": {},
-                "f:app.kubernetes.io/instance": {},
-                "f:app.kubernetes.io/managed-by": {},
-                "f:app.kubernetes.io/name": {},
-                "f:app.kubernetes.io/version": {},
-                "f:helm.sh/chart": {}
-              }
-            },
-            "f:spec": {
-              "f:internalTrafficPolicy": {},
-              "f:ports": {
-                ".": {},
-                "k:{\"port\":3100,\"protocol\":\"TCP\"}": {
-                  ".": {},
-                  "f:name": {},
-                  "f:port": {},
-                  "f:protocol": {},
-                  "f:targetPort": {}
-                },
-                "k:{\"port\":9095,\"protocol\":\"TCP\"}": {
-                  ".": {},
-                  "f:name": {},
-                  "f:port": {},
-                  "f:protocol": {},
-                  "f:targetPort": {}
-                }
-              },
-              "f:selector": {},
-              "f:sessionAffinity": {},
-              "f:type": {}
-            }
-          },
-          "manager": "kubectl-client-side-apply",
-          "operation": "Update",
-          "subresource": null,
-          "time": "2024-12-09T09:32:06+00:00"
-        }
-      ],
-      "name": "loki",
-      "namespace": "istio-system",
-      "owner_references": null,
-      "resource_version": "159382",
-      "self_link": null,
-      "uid": "8978658b-03e8-4d66-8b10-e0277fe3b879"
-    },
-    "spec": {
-      "allocate_load_balancer_node_ports": null,
-      "cluster_ip": "10.97.147.235",
-      "cluster_i_ps": [
-        "10.97.147.235"
-      ],
-      "external_i_ps": null,
-      "external_name": null,
-      "external_traffic_policy": null,
-      "health_check_node_port": null,
-      "internal_traffic_policy": "Cluster",
-      "ip_families": [
-        "IPv4"
-      ],
-      "ip_family_policy": "SingleStack",
-      "load_balancer_class": null,
-      "load_balancer_ip": null,
-      "load_balancer_source_ranges": null,
-      "ports": [
-        {
-          "app_protocol": null,
-          "name": "http-metrics",
-          "node_port": null,
-          "port": 3100,
-          "protocol": "TCP",
-          "target_port": "http-metrics"
-        },
-        {
-          "app_protocol": null,
-          "name": "grpc",
-          "node_port": null,
-          "port": 9095,
-          "protocol": "TCP",
-          "target_port": "grpc"
-        }
-      ],
-      "publish_not_ready_addresses": null,
-      "selector": {
-        "app.kubernetes.io/component": "single-binary",
-        "app.kubernetes.io/instance": "loki",
-        "app.kubernetes.io/name": "loki"
-      },
-      "session_affinity": "None",
-      "session_affinity_config": null,
-      "traffic_distribution": null,
-      "type": "ClusterIP"
-    },
-    "status": {
-      "conditions": null,
-      "load_balancer": {
-        "ingress": null
-      }
-    }
-  },
-  {
-    "api_version": null,
-    "kind": null,
-    "metadata": {
-      "annotations": {
-        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app.kubernetes.io/instance\":\"loki\",\"app.kubernetes.io/managed-by\":\"Helm\",\"app.kubernetes.io/name\":\"loki\",\"app.kubernetes.io/version\":\"3.2.0\",\"helm.sh/chart\":\"loki-6.18.0\",\"prometheus.io/service-monitor\":\"false\",\"variant\":\"headless\"},\"name\":\"loki-headless\",\"namespace\":\"istio-system\"},\"spec\":{\"clusterIP\":\"None\",\"ports\":[{\"name\":\"http-metrics\",\"port\":3100,\"protocol\":\"TCP\",\"targetPort\":\"http-metrics\"}],\"selector\":{\"app.kubernetes.io/instance\":\"loki\",\"app.kubernetes.io/name\":\"loki\"}}}\n"
-      },
-      "creation_timestamp": "2024-12-09T09:32:06+00:00",
-      "deletion_grace_period_seconds": null,
-      "deletion_timestamp": null,
-      "finalizers": null,
-      "generate_name": null,
-      "generation": null,
-      "labels": {
-        "app.kubernetes.io/instance": "loki",
-        "app.kubernetes.io/managed-by": "Helm",
-        "app.kubernetes.io/name": "loki",
-        "app.kubernetes.io/version": "3.2.0",
-        "helm.sh/chart": "loki-6.18.0",
-        "prometheus.io/service-monitor": "false",
-        "variant": "headless"
-      },
-      "managed_fields": [
-        {
-          "api_version": "v1",
-          "fields_type": "FieldsV1",
-          "fields_v1": {
-            "f:metadata": {
-              "f:annotations": {
-                ".": {},
-                "f:kubectl.kubernetes.io/last-applied-configuration": {}
-              },
-              "f:labels": {
-                ".": {},
-                "f:app.kubernetes.io/instance": {},
-                "f:app.kubernetes.io/managed-by": {},
-                "f:app.kubernetes.io/name": {},
-                "f:app.kubernetes.io/version": {},
-                "f:helm.sh/chart": {},
-                "f:prometheus.io/service-monitor": {},
-                "f:variant": {}
-              }
-            },
-            "f:spec": {
-              "f:clusterIP": {},
-              "f:internalTrafficPolicy": {},
-              "f:ports": {
-                ".": {},
-                "k:{\"port\":3100,\"protocol\":\"TCP\"}": {
-                  ".": {},
-                  "f:name": {},
-                  "f:port": {},
-                  "f:protocol": {},
-                  "f:targetPort": {}
-                }
-              },
-              "f:selector": {},
-              "f:sessionAffinity": {},
-              "f:type": {}
-            }
-          },
-          "manager": "kubectl-client-side-apply",
-          "operation": "Update",
-          "subresource": null,
-          "time": "2024-12-09T09:32:06+00:00"
-        }
-      ],
-      "name": "loki-headless",
-      "namespace": "istio-system",
-      "owner_references": null,
-      "resource_version": "159378",
-      "self_link": null,
-      "uid": "80922307-2d80-418c-9534-c6cbf1e94fbf"
-    },
-    "spec": {
-      "allocate_load_balancer_node_ports": null,
-      "cluster_ip": "None",
-      "cluster_i_ps": [
-        "None"
-      ],
-      "external_i_ps": null,
-      "external_name": null,
-      "external_traffic_policy": null,
-      "health_check_node_port": null,
-      "internal_traffic_policy": "Cluster",
-      "ip_families": [
-        "IPv4"
-      ],
-      "ip_family_policy": "SingleStack",
-      "load_balancer_class": null,
-      "load_balancer_ip": null,
-      "load_balancer_source_ranges": null,
-      "ports": [
-        {
-          "app_protocol": null,
-          "name": "http-metrics",
-          "node_port": null,
-          "port": 3100,
-          "protocol": "TCP",
-          "target_port": "http-metrics"
-        }
-      ],
-      "publish_not_ready_addresses": null,
-      "selector": {
-        "app.kubernetes.io/instance": "loki",
-        "app.kubernetes.io/name": "loki"
-      },
-      "session_affinity": "None",
-      "session_affinity_config": null,
-      "traffic_distribution": null,
-      "type": "ClusterIP"
-    },
-    "status": {
-      "conditions": null,
-      "load_balancer": {
-        "ingress": null
-      }
-    }
-  },
-  {
-    "api_version": null,
-    "kind": null,
-    "metadata": {
-      "annotations": {
-        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app.kubernetes.io/instance\":\"loki\",\"app.kubernetes.io/managed-by\":\"Helm\",\"app.kubernetes.io/name\":\"loki\",\"app.kubernetes.io/version\":\"3.2.0\",\"helm.sh/chart\":\"loki-6.18.0\"},\"name\":\"loki-memberlist\",\"namespace\":\"istio-system\"},\"spec\":{\"clusterIP\":\"None\",\"ports\":[{\"name\":\"tcp\",\"port\":7946,\"protocol\":\"TCP\",\"targetPort\":\"http-memberlist\"}],\"selector\":{\"app.kubernetes.io/instance\":\"loki\",\"app.kubernetes.io/name\":\"loki\",\"app.kubernetes.io/part-of\":\"memberlist\"},\"type\":\"ClusterIP\"}}\n"
-      },
-      "creation_timestamp": "2024-12-09T09:32:06+00:00",
-      "deletion_grace_period_seconds": null,
-      "deletion_timestamp": null,
-      "finalizers": null,
-      "generate_name": null,
-      "generation": null,
-      "labels": {
-        "app.kubernetes.io/instance": "loki",
-        "app.kubernetes.io/managed-by": "Helm",
-        "app.kubernetes.io/name": "loki",
-        "app.kubernetes.io/version": "3.2.0",
-        "helm.sh/chart": "loki-6.18.0"
-      },
-      "managed_fields": [
-        {
-          "api_version": "v1",
-          "fields_type": "FieldsV1",
-          "fields_v1": {
-            "f:metadata": {
-              "f:annotations": {
-                ".": {},
-                "f:kubectl.kubernetes.io/last-applied-configuration": {}
-              },
-              "f:labels": {
-                ".": {},
-                "f:app.kubernetes.io/instance": {},
-                "f:app.kubernetes.io/managed-by": {},
-                "f:app.kubernetes.io/name": {},
-                "f:app.kubernetes.io/version": {},
-                "f:helm.sh/chart": {}
-              }
-            },
-            "f:spec": {
-              "f:clusterIP": {},
-              "f:internalTrafficPolicy": {},
-              "f:ports": {
-                ".": {},
-                "k:{\"port\":7946,\"protocol\":\"TCP\"}": {
-                  ".": {},
-                  "f:name": {},
-                  "f:port": {},
-                  "f:protocol": {},
-                  "f:targetPort": {}
-                }
-              },
-              "f:selector": {},
-              "f:sessionAffinity": {},
-              "f:type": {}
-            }
-          },
-          "manager": "kubectl-client-side-apply",
-          "operation": "Update",
-          "subresource": null,
-          "time": "2024-12-09T09:32:06+00:00"
-        }
-      ],
-      "name": "loki-memberlist",
-      "namespace": "istio-system",
-      "owner_references": null,
-      "resource_version": "159375",
-      "self_link": null,
-      "uid": "c346f0dd-0bfb-4c51-8301-10222ec966b2"
-    },
-    "spec": {
-      "allocate_load_balancer_node_ports": null,
-      "cluster_ip": "None",
-      "cluster_i_ps": [
-        "None"
-      ],
-      "external_i_ps": null,
-      "external_name": null,
-      "external_traffic_policy": null,
-      "health_check_node_port": null,
-      "internal_traffic_policy": "Cluster",
-      "ip_families": [
-        "IPv4"
-      ],
-      "ip_family_policy": "SingleStack",
-      "load_balancer_class": null,
-      "load_balancer_ip": null,
-      "load_balancer_source_ranges": null,
-      "ports": [
-        {
-          "app_protocol": null,
-          "name": "tcp",
-          "node_port": null,
-          "port": 7946,
-          "protocol": "TCP",
-          "target_port": "http-memberlist"
-        }
-      ],
-      "publish_not_ready_addresses": null,
-      "selector": {
-        "app.kubernetes.io/instance": "loki",
-        "app.kubernetes.io/name": "loki",
-        "app.kubernetes.io/part-of": "memberlist"
-      },
-      "session_affinity": "None",
-      "session_affinity_config": null,
-      "traffic_distribution": null,
-      "type": "ClusterIP"
-    },
-    "status": {
-      "conditions": null,
-      "load_balancer": {
-        "ingress": null
-      }
-    }
-  },
-  {
-    "api_version": null,
-    "kind": null,
-    "metadata": {
-      "annotations": {
         "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app.kubernetes.io/component\":\"server\",\"app.kubernetes.io/instance\":\"prometheus\",\"app.kubernetes.io/managed-by\":\"Helm\",\"app.kubernetes.io/name\":\"prometheus\",\"app.kubernetes.io/part-of\":\"prometheus\",\"app.kubernetes.io/version\":\"v2.54.1\",\"helm.sh/chart\":\"prometheus-25.27.0\"},\"name\":\"prometheus\",\"namespace\":\"istio-system\"},\"spec\":{\"ports\":[{\"name\":\"http\",\"port\":9090,\"protocol\":\"TCP\",\"targetPort\":9090}],\"selector\":{\"app.kubernetes.io/component\":\"server\",\"app.kubernetes.io/instance\":\"prometheus\",\"app.kubernetes.io/name\":\"prometheus\"},\"sessionAffinity\":\"None\",\"type\":\"ClusterIP\"}}\n"
       },
-      "creation_timestamp": "2024-12-09T09:32:06+00:00",
+      "creation_timestamp": "2026-03-04T02:58:50+00:00",
       "deletion_grace_period_seconds": null,
       "deletion_timestamp": null,
       "finalizers": null,
@@ -1937,32 +1190,45 @@
                 }
               },
               "f:selector": {},
-              "f:sessionAffinity": {},
-              "f:type": {}
+              "f:sessionAffinity": {}
             }
           },
           "manager": "kubectl-client-side-apply",
           "operation": "Update",
           "subresource": null,
-          "time": "2024-12-09T09:32:06+00:00"
+          "time": "2026-03-04T02:58:50+00:00"
+        },
+        {
+          "api_version": "v1",
+          "fields_type": "FieldsV1",
+          "fields_v1": {
+            "f:spec": {
+              "f:externalTrafficPolicy": {},
+              "f:type": {}
+            }
+          },
+          "manager": "kubectl-patch",
+          "operation": "Update",
+          "subresource": null,
+          "time": "2026-03-04T03:00:53+00:00"
         }
       ],
       "name": "prometheus",
       "namespace": "istio-system",
       "owner_references": null,
-      "resource_version": "159403",
+      "resource_version": "3431455",
       "self_link": null,
-      "uid": "4c7a03de-6d00-45e3-becb-289497597220"
+      "uid": "1a2abecc-7773-4982-a663-7f4360ffc7eb"
     },
     "spec": {
       "allocate_load_balancer_node_ports": null,
-      "cluster_ip": "10.102.156.241",
+      "cluster_ip": "10.105.70.106",
       "cluster_i_ps": [
-        "10.102.156.241"
+        "10.105.70.106"
       ],
       "external_i_ps": null,
       "external_name": null,
-      "external_traffic_policy": null,
+      "external_traffic_policy": "Cluster",
       "health_check_node_port": null,
       "internal_traffic_policy": "Cluster",
       "ip_families": [
@@ -1976,7 +1242,7 @@
         {
           "app_protocol": null,
           "name": "http",
-          "node_port": null,
+          "node_port": 31012,
           "port": 9090,
           "protocol": "TCP",
           "target_port": 9090
@@ -1991,232 +1257,7 @@
       "session_affinity": "None",
       "session_affinity_config": null,
       "traffic_distribution": null,
-      "type": "ClusterIP"
-    },
-    "status": {
-      "conditions": null,
-      "load_balancer": {
-        "ingress": null
-      }
-    }
-  },
-  {
-    "api_version": null,
-    "kind": null,
-    "metadata": {
-      "annotations": {
-        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"jaeger\"},\"name\":\"tracing\",\"namespace\":\"istio-system\"},\"spec\":{\"ports\":[{\"name\":\"http-query\",\"port\":80,\"protocol\":\"TCP\",\"targetPort\":16686},{\"name\":\"grpc-query\",\"port\":16685,\"protocol\":\"TCP\",\"targetPort\":16685}],\"selector\":{\"app\":\"jaeger\"},\"type\":\"ClusterIP\"}}\n"
-      },
-      "creation_timestamp": "2024-12-09T09:32:05+00:00",
-      "deletion_grace_period_seconds": null,
-      "deletion_timestamp": null,
-      "finalizers": null,
-      "generate_name": null,
-      "generation": null,
-      "labels": {
-        "app": "jaeger"
-      },
-      "managed_fields": [
-        {
-          "api_version": "v1",
-          "fields_type": "FieldsV1",
-          "fields_v1": {
-            "f:metadata": {
-              "f:annotations": {
-                ".": {},
-                "f:kubectl.kubernetes.io/last-applied-configuration": {}
-              },
-              "f:labels": {
-                ".": {},
-                "f:app": {}
-              }
-            },
-            "f:spec": {
-              "f:internalTrafficPolicy": {},
-              "f:ports": {
-                ".": {},
-                "k:{\"port\":80,\"protocol\":\"TCP\"}": {
-                  ".": {},
-                  "f:name": {},
-                  "f:port": {},
-                  "f:protocol": {},
-                  "f:targetPort": {}
-                },
-                "k:{\"port\":16685,\"protocol\":\"TCP\"}": {
-                  ".": {},
-                  "f:name": {},
-                  "f:port": {},
-                  "f:protocol": {},
-                  "f:targetPort": {}
-                }
-              },
-              "f:selector": {},
-              "f:sessionAffinity": {},
-              "f:type": {}
-            }
-          },
-          "manager": "kubectl-client-side-apply",
-          "operation": "Update",
-          "subresource": null,
-          "time": "2024-12-09T09:32:05+00:00"
-        }
-      ],
-      "name": "tracing",
-      "namespace": "istio-system",
-      "owner_references": null,
-      "resource_version": "159335",
-      "self_link": null,
-      "uid": "ad90b987-7449-4522-967b-93e5a8b55039"
-    },
-    "spec": {
-      "allocate_load_balancer_node_ports": null,
-      "cluster_ip": "10.96.226.208",
-      "cluster_i_ps": [
-        "10.96.226.208"
-      ],
-      "external_i_ps": null,
-      "external_name": null,
-      "external_traffic_policy": null,
-      "health_check_node_port": null,
-      "internal_traffic_policy": "Cluster",
-      "ip_families": [
-        "IPv4"
-      ],
-      "ip_family_policy": "SingleStack",
-      "load_balancer_class": null,
-      "load_balancer_ip": null,
-      "load_balancer_source_ranges": null,
-      "ports": [
-        {
-          "app_protocol": null,
-          "name": "http-query",
-          "node_port": null,
-          "port": 80,
-          "protocol": "TCP",
-          "target_port": 16686
-        },
-        {
-          "app_protocol": null,
-          "name": "grpc-query",
-          "node_port": null,
-          "port": 16685,
-          "protocol": "TCP",
-          "target_port": 16685
-        }
-      ],
-      "publish_not_ready_addresses": null,
-      "selector": {
-        "app": "jaeger"
-      },
-      "session_affinity": "None",
-      "session_affinity_config": null,
-      "traffic_distribution": null,
-      "type": "ClusterIP"
-    },
-    "status": {
-      "conditions": null,
-      "load_balancer": {
-        "ingress": null
-      }
-    }
-  },
-  {
-    "api_version": null,
-    "kind": null,
-    "metadata": {
-      "annotations": {
-        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"name\":\"zipkin\"},\"name\":\"zipkin\",\"namespace\":\"istio-system\"},\"spec\":{\"ports\":[{\"name\":\"http-query\",\"port\":9411,\"targetPort\":9411}],\"selector\":{\"app\":\"jaeger\"}}}\n"
-      },
-      "creation_timestamp": "2024-12-09T09:32:05+00:00",
-      "deletion_grace_period_seconds": null,
-      "deletion_timestamp": null,
-      "finalizers": null,
-      "generate_name": null,
-      "generation": null,
-      "labels": {
-        "name": "zipkin"
-      },
-      "managed_fields": [
-        {
-          "api_version": "v1",
-          "fields_type": "FieldsV1",
-          "fields_v1": {
-            "f:metadata": {
-              "f:annotations": {
-                ".": {},
-                "f:kubectl.kubernetes.io/last-applied-configuration": {}
-              },
-              "f:labels": {
-                ".": {},
-                "f:name": {}
-              }
-            },
-            "f:spec": {
-              "f:internalTrafficPolicy": {},
-              "f:ports": {
-                ".": {},
-                "k:{\"port\":9411,\"protocol\":\"TCP\"}": {
-                  ".": {},
-                  "f:name": {},
-                  "f:port": {},
-                  "f:protocol": {},
-                  "f:targetPort": {}
-                }
-              },
-              "f:selector": {},
-              "f:sessionAffinity": {},
-              "f:type": {}
-            }
-          },
-          "manager": "kubectl-client-side-apply",
-          "operation": "Update",
-          "subresource": null,
-          "time": "2024-12-09T09:32:05+00:00"
-        }
-      ],
-      "name": "zipkin",
-      "namespace": "istio-system",
-      "owner_references": null,
-      "resource_version": "159342",
-      "self_link": null,
-      "uid": "c9775a8f-dc69-4585-9a55-6ada3d1c303a"
-    },
-    "spec": {
-      "allocate_load_balancer_node_ports": null,
-      "cluster_ip": "10.110.81.206",
-      "cluster_i_ps": [
-        "10.110.81.206"
-      ],
-      "external_i_ps": null,
-      "external_name": null,
-      "external_traffic_policy": null,
-      "health_check_node_port": null,
-      "internal_traffic_policy": "Cluster",
-      "ip_families": [
-        "IPv4"
-      ],
-      "ip_family_policy": "SingleStack",
-      "load_balancer_class": null,
-      "load_balancer_ip": null,
-      "load_balancer_source_ranges": null,
-      "ports": [
-        {
-          "app_protocol": null,
-          "name": "http-query",
-          "node_port": null,
-          "port": 9411,
-          "protocol": "TCP",
-          "target_port": 9411
-        }
-      ],
-      "publish_not_ready_addresses": null,
-      "selector": {
-        "app": "jaeger"
-      },
-      "session_affinity": "None",
-      "session_affinity_config": null,
-      "traffic_distribution": null,
-      "type": "ClusterIP"
+      "type": "NodePort"
     },
     "status": {
       "conditions": null,
@@ -3607,6 +2648,113 @@
       "publish_not_ready_addresses": null,
       "selector": {
         "app": "shippingservice"
+      },
+      "session_affinity": "None",
+      "session_affinity_config": null,
+      "traffic_distribution": null,
+      "type": "ClusterIP"
+    },
+    "status": {
+      "conditions": null,
+      "load_balancer": {
+        "ingress": null
+      }
+    }
+  },
+  {
+    "api_version": null,
+    "kind": null,
+    "metadata": {
+      "annotations": {
+        "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"sleep\",\"service\":\"sleep\"},\"name\":\"sleep\",\"namespace\":\"online-boutique\"},\"spec\":{\"ports\":[{\"name\":\"http\",\"port\":80}],\"selector\":{\"app\":\"sleep\"}}}\n"
+      },
+      "creation_timestamp": "2025-05-21T02:31:47+00:00",
+      "deletion_grace_period_seconds": null,
+      "deletion_timestamp": null,
+      "finalizers": null,
+      "generate_name": null,
+      "generation": null,
+      "labels": {
+        "app": "sleep",
+        "service": "sleep"
+      },
+      "managed_fields": [
+        {
+          "api_version": "v1",
+          "fields_type": "FieldsV1",
+          "fields_v1": {
+            "f:metadata": {
+              "f:annotations": {
+                ".": {},
+                "f:kubectl.kubernetes.io/last-applied-configuration": {}
+              },
+              "f:labels": {
+                ".": {},
+                "f:app": {},
+                "f:service": {}
+              }
+            },
+            "f:spec": {
+              "f:internalTrafficPolicy": {},
+              "f:ports": {
+                ".": {},
+                "k:{\"port\":80,\"protocol\":\"TCP\"}": {
+                  ".": {},
+                  "f:name": {},
+                  "f:port": {},
+                  "f:protocol": {},
+                  "f:targetPort": {}
+                }
+              },
+              "f:selector": {},
+              "f:sessionAffinity": {},
+              "f:type": {}
+            }
+          },
+          "manager": "kubectl-client-side-apply",
+          "operation": "Update",
+          "subresource": null,
+          "time": "2025-05-21T02:31:47+00:00"
+        }
+      ],
+      "name": "sleep",
+      "namespace": "online-boutique",
+      "owner_references": null,
+      "resource_version": "1976821",
+      "self_link": null,
+      "uid": "0c4e1a0c-1016-4d52-a59d-da201fda9006"
+    },
+    "spec": {
+      "allocate_load_balancer_node_ports": null,
+      "cluster_ip": "10.96.204.37",
+      "cluster_i_ps": [
+        "10.96.204.37"
+      ],
+      "external_i_ps": null,
+      "external_name": null,
+      "external_traffic_policy": null,
+      "health_check_node_port": null,
+      "internal_traffic_policy": "Cluster",
+      "ip_families": [
+        "IPv4"
+      ],
+      "ip_family_policy": "SingleStack",
+      "load_balancer_class": null,
+      "load_balancer_ip": null,
+      "load_balancer_source_ranges": null,
+      "ports": [
+        {
+          "app_protocol": null,
+          "name": "http",
+          "node_port": null,
+          "port": 80,
+          "protocol": "TCP",
+          "target_port": 80
+        }
+      ],
+      "publish_not_ready_addresses": null,
+      "selector": {
+        "app": "sleep"
       },
       "session_affinity": "None",
       "session_affinity_config": null,

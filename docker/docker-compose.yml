@@ -31,9 +31,9 @@ services:
     #   - ~/.ssh:/root/.ssh:ro
     command: >
       python e2e_validator.py
-      --vm-host ${VM_HOST:-192.168.92.131}
-      --vm-user ${VM_USER:-root}
-      --vm-password ${VM_PASSWORD:-}
+      --vm-host ${VM_HOST:-${SSH_HOST}}
+      --vm-user ${VM_USER:-${SSH_USER:-root}}
+      --vm-password ${VM_PASSWORD:-${SSH_PASSWORD}}
       --namespace ${NAMESPACE:-default}
       --ingress-url ${INGRESS_URL:-}
       --output-dir ${OUTPUT_DIR:-results/e2e_validation}

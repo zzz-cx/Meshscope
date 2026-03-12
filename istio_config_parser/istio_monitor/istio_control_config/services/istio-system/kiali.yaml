@@ -17,7 +17,7 @@ metadata:
   name: kiali
   namespace: istio-system
 spec:
-  clusterIP: 10.105.162.47
+  clusterIP: 10.104.231.135
   ports:
   - name: http
     port: 20001

@@ -2,7 +2,7 @@ apiVersion: networking.istio.io/v1alpha3
 kind: DestinationRule
 metadata:
   creationTimestamp: '2025-01-07T07:56:58Z'
-  generation: 1
+  generation: 4
   labels:
     kiali_wizard: traffic_shifting
   managedFields:
@@ -19,10 +19,10 @@ metadata:
         f:subsets: {}
     manager: kiali
     operation: Update
-    time: '2025-01-07T07:56:58Z'
+    time: '2025-06-26T09:04:02Z'
   name: reviews
   namespace: default
-  resourceVersion: '330766'
+  resourceVersion: '2433608'
   uid: edec9b1f-f367-4fe6-b120-0bf003c6c053
 spec:
   host: reviews.default.svc.cluster.local

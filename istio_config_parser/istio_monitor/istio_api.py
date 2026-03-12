@@ -7,6 +7,8 @@ import platform
 from typing import Dict, List, Any, Optional, Union
 import sys
 
+from istio_config_parser.utils.ratelimit_utils import parse_token_bucket
+
 # 添加环境检测工具
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 try:
@@ -625,15 +627,14 @@ class IstioAPI:
                                 patch_value = patch.get("patch", {}).get("value", {})
                                 if patch_value.get("name") == "envoy.filters.http.local_ratelimit":
                                     typed_config = patch_value.get("typed_config", {})
-                                    token_bucket = typed_config.get("token_bucket", {})
-                                    
-                                    if token_bucket:
+                                    parsed = parse_token_bucket(typed_config.get("token_bucket", {}))
+                                    if parsed:
                                         rate_limit = {
                                             "name": ef_name,
                                             "namespace": ef_ns,
                                             "type": "local",
-                                            "max_tokens": token_bucket.get("max_tokens"),
-                                            "fill_interval": token_bucket.get("fill_interval")
+                                            "max_tokens": parsed.get("max_tokens"),
+                                            "fill_interval": parsed.get("fill_interval")
                                         }
                                         
                                         rate_limits[app].append(rate_limit)

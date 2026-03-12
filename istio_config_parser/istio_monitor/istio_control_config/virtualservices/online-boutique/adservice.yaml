@@ -6,7 +6,7 @@ metadata:
 
       '
   creationTimestamp: '2025-03-27T05:18:01Z'
-  generation: 4
+  generation: 7
   managedFields:
   - apiVersion: networking.istio.io/v1alpha3
     fieldsType: FieldsV1
@@ -26,12 +26,12 @@ metadata:
     fieldsV1:
       f:spec:
         f:http: {}
-    manager: kubectl-edit
+    manager: kiali
     operation: Update
-    time: '2025-05-07T07:20:01Z'
+    time: '2025-05-16T11:05:50Z'
   name: adservice
   namespace: online-boutique
-  resourceVersion: '1697955'
+  resourceVersion: '1839635'
   uid: d9b1a65f-521e-4a56-b547-43f084c409a1
 spec:
   hosts:
@@ -41,8 +41,8 @@ spec:
     - destination:
         host: adservice.online-boutique.svc.cluster.local
         subset: v1
-      weight: 50
+      weight: 70
     - destination:
         host: adservice.online-boutique.svc.cluster.local
         subset: v2
-      weight: 50
+      weight: 30

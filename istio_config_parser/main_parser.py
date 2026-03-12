@@ -14,24 +14,13 @@ from istio_config_parser.parsers.model_exporter import ModelExporter
 from istio_config_parser.models.ir_models import SystemIR
 from istio_config_parser.utils.file_utils import load_yaml_file, load_json_file
 
-# 旧版解析器（保留用于向后兼容）
-try:
-    from istio_config_parser.models.data_structures import (
-        ControlPlaneResult,
-        DataPlaneResult,
-        BaseService,
-        ServiceRelation,
-        ServiceConfiguration
-    )
-    from istio_config_parser.traffic_management.route_parser import parse_routes
-    from istio_config_parser.traffic_management.canary_parser import parse_canary
-    from istio_config_parser.traffic_management.ratelimit_parser import parse_ratelimit
-    from istio_config_parser.traffic_management.service_parser import parse_services
-    from istio_config_parser.traffic_management.circuit_breaker_parser import parse_circuit_breaker
-    LEGACY_AVAILABLE = True
-except ImportError:
-    LEGACY_AVAILABLE = False
-    warnings.warn("旧版解析器模块不可用，仅支持统一解析器模式")
+# Legacy 格式数据结构与适配器
+from istio_config_parser.models.data_structures import (
+    ControlPlaneResult,
+    DataPlaneResult,
+)
+from istio_config_parser.parsers.service_parser import parse_services
+from istio_config_parser.utils.ir_to_legacy import system_ir_to_legacy
 
 logger = logging.getLogger(__name__)
 
@@ -78,104 +67,93 @@ def _load_config_files(config_dir: str, resource_type: str, namespace: Optional[
     
     return configs
 
-def parse_control_plane_from_dir(config_dir: str = 'istio_control_config', namespace: Optional[str] = None) -> ControlPlaneResult:
+# 缓存 parse_to_legacy_format 结果，避免重复解析
+_legacy_cache: Dict[str, tuple] = {}
+_legacy_cache_key: Optional[str] = None
+
+
+def parse_to_legacy_format(
+    control_plane_dir: str,
+    data_plane_dir: str,
+    namespace: Optional[str] = None
+) -> tuple:
     """
-    从配置目录解析控制平面配置（旧版，已废弃）
-    
-    .. deprecated:: 1.0.0
-        使用 :func:`parse_unified_from_dir` 替代，它提供了更完整的语义聚合和一致性验证。
-    
-    :param config_dir: 配置目录
+    使用 UnifiedParser 解析并转换为 legacy 格式
+    :return: (ControlPlaneResult, DataPlaneResult)
+    """
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    cp_dir = os.path.join(current_dir, control_plane_dir) if not os.path.isabs(control_plane_dir) else control_plane_dir
+    dp_dir = os.path.join(current_dir, data_plane_dir) if not os.path.isabs(data_plane_dir) else data_plane_dir
+
+    cache_key = f"{cp_dir}|{dp_dir}|{namespace}"
+    if cache_key in _legacy_cache:
+        return _legacy_cache[cache_key]
+
+    control_plane_configs = {
+        'services': _load_config_files(cp_dir, 'services', namespace),
+        'virtual_services': _load_config_files(cp_dir, 'virtualservices', namespace),
+        'destination_rules': _load_config_files(cp_dir, 'destinationrules', namespace),
+        'envoy_filters': _load_config_files(cp_dir, 'envoyfilters', namespace)
+    }
+    data_plane_configs = {}
+    routes_file = os.path.join(dp_dir, 'routes.json')
+    if os.path.exists(routes_file):
+        data_plane_configs['routes'] = load_json_file(routes_file)
+    if 'routes' not in data_plane_configs or data_plane_configs['routes'] is None:
+        data_plane_configs['routes'] = []
+    clusters_file = os.path.join(dp_dir, 'clusters.json')
+    if os.path.exists(clusters_file):
+        data_plane_configs['clusters'] = load_json_file(clusters_file)
+    listeners_file = os.path.join(dp_dir, 'listeners.json')
+    if os.path.exists(listeners_file):
+        data_plane_configs['listeners'] = load_json_file(listeners_file)
+
+    parser = UnifiedParser(enable_parallel=True, max_workers=None)
+    system_ir = parser.parse_align_and_build_ir(control_plane_configs, data_plane_configs)
+    services = parse_services(control_plane_configs.get('services', {}))
+    control_result, data_result = system_ir_to_legacy(system_ir, services)
+    _legacy_cache[cache_key] = (control_result, data_result)
+    return control_result, data_result
+
+
+def parse_control_plane_from_dir(
+    control_plane_dir: str = 'istio_monitor/istio_control_config',
+    namespace: Optional[str] = None,
+    data_plane_dir: Optional[str] = None
+) -> ControlPlaneResult:
+    """
+    从配置目录解析控制平面配置（内部使用 UnifiedParser 并转换为 legacy 格式）
+    :param control_plane_dir: 控制平面配置目录
     :param namespace: 可选的命名空间过滤
+    :param data_plane_dir: 数据平面配置目录（用于 UnifiedParser 对齐，默认与 control 同级的 istio_sidecar_config）
     :return: 控制平面配置结果
     """
-    warnings.warn(
-        "parse_control_plane_from_dir() 已废弃，请使用 parse_unified_from_dir() 代替",
-        DeprecationWarning,
-        stacklevel=2
-    )
-    
-    if not LEGACY_AVAILABLE:
-        raise RuntimeError("旧版解析器不可用，请使用 parse_unified_from_dir()")
-    
-    # 初始化结果结构
-    result: ControlPlaneResult = {
-        'services': [],
-        'serviceRelations': {},
-        'configurations': {}
-    }
-    
-    # 1. 加载相关配置
-    services_config = _load_config_files(config_dir, 'services', namespace)
-    vs_config = _load_config_files(config_dir, 'virtualservices', namespace)
-    dr_config = _load_config_files(config_dir, 'destinationrules', namespace)
-    ef_config = _load_config_files(config_dir, 'envoyfilters', namespace)
-    # 2. 解析服务配置
-    result['services'] = parse_services(services_config)
-    
-    # 3. 解析路由规则配置
-    routes = parse_routes(vs_config)
-    
-    # 4. 解析灰度发布配置
-    canary = parse_canary(dr_config, vs_config)
-    # 5. 解析熔断配置
-    circuit_breakers = parse_circuit_breaker(dr_config)
-    
-    # 6. 解析限流配置
-    ratelimits = parse_ratelimit(ef_config)
-    
-    # 7. 合并所有服务的关系和配置
-    all_services = set()
-    all_services.update(routes.keys())
-    all_services.update(canary.keys())
-    all_services.update(ratelimits.keys())
-    all_services.update(circuit_breakers.keys())
+    dp_dir = data_plane_dir
+    if dp_dir is None:
+        dp_dir = control_plane_dir.replace('istio_control_config', 'istio_sidecar_config')
+        if dp_dir == control_plane_dir:
+            dp_dir = 'istio_monitor/istio_sidecar_config'
+    control_result, _ = parse_to_legacy_format(control_plane_dir, dp_dir, namespace)
+    return control_result
 
-    for service in all_services:
-        result['serviceRelations'][service] = {
-            'incomingVirtualServices': routes.get(service, {}).get('inbound', []),
-            'subsets': canary.get(service, {}).get('subsets', []),
-            'rateLimit': ratelimits.get(service, []),
-            'gateways': routes.get(service, {}).get('gateways', []),
-            'weights': canary.get(service, {}).get('weights', {}),
-            'circuitBreaker': circuit_breakers.get(service, {})
-        }
-        
-        result['configurations'][service] = {
-            'virtualServices': routes.get(service, {}).get('inbound', []),
-            'destinationRules': canary.get(service, {}).get('subsets', []),
-            'envoyFilters': ratelimits.get(service, []),
-            'weights': canary.get(service, {}).get('weights', {}),
-            'circuitBreaker': circuit_breakers.get(service, {})
-        }
-    
-    return result
 
-def parse_data_plane_from_dir(config_dir: str = 'istio_control_config') -> DataPlaneResult:
+def parse_data_plane_from_dir(
+    data_plane_dir: str = 'istio_monitor/istio_sidecar_config',
+    control_plane_dir: Optional[str] = None
+) -> DataPlaneResult:
     """
-    从配置目录解析数据平面配置（旧版，已废弃）
-    
-    .. deprecated:: 1.0.0
-        使用 :func:`parse_unified_from_dir` 替代，它提供了更完整的语义聚合和一致性验证。
-    
-    :param config_dir: 配置目录
+    从配置目录解析数据平面配置（内部使用 UnifiedParser 并转换为 legacy 格式）
+    :param data_plane_dir: 数据平面配置目录
+    :param control_plane_dir: 控制平面配置目录（用于 UnifiedParser 对齐）
     :return: 数据平面配置结果
     """
-    warnings.warn(
-        "parse_data_plane_from_dir() 已废弃，请使用 parse_unified_from_dir() 代替",
-        DeprecationWarning,
-        stacklevel=2
-    )
-    
-    if not LEGACY_AVAILABLE:
-        raise RuntimeError("旧版解析器不可用，请使用 parse_unified_from_dir()")
-    
-    routes_json = os.path.join(config_dir, 'routes.json')
-    if os.path.exists(routes_json):
-        routes = load_json_file(routes_json)
-        service_relations = parse_routes(routes, is_data_plane=True)
-        return {'serviceRelations': service_relations}
-    return {'serviceRelations': {}}
+    cp_dir = control_plane_dir
+    if cp_dir is None:
+        cp_dir = data_plane_dir.replace('istio_sidecar_config', 'istio_control_config')
+        if cp_dir == data_plane_dir:
+            cp_dir = 'istio_monitor/istio_control_config'
+    _, data_result = parse_to_legacy_format(cp_dir, data_plane_dir, None)
+    return data_result
 
 
 def parse_unified_from_dir(
@@ -519,17 +497,15 @@ if __name__ == "__main__":
         print("[警告] 旧版解析器不支持语义聚合和一致性验证")
         print("="*80)
         
-        if not LEGACY_AVAILABLE:
-            print("\n[错误] 旧版解析器模块不可用")
-            print("[提示] 请使用 --mode unified 模式")
-            sys.exit(1)
+        # 与 config.py 保持一致：istio_monitor/istio_control_config, istio_monitor/istio_sidecar_config
+        control_plane_dir = os.path.join(current_dir, args.control_plane_dir)
+        data_plane_dir = os.path.join(current_dir, args.data_plane_dir)
+        print(f"控制平面目录: {control_plane_dir}")
+        print(f"数据平面目录: {data_plane_dir}")
         
-        config_dir = os.path.join(current_dir, 'istio_control_config')
-        
-        # 示例用法
-        namespace = args.namespace or "online-boutique"  # 可以指定要解析的命名空间
-        control_plane = parse_control_plane_from_dir(config_dir, namespace)
-        data_plane = parse_data_plane_from_dir(config_dir)
+        namespace = args.namespace or "online-boutique"
+        control_plane = parse_control_plane_from_dir(control_plane_dir, namespace)
+        data_plane = parse_data_plane_from_dir(data_plane_dir)
         
         # 打印控制平面配置
         print(f"\n命名空间 {namespace} 的控制平面配置：")

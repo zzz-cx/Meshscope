@@ -21,6 +21,14 @@ from consistency_checker.models.data_models import VerificationReport
 
 logger = logging.getLogger(__name__)
 
+# 尝试导入监控器
+try:
+    from istio_config_parser.istio_monitor.istio_sidecar_monitor import IstioSidecarMonitor
+    MONITOR_AVAILABLE = True
+except ImportError:
+    MONITOR_AVAILABLE = False
+    logger.warning("监控器模块不可用，将跳过配置获取步骤")
+
 
 class Pipeline:
     """端到端一致性验证流水线"""
@@ -56,6 +64,12 @@ class Pipeline:
         logger.info("=" * 80)
         logger.info("开始Istio一致性验证流水线")
         logger.info("=" * 80)
+        
+        # 第零阶段：获取配置（如果监控器可用）
+        if MONITOR_AVAILABLE:
+            logger.info("\n🔧 第零阶段：从集群获取配置")
+            logger.info("-" * 80)
+            self._fetch_configs_from_cluster()
         
         # 第一阶段：静态分析
         logger.info("\n📋 第一阶段：静态配置分析")
@@ -110,6 +124,88 @@ class Pipeline:
         self.final_report = self._generate_reports()
         
         return self.final_report
+    
+    def _fetch_configs_from_cluster(self) -> bool:
+        """
+        从Kubernetes集群获取配置
+        
+        Returns:
+            是否成功获取配置
+        """
+        if not MONITOR_AVAILABLE:
+            logger.warning("监控器不可用，跳过配置获取")
+            return False
+        
+        try:
+            # 准备输出目录
+            control_plane_dir = self.config.control_plane_config_dir
+            data_plane_dir = self.config.data_plane_config_dir
+            
+            # 确保目录存在
+            os.makedirs(control_plane_dir, exist_ok=True)
+            os.makedirs(data_plane_dir, exist_ok=True)
+            
+            # 检查是否已有配置
+            has_existing_config = False
+            if os.path.exists(control_plane_dir):
+                # 检查是否有配置文件
+                for root, dirs, files in os.walk(control_plane_dir):
+                    if files:
+                        has_existing_config = True
+                        break
+            
+            if has_existing_config:
+                logger.info("  ✓ 发现现有配置，跳过配置获取")
+                logger.info(f"    配置目录: {control_plane_dir}")
+                return True
+            
+            # 创建监控器
+            # 注意：监控器会自动在output_dir的父目录创建control_plane_dir
+            # 我们需要确保它使用正确的路径
+            monitor = IstioSidecarMonitor(
+                interval=3600,  # 不实际等待，只获取一次
+                output_dir=data_plane_dir,  # 数据平面目录
+                namespace=self.namespace,
+                config_types=["routes", "clusters", "listeners"],
+                use_vm=True,
+                vm_host=self.config.ssh_host,
+                vm_port=22,
+                vm_user=self.config.ssh_user,
+                vm_password=self.config.ssh_password,
+                k8s_host=self.config.k8s_host,
+                k8s_token=self.config.k8s_token
+            )
+            
+            # 手动设置控制平面目录（如果监控器支持）
+            if hasattr(monitor, 'control_plane_dir'):
+                monitor.control_plane_dir = control_plane_dir
+            
+            # 立即获取配置
+            logger.info("正在从集群获取配置...")
+            changes = monitor.update_now()
+            
+            # 检查是否成功获取
+            has_control_plane = os.path.exists(control_plane_dir) and os.path.isdir(control_plane_dir)
+            has_data_plane = os.path.exists(data_plane_dir) and os.path.isdir(data_plane_dir)
+            
+            if has_control_plane or has_data_plane:
+                logger.info(f"  ✓ 配置获取完成")
+                logger.info(f"    - 控制平面配置: {'成功' if has_control_plane else '失败（可能需要K8s token）'}")
+                logger.info(f"    - 数据平面配置: {'成功' if has_data_plane else '失败'}")
+                logger.info(f"    - 配置变更数: {len(changes)}")
+                return True
+            else:
+                logger.warning("  ⚠ 配置获取失败，将使用现有配置目录")
+                logger.warning("    提示：如果配置目录为空，请确保:")
+                logger.warning("    1. SSH连接配置正确（vm_host, vm_user, vm_password）")
+                logger.warning("    2. Kubernetes token已配置（k8s_token）")
+                logger.warning("    3. 或者手动将配置文件放入配置目录")
+                return False
+                
+        except Exception as e:
+            logger.error(f"配置获取失败: {str(e)}", exc_info=True)
+            logger.warning("将使用现有配置目录继续执行")
+            return False
     
     def _run_static_analysis(self) -> Dict[str, Any]:
         """运行静态分析"""

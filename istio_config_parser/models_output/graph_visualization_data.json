@@ -1,0 +1,1073 @@
+{
+  "nodes": [
+    {
+      "id": "default.details",
+      "type": "service",
+      "namespace": "default",
+      "service_name": "details",
+      "configs": {},
+      "subsets": []
+    },
+    {
+      "id": "default.productpage",
+      "type": "service",
+      "namespace": "default",
+      "service_name": "productpage",
+      "configs": {
+        "circuit_breaker": {
+          "max_connections": null,
+          "max_pending_requests": null,
+          "max_requests": null,
+          "max_retries": null
+        }
+      },
+      "subsets": [
+        "v1",
+        "v2"
+      ]
+    },
+    {
+      "id": "default.reviews",
+      "type": "service",
+      "namespace": "default",
+      "service_name": "reviews",
+      "configs": {
+        "circuit_breaker": {
+          "max_connections": null,
+          "max_pending_requests": null,
+          "max_requests": null,
+          "max_retries": null
+        }
+      },
+      "subsets": [
+        "v1",
+        "v3"
+      ]
+    },
+    {
+      "id": "istio-system.grafana",
+      "type": "service",
+      "namespace": "istio-system",
+      "service_name": "grafana",
+      "configs": {},
+      "subsets": []
+    },
+    {
+      "id": "online-boutique.recommendationservice",
+      "type": "service",
+      "namespace": "online-boutique",
+      "service_name": "recommendationservice",
+      "configs": {},
+      "subsets": []
+    },
+    {
+      "id": "online-boutique.frontend-ingress",
+      "type": "service",
+      "namespace": "online-boutique",
+      "service_name": "frontend-ingress",
+      "configs": {},
+      "subsets": []
+    },
+    {
+      "id": "istio-system.loki-headless",
+      "type": "service",
+      "namespace": "istio-system",
+      "service_name": "loki-headless",
+      "configs": {},
+      "subsets": []
+    },
+    {
+      "id": "online-boutique.emailservice",
+      "type": "service",
+      "namespace": "online-boutique",
+      "service_name": "emailservice",
+      "configs": {},
+      "subsets": []
+    },
+    {
+      "id": "online-boutique.cartservice",
+      "type": "service",
+      "namespace": "online-boutique",
+      "service_name": "cartservice",
+      "configs": {},
+      "subsets": []
+    },
+    {
+      "id": "online-boutique.frontend",
+      "type": "service",
+      "namespace": "online-boutique",
+      "service_name": "frontend",
+      "configs": {
+        "circuit_breaker": {
+          "max_connections": null,
+          "max_pending_requests": null,
+          "max_requests": null,
+          "max_retries": null
+        }
+      },
+      "subsets": [
+        "original",
+        "v1"
+      ]
+    },
+    {
+      "id": "online-boutique.shippingservice",
+      "type": "service",
+      "namespace": "online-boutique",
+      "service_name": "shippingservice",
+      "configs": {},
+      "subsets": []
+    },
+    {
+      "id": "online-boutique.adservice",
+      "type": "service",
+      "namespace": "online-boutique",
+      "service_name": "adservice",
+      "configs": {
+        "circuit_breaker": {
+          "max_connections": null,
+          "max_pending_requests": null,
+          "max_requests": null,
+          "max_retries": null
+        }
+      },
+      "subsets": [
+        "v1",
+        "v2"
+      ]
+    },
+    {
+      "id": "google.accounts",
+      "type": "service",
+      "namespace": "google",
+      "service_name": "accounts",
+      "configs": {},
+      "subsets": []
+    },
+    {
+      "id": "default.kubernetes",
+      "type": "service",
+      "namespace": "default",
+      "service_name": "kubernetes",
+      "configs": {},
+      "subsets": []
+    },
+    {
+      "id": "metallb-system.webhook-service",
+      "type": "service",
+      "namespace": "metallb-system",
+      "service_name": "webhook-service",
+      "configs": {},
+      "subsets": []
+    },
+    {
+      "id": "online-boutique.productcatalogservice",
+      "type": "service",
+      "namespace": "online-boutique",
+      "service_name": "productcatalogservice",
+      "configs": {},
+      "subsets": []
+    },
+    {
+      "id": "istio-system.prometheus",
+      "type": "service",
+      "namespace": "istio-system",
+      "service_name": "prometheus",
+      "configs": {},
+      "subsets": []
+    },
+    {
+      "id": "default.sleep",
+      "type": "service",
+      "namespace": "default",
+      "service_name": "sleep",
+      "configs": {},
+      "subsets": []
+    },
+    {
+      "id": "istio-system.zipkin",
+      "type": "service",
+      "namespace": "istio-system",
+      "service_name": "zipkin",
+      "configs": {},
+      "subsets": []
+    },
+    {
+      "id": "default.unknown",
+      "type": "service",
+      "namespace": "default",
+      "service_name": "unknown",
+      "configs": {},
+      "subsets": []
+    },
+    {
+      "id": "googleapis.*",
+      "type": "service",
+      "namespace": "googleapis",
+      "service_name": "*",
+      "configs": {},
+      "subsets": []
+    },
+    {
+      "id": "istio-system.istio-ingressgateway",
+      "type": "service",
+      "namespace": "istio-system",
+      "service_name": "istio-ingressgateway",
+      "configs": {},
+      "subsets": []
+    },
+    {
+      "id": "istio-system.jaeger-collector",
+      "type": "service",
+      "namespace": "istio-system",
+      "service_name": "jaeger-collector",
+      "configs": {},
+      "subsets": []
+    },
+    {
+      "id": "online-boutique.currencyservice",
+      "type": "service",
+      "namespace": "online-boutique",
+      "service_name": "currencyservice",
+      "configs": {
+        "circuit_breaker": {
+          "max_connections": null,
+          "max_pending_requests": null,
+          "max_requests": null,
+          "max_retries": null
+        }
+      },
+      "subsets": []
+    },
+    {
+      "id": "default.ratings",
+      "type": "service",
+      "namespace": "default",
+      "service_name": "ratings",
+      "configs": {},
+      "subsets": []
+    },
+    {
+      "id": "online-boutique.sleep",
+      "type": "service",
+      "namespace": "online-boutique",
+      "service_name": "sleep",
+      "configs": {},
+      "subsets": []
+    },
+    {
+      "id": "istio-system.loki",
+      "type": "service",
+      "namespace": "istio-system",
+      "service_name": "loki",
+      "configs": {},
+      "subsets": []
+    },
+    {
+      "id": "istio-system.istio-egressgateway",
+      "type": "service",
+      "namespace": "istio-system",
+      "service_name": "istio-egressgateway",
+      "configs": {},
+      "subsets": []
+    },
+    {
+      "id": "istio-system.loki-memberlist",
+      "type": "service",
+      "namespace": "istio-system",
+      "service_name": "loki-memberlist",
+      "configs": {},
+      "subsets": []
+    },
+    {
+      "id": "online-boutique.redis-cart",
+      "type": "service",
+      "namespace": "online-boutique",
+      "service_name": "redis-cart",
+      "configs": {},
+      "subsets": []
+    },
+    {
+      "id": "kube-system.kube-dns",
+      "type": "service",
+      "namespace": "kube-system",
+      "service_name": "kube-dns",
+      "configs": {},
+      "subsets": []
+    },
+    {
+      "id": "online-boutique.checkoutservice",
+      "type": "service",
+      "namespace": "online-boutique",
+      "service_name": "checkoutservice",
+      "configs": {},
+      "subsets": []
+    },
+    {
+      "id": "istio-system.kiali",
+      "type": "service",
+      "namespace": "istio-system",
+      "service_name": "kiali",
+      "configs": {},
+      "subsets": []
+    },
+    {
+      "id": "istio-system.tracing",
+      "type": "service",
+      "namespace": "istio-system",
+      "service_name": "tracing",
+      "configs": {},
+      "subsets": []
+    },
+    {
+      "id": "istio-system.istiod",
+      "type": "service",
+      "namespace": "istio-system",
+      "service_name": "istiod",
+      "configs": {},
+      "subsets": []
+    },
+    {
+      "id": "online-boutique.paymentservice",
+      "type": "service",
+      "namespace": "online-boutique",
+      "service_name": "paymentservice",
+      "configs": {},
+      "subsets": []
+    },
+    {
+      "id": "google.metadata",
+      "type": "service",
+      "namespace": "google",
+      "service_name": "metadata",
+      "configs": {},
+      "subsets": []
+    },
+    {
+      "id": "default.productpage.v1",
+      "type": "subset",
+      "parent_service": "default.productpage",
+      "subset_name": "v1"
+    },
+    {
+      "id": "default.productpage.v2",
+      "type": "subset",
+      "parent_service": "default.productpage",
+      "subset_name": "v2"
+    },
+    {
+      "id": "online-boutique.adservice.v1",
+      "type": "subset",
+      "parent_service": "online-boutique.adservice",
+      "subset_name": "v1"
+    },
+    {
+      "id": "online-boutique.adservice.v2",
+      "type": "subset",
+      "parent_service": "online-boutique.adservice",
+      "subset_name": "v2"
+    },
+    {
+      "id": "online-boutique.frontend.original",
+      "type": "subset",
+      "parent_service": "online-boutique.frontend",
+      "subset_name": "original"
+    },
+    {
+      "id": "online-boutique.frontend.v1",
+      "type": "subset",
+      "parent_service": "online-boutique.frontend",
+      "subset_name": "v1"
+    },
+    {
+      "id": "default.reviews.v1",
+      "type": "subset",
+      "parent_service": "default.reviews",
+      "subset_name": "v1"
+    },
+    {
+      "id": "default.reviews.v3",
+      "type": "subset",
+      "parent_service": "default.reviews",
+      "subset_name": "v3"
+    }
+  ],
+  "edges": [
+    {
+      "from": "default.productpage",
+      "to": "productpage.v1",
+      "type": "routing",
+      "weight": 70,
+      "plane": "控制平面",
+      "match": null
+    },
+    {
+      "from": "default.productpage",
+      "to": "productpage.v2",
+      "type": "routing",
+      "weight": 30,
+      "plane": "控制平面",
+      "match": null
+    },
+    {
+      "from": "default.reviews",
+      "to": "reviews.v3",
+      "type": "routing",
+      "weight": 100,
+      "plane": "控制平面",
+      "match": {
+        "headers": {
+          "source": {
+            "exact": "jason"
+          }
+        },
+        "uri": null,
+        "method": null,
+        "query_params": {},
+        "source_labels": {}
+      }
+    },
+    {
+      "from": "default.reviews",
+      "to": "reviews.v2",
+      "type": "routing",
+      "weight": 100,
+      "plane": "控制平面",
+      "match": null
+    },
+    {
+      "from": "online-boutique.adservice",
+      "to": "adservice.online-boutique.svc.cluster.local.v1",
+      "type": "routing",
+      "weight": 50,
+      "plane": "控制平面",
+      "match": null
+    },
+    {
+      "from": "online-boutique.adservice",
+      "to": "adservice.online-boutique.svc.cluster.local.v2",
+      "type": "routing",
+      "weight": 50,
+      "plane": "控制平面",
+      "match": null
+    },
+    {
+      "from": "online-boutique.frontend-ingress",
+      "to": "frontend.online-boutique.svc.cluster.local.original",
+      "type": "routing",
+      "weight": 55,
+      "plane": "控制平面",
+      "match": null
+    },
+    {
+      "from": "online-boutique.frontend-ingress",
+      "to": "frontend.online-boutique.svc.cluster.local.v1",
+      "type": "routing",
+      "weight": 45,
+      "plane": "控制平面",
+      "match": null
+    },
+    {
+      "from": "online-boutique.frontend",
+      "to": "frontend",
+      "type": "routing",
+      "weight": 100,
+      "plane": "控制平面",
+      "match": null
+    },
+    {
+      "from": "googleapis.*",
+      "to": "*.googleapis.com",
+      "type": "routing",
+      "weight": 100,
+      "plane": "数据平面",
+      "match": {
+        "headers": {},
+        "uri": {
+          "prefix": "/"
+        },
+        "method": null,
+        "query_params": {},
+        "source_labels": {}
+      }
+    },
+    {
+      "from": "google.accounts",
+      "to": "accounts.google.com",
+      "type": "routing",
+      "weight": 100,
+      "plane": "数据平面",
+      "match": {
+        "headers": {},
+        "uri": {
+          "prefix": "/"
+        },
+        "method": null,
+        "query_params": {},
+        "source_labels": {}
+      }
+    },
+    {
+      "from": "online-boutique.frontend",
+      "to": "frontend.online-boutique.svc.cluster.local",
+      "type": "routing",
+      "weight": 100,
+      "plane": "数据平面",
+      "match": {
+        "headers": {},
+        "uri": {
+          "prefix": "/"
+        },
+        "method": null,
+        "query_params": {},
+        "source_labels": {}
+      }
+    },
+    {
+      "from": "istio-system.istio-egressgateway",
+      "to": "istio-egressgateway.istio-system.svc.cluster.local",
+      "type": "routing",
+      "weight": 100,
+      "plane": "数据平面",
+      "match": {
+        "headers": {},
+        "uri": {
+          "prefix": "/"
+        },
+        "method": null,
+        "query_params": {},
+        "source_labels": {}
+      }
+    },
+    {
+      "from": "istio-system.istio-ingressgateway",
+      "to": "istio-ingressgateway.istio-system.svc.cluster.local",
+      "type": "routing",
+      "weight": 100,
+      "plane": "数据平面",
+      "match": {
+        "headers": {},
+        "uri": {
+          "prefix": "/"
+        },
+        "method": null,
+        "query_params": {},
+        "source_labels": {}
+      }
+    },
+    {
+      "from": "google.metadata",
+      "to": "metadata.google.internal",
+      "type": "routing",
+      "weight": 100,
+      "plane": "数据平面",
+      "match": {
+        "headers": {},
+        "uri": {
+          "prefix": "/"
+        },
+        "method": null,
+        "query_params": {},
+        "source_labels": {}
+      }
+    },
+    {
+      "from": "default.productpage",
+      "to": "productpage.default.svc.cluster.local.v1",
+      "type": "routing",
+      "weight": 100,
+      "plane": "数据平面",
+      "match": {
+        "headers": [
+          {
+            "name": "end-user",
+            "stringMatch": {
+              "exact": "zcx"
+            }
+          }
+        ],
+        "uri": {
+          "prefix": "/"
+        },
+        "method": null,
+        "query_params": {},
+        "source_labels": {}
+      }
+    },
+    {
+      "from": "default.productpage",
+      "to": "productpage.default.svc.cluster.local.v2",
+      "type": "routing",
+      "weight": 100,
+      "plane": "数据平面",
+      "match": {
+        "headers": {},
+        "uri": {
+          "prefix": "/"
+        },
+        "method": null,
+        "query_params": {},
+        "source_labels": {}
+      }
+    },
+    {
+      "from": "online-boutique.recommendationservice",
+      "to": "recommendationservice.online-boutique.svc.cluster.local.ai-model-v2",
+      "type": "routing",
+      "weight": 100,
+      "plane": "数据平面",
+      "match": {
+        "headers": [
+          {
+            "name": "end-user",
+            "stringMatch": {
+              "exact": "vip"
+            }
+          }
+        ],
+        "uri": {
+          "prefix": "/"
+        },
+        "method": null,
+        "query_params": {},
+        "source_labels": {}
+      }
+    },
+    {
+      "from": "online-boutique.recommendationservice",
+      "to": "recommendationservice.online-boutique.svc.cluster.local.default",
+      "type": "routing",
+      "weight": 100,
+      "plane": "数据平面",
+      "match": {
+        "headers": {},
+        "uri": {
+          "prefix": "/"
+        },
+        "method": null,
+        "query_params": {},
+        "source_labels": {}
+      }
+    },
+    {
+      "from": "default.reviews",
+      "to": "reviews.default.svc.cluster.local.v2",
+      "type": "routing",
+      "weight": 100,
+      "plane": "数据平面",
+      "match": {
+        "headers": [
+          {
+            "name": "user-agent",
+            "stringMatch": {
+              "exact": "jason"
+            }
+          }
+        ],
+        "uri": {
+          "prefix": "/"
+        },
+        "method": null,
+        "query_params": {},
+        "source_labels": {}
+      }
+    },
+    {
+      "from": "default.reviews",
+      "to": "reviews.default.svc.cluster.local.v1",
+      "type": "routing",
+      "weight": 80,
+      "plane": "数据平面",
+      "match": {
+        "headers": {},
+        "uri": {
+          "prefix": "/"
+        },
+        "method": null,
+        "query_params": {},
+        "source_labels": {}
+      }
+    },
+    {
+      "from": "default.reviews",
+      "to": "reviews.default.svc.cluster.local.v3",
+      "type": "routing",
+      "weight": 20,
+      "plane": "数据平面",
+      "match": {
+        "headers": {},
+        "uri": {
+          "prefix": "/"
+        },
+        "method": null,
+        "query_params": {},
+        "source_labels": {}
+      }
+    },
+    {
+      "from": "default.sleep",
+      "to": "sleep.default.svc.cluster.local",
+      "type": "routing",
+      "weight": 100,
+      "plane": "数据平面",
+      "match": {
+        "headers": {},
+        "uri": {
+          "prefix": "/"
+        },
+        "method": null,
+        "query_params": {},
+        "source_labels": {}
+      }
+    },
+    {
+      "from": "online-boutique.sleep",
+      "to": "sleep.online-boutique.svc.cluster.local",
+      "type": "routing",
+      "weight": 100,
+      "plane": "数据平面",
+      "match": {
+        "headers": {},
+        "uri": {
+          "prefix": "/"
+        },
+        "method": null,
+        "query_params": {},
+        "source_labels": {}
+      }
+    },
+    {
+      "from": "istio-system.tracing",
+      "to": "tracing.istio-system.svc.cluster.local",
+      "type": "routing",
+      "weight": 100,
+      "plane": "数据平面",
+      "match": {
+        "headers": {},
+        "uri": {
+          "prefix": "/"
+        },
+        "method": null,
+        "query_params": {},
+        "source_labels": {}
+      }
+    },
+    {
+      "from": "default.unknown",
+      "to": "",
+      "type": "routing",
+      "weight": 100,
+      "plane": "数据平面",
+      "match": {
+        "headers": {},
+        "uri": {
+          "prefix": "/"
+        },
+        "method": null,
+        "query_params": {},
+        "source_labels": {}
+      }
+    },
+    {
+      "from": "istio-system.loki-headless",
+      "to": "loki-headless.istio-system.svc.cluster.local",
+      "type": "routing",
+      "weight": 100,
+      "plane": "数据平面",
+      "match": {
+        "headers": {},
+        "uri": {
+          "prefix": "/"
+        },
+        "method": null,
+        "query_params": {},
+        "source_labels": {}
+      }
+    },
+    {
+      "from": "istio-system.loki",
+      "to": "loki.istio-system.svc.cluster.local",
+      "type": "routing",
+      "weight": 100,
+      "plane": "数据平面",
+      "match": {
+        "headers": {},
+        "uri": {
+          "prefix": "/"
+        },
+        "method": null,
+        "query_params": {},
+        "source_labels": {}
+      }
+    },
+    {
+      "from": "online-boutique.productcatalogservice",
+      "to": "productcatalogservice.online-boutique.svc.cluster.local",
+      "type": "routing",
+      "weight": 100,
+      "plane": "数据平面",
+      "match": {
+        "headers": {},
+        "uri": {
+          "prefix": "/"
+        },
+        "method": null,
+        "query_params": {},
+        "source_labels": {}
+      }
+    },
+    {
+      "from": "istio-system.jaeger-collector",
+      "to": "jaeger-collector.istio-system.svc.cluster.local",
+      "type": "routing",
+      "weight": 100,
+      "plane": "数据平面",
+      "match": {
+        "headers": {},
+        "uri": {
+          "prefix": "/"
+        },
+        "method": null,
+        "query_params": {},
+        "source_labels": {}
+      }
+    },
+    {
+      "from": "online-boutique.emailservice",
+      "to": "emailservice.online-boutique.svc.cluster.local",
+      "type": "routing",
+      "weight": 100,
+      "plane": "数据平面",
+      "match": {
+        "headers": {},
+        "uri": {
+          "prefix": "/"
+        },
+        "method": null,
+        "query_params": {},
+        "source_labels": {}
+      }
+    },
+    {
+      "from": "online-boutique.checkoutservice",
+      "to": "checkoutservice.online-boutique.svc.cluster.local",
+      "type": "routing",
+      "weight": 100,
+      "plane": "数据平面",
+      "match": {
+        "headers": {},
+        "uri": {
+          "prefix": "/"
+        },
+        "method": null,
+        "query_params": {},
+        "source_labels": {}
+      }
+    },
+    {
+      "from": "online-boutique.currencyservice",
+      "to": "currencyservice.online-boutique.svc.cluster.local",
+      "type": "routing",
+      "weight": 100,
+      "plane": "数据平面",
+      "match": {
+        "headers": {},
+        "uri": {
+          "prefix": "/"
+        },
+        "method": null,
+        "query_params": {},
+        "source_labels": {}
+      }
+    },
+    {
+      "from": "online-boutique.cartservice",
+      "to": "cartservice.online-boutique.svc.cluster.local",
+      "type": "routing",
+      "weight": 100,
+      "plane": "数据平面",
+      "match": {
+        "headers": {},
+        "uri": {
+          "prefix": "/"
+        },
+        "method": null,
+        "query_params": {},
+        "source_labels": {}
+      }
+    },
+    {
+      "from": "default.details",
+      "to": "details.default.svc.cluster.local",
+      "type": "routing",
+      "weight": 100,
+      "plane": "数据平面",
+      "match": {
+        "headers": {},
+        "uri": {
+          "prefix": "/"
+        },
+        "method": null,
+        "query_params": {},
+        "source_labels": {}
+      }
+    },
+    {
+      "from": "default.ratings",
+      "to": "ratings.default.svc.cluster.local",
+      "type": "routing",
+      "weight": 100,
+      "plane": "数据平面",
+      "match": {
+        "headers": {},
+        "uri": {
+          "prefix": "/"
+        },
+        "method": null,
+        "query_params": {},
+        "source_labels": {}
+      }
+    },
+    {
+      "from": "istio-system.kiali",
+      "to": "kiali.istio-system.svc.cluster.local",
+      "type": "routing",
+      "weight": 100,
+      "plane": "数据平面",
+      "match": {
+        "headers": {},
+        "uri": {
+          "prefix": "/"
+        },
+        "method": null,
+        "query_params": {},
+        "source_labels": {}
+      }
+    },
+    {
+      "from": "istio-system.prometheus",
+      "to": "prometheus.istio-system.svc.cluster.local",
+      "type": "routing",
+      "weight": 100,
+      "plane": "数据平面",
+      "match": {
+        "headers": {},
+        "uri": {
+          "prefix": "/"
+        },
+        "method": null,
+        "query_params": {},
+        "source_labels": {}
+      }
+    },
+    {
+      "from": "istio-system.zipkin",
+      "to": "zipkin.istio-system.svc.cluster.local",
+      "type": "routing",
+      "weight": 100,
+      "plane": "数据平面",
+      "match": {
+        "headers": {},
+        "uri": {
+          "prefix": "/"
+        },
+        "method": null,
+        "query_params": {},
+        "source_labels": {}
+      }
+    },
+    {
+      "from": "istio-system.istiod",
+      "to": "istiod.istio-system.svc.cluster.local",
+      "type": "routing",
+      "weight": 100,
+      "plane": "数据平面",
+      "match": {
+        "headers": {},
+        "uri": {
+          "prefix": "/"
+        },
+        "method": null,
+        "query_params": {},
+        "source_labels": {}
+      }
+    },
+    {
+      "from": "online-boutique.paymentservice",
+      "to": "paymentservice.online-boutique.svc.cluster.local",
+      "type": "routing",
+      "weight": 100,
+      "plane": "数据平面",
+      "match": {
+        "headers": {},
+        "uri": {
+          "prefix": "/"
+        },
+        "method": null,
+        "query_params": {},
+        "source_labels": {}
+      }
+    },
+    {
+      "from": "online-boutique.shippingservice",
+      "to": "shippingservice.online-boutique.svc.cluster.local",
+      "type": "routing",
+      "weight": 100,
+      "plane": "数据平面",
+      "match": {
+        "headers": {},
+        "uri": {
+          "prefix": "/"
+        },
+        "method": null,
+        "query_params": {},
+        "source_labels": {}
+      }
+    },
+    {
+      "from": "default.productpage",
+      "to": "default.productpage.v1",
+      "type": "contains"
+    },
+    {
+      "from": "default.productpage",
+      "to": "default.productpage.v2",
+      "type": "contains"
+    },
+    {
+      "from": "online-boutique.adservice",
+      "to": "online-boutique.adservice.v1",
+      "type": "contains"
+    },
+    {
+      "from": "online-boutique.adservice",
+      "to": "online-boutique.adservice.v2",
+      "type": "contains"
+    },
+    {
+      "from": "online-boutique.frontend",
+      "to": "online-boutique.frontend.original",
+      "type": "contains"
+    },
+    {
+      "from": "online-boutique.frontend",
+      "to": "online-boutique.frontend.v1",
+      "type": "contains"
+    },
+    {
+      "from": "default.reviews",
+      "to": "default.reviews.v1",
+      "type": "contains"
+    },
+    {
+      "from": "default.reviews",
+      "to": "default.reviews.v3",
+      "type": "contains"
+    }
+  ],
+  "metadata": {
+    "total_services": 37,
+    "total_subsets": 8,
+    "total_routing_edges": 44
+  }
+}

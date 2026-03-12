@@ -2,6 +2,8 @@ import yaml
 import json
 from typing import Dict, List, Any, Optional, Union
 
+from istio_config_parser.utils.ratelimit_utils import parse_token_bucket
+
 class IstioConfigParser:
     """
     Istio 配置解析器，用于解析 Istio 配置并提取关键信息
@@ -218,18 +220,10 @@ class IstioConfigParser:
                                 if patch_value.get('name') == 'envoy.filters.http.local_ratelimit':
                                     typed_config = patch_value.get('typed_config', {})
                                     if typed_config and '@type' in typed_config:
-                                        token_bucket = typed_config.get('token_bucket', {})
-                                        if token_bucket:
-                                            self.service_relations[service_name]['rateLimit']['requests_per_unit'] = token_bucket.get('max_tokens')
-                                            
-                                            # 转换填充间隔为时间单位
-                                            fill_interval = token_bucket.get('fill_interval')
-                                            if fill_interval and 's' in fill_interval:
-                                                seconds = int(''.join(filter(str.isdigit, fill_interval)))
-                                                if seconds == 60:
-                                                    self.service_relations[service_name]['rateLimit']['unit'] = 'minute'
-                                                else:
-                                                    self.service_relations[service_name]['rateLimit']['unit'] = f'{seconds}秒'
+                                        parsed = parse_token_bucket(typed_config.get('token_bucket', {}))
+                                        if parsed:
+                                            self.service_relations[service_name]['rateLimit']['requests_per_unit'] = parsed.get('max_tokens')
+                                            self.service_relations[service_name]['rateLimit']['unit'] = parsed['unit'].lower()
                             
                             # 处理 VIRTUAL_HOST 配置
                             elif patch.get('applyTo') == 'VIRTUAL_HOST':

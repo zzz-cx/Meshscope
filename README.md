@@ -104,11 +104,11 @@ python -m istio_config_parser.main_parser --namespace default
 cd istio_Dynamic_Test
 python generator/test_case_generator.py -i generator/istio_config.json \
   --service-deps service_dependencies.json \
-  --ingress-url http://192.168.92.131:30476/productpage \
+  --ingress-url http://${SSH_HOST}:${INGRESS_PORT:-30476}/productpage \
   -o output_matrix.json
 
 python checker/traffic_driver.py -i output_matrix.json \
-  --ssh-host 192.168.92.131 --ssh-user root --ssh-password 12345678
+  --ssh-host ${SSH_HOST} --ssh-user ${SSH_USER:-root} --ssh-password ${SSH_PASSWORD}
 
 python verifier/main_verifier.py --matrix output_matrix.json \
   --logs results/envoy_logs --output results/verification
@@ -211,7 +211,7 @@ python e2e_validator.py \
 docker build -t meshscope:latest -f docker/Dockerfile .
 
 # 运行各种功能
-docker run -it --rm meshscope:latest e2e --vm-host 192.168.92.131
+docker run -it --rm meshscope:latest e2e --vm-host ${SSH_HOST}
 docker run -it --rm meshscope:latest static --namespace default
 docker run -it --rm meshscope:latest consistency --mode full
 docker run -it --rm -p 8080:8080 meshscope:latest web --port 8080
@@ -263,11 +263,11 @@ docker-compose build
 
 ```bash
 python e2e_validator.py \
-  --vm-host 192.168.92.131 \
-  --vm-user root \
-  --vm-password 12345678 \
+  --vm-host ${SSH_HOST} \
+  --vm-user ${SSH_USER:-root} \
+  --vm-password ${SSH_PASSWORD} \
   --namespace default \
-  --ingress-url http://192.168.92.131:30476/productpage \
+  --ingress-url http://${SSH_HOST}:${INGRESS_PORT:-30476}/productpage \
   --output-dir results/my_test
 ```
 

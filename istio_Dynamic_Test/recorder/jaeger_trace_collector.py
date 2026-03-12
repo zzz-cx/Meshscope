@@ -1,4 +1,3 @@
-from dill.logger import trace
 import requests
 import json
 import istio_Dynamic_Test.utils.trace_utils as trace_utils

@@ -2,15 +2,17 @@ import os
 import paramiko
 from scp import SCPClient
 
-REMOTE_HOST = "192.168.92.131"
-REMOTE_USER = "root"
-REMOTE_PASS = "12345678"
+REMOTE_HOST = os.getenv("SSH_HOST", "192.168.92.131")
+REMOTE_USER = os.getenv("SSH_USER", "root")
+REMOTE_PASS = os.getenv("SSH_PASSWORD", "")
 REMOTE_BASE = "/root/istio_Dynamic_Test"
 REMOTE_SCRIPTS = f"{REMOTE_BASE}/scripts"
 REMOTE_RESULTS = f"{REMOTE_BASE}/results"
 LOCAL_BASE = os.path.dirname(__file__)
 
 def ssh_client():
+    if not REMOTE_PASS:
+        raise ValueError("SSH 密码未配置，请设置环境变量 SSH_PASSWORD 或在 config 中配置 ssh_password")
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(REMOTE_HOST, username=REMOTE_USER, password=REMOTE_PASS)

@@ -20,6 +20,8 @@ import yaml
 
 try:
     from .istio_api import IstioAPI
+    from .export_control_plane_config import export_control_plane_config as do_export_control_plane
+    from .export_data_plane_config import parse_config_dump
     from kubernetes import client, config, watch
 except ImportError as e:
     # 尝试相对导入
@@ -27,6 +29,8 @@ except ImportError as e:
         import os
         sys.path.insert(0, os.path.dirname(__file__))
         from istio_api import IstioAPI
+        from export_control_plane_config import export_control_plane_config as do_export_control_plane
+        from export_data_plane_config import parse_config_dump
         from kubernetes import client, config, watch
     except ImportError as e2:
         print(f"错误: {str(e2)}")
@@ -66,9 +70,9 @@ class IstioSidecarMonitor:
     
     def __init__(self, 
                  interval: int = 1200,
-                 output_dir: str = "./istio_sidecar_config",
+                 output_dir: str = "istio_config_parser/istio_monitor/istio_sidecar_config",
                  namespace: str = "default",
-                 config_types: List[str] = ["routes"],
+                 config_types: List[str] = None,
                  use_vm: bool = True,
                  vm_host: Optional[str] = None,
                  vm_port: int = 22,
@@ -99,13 +103,14 @@ class IstioSidecarMonitor:
         self.interval = interval
         self.output_dir = output_dir
         self.namespace = namespace
-        self.config_types = config_types
+        self.config_types = config_types if config_types is not None else ["routes", "clusters", "listeners"]
         self.callback = callback
         self.running = False
         self.monitor_thread = None
         self.k8s_watch_thread = None
         self.last_config_hashes = {}
         self.selected_proxy = None
+        self.proxies_cache = set()
         self.update_queue = Queue()
         self.last_update_time = 0  # 添加最后更新时间记录
         self.k8s_host = k8s_host  # 保存 k8s_host 以供后续使用
@@ -153,8 +158,9 @@ class IstioSidecarMonitor:
                 configuration = client.Configuration()
                 configuration.host = f"https://{self.k8s_host}:6443"
                 configuration.verify_ssl = False
-                configuration.debug = True
+                configuration.debug = False  # 关闭 debug 减少日志噪音
                 
+                auth_configured = False
                 if self.k8s_token:
                     # 确保token格式正确
                     token = self.k8s_token.strip()
@@ -163,16 +169,42 @@ class IstioSidecarMonitor:
                     configuration.api_key = {"authorization": token}
                     configuration.api_key_prefix = {"authorization": "Bearer"}
                     logger.info(f"已使用提供的 token 配置 Kubernetes 认证 (token长度: {len(token)})")
+                    auth_configured = True
                 else:
+                    # 尝试 1: ServiceAccount token（仅在 K8s Pod 内存在）
                     try:
-                        with open('/var/run/secrets/kubernetes.io/serviceaccount/token', 'r') as f:
-                            token = f.read().strip()
-                            self.k8s_token = token
-                            configuration.api_key = {"authorization": f"Bearer {token}"}
-                            configuration.api_key_prefix = {"authorization": "Bearer"}
-                            logger.info("已使用 ServiceAccount token 配置 Kubernetes 认证")
+                        sa_token_path = '/var/run/secrets/kubernetes.io/serviceaccount/token'
+                        if os.path.exists(sa_token_path):
+                            with open(sa_token_path, 'r') as f:
+                                token = f.read().strip()
+                                configuration.api_key = {"authorization": token}
+                                configuration.api_key_prefix = {"authorization": "Bearer"}
+                                logger.info("已使用 ServiceAccount token 配置 Kubernetes 认证")
+                                auth_configured = True
                     except Exception as e:
-                        logger.warning(f"无法读取 ServiceAccount token: {str(e)}")
+                        logger.debug(f"ServiceAccount token 不可用: {e}")
+                
+                # 尝试 2: 从 kubeconfig 加载认证（本地运行时常用）
+                if not auth_configured:
+                    try:
+                        k8s_config = config.load_kube_config()
+                        # 使用 kubeconfig 的认证，但覆盖 host 为远程集群地址
+                        cfg = client.Configuration.get_default_copy()
+                        configuration.api_key = cfg.api_key
+                        configuration.api_key_prefix = cfg.api_key_prefix
+                        configuration.ssl_ca_cert = cfg.ssl_ca_cert
+                        configuration.cert_file = cfg.cert_file
+                        configuration.key_file = cfg.key_file
+                        logger.info("已从 kubeconfig 加载认证，连接远程集群 %s", self.k8s_host)
+                        auth_configured = True
+                    except Exception as e:
+                        logger.warning(f"无法从 kubeconfig 加载: {e}")
+                
+                if not auth_configured:
+                    logger.error(
+                        "未配置 Kubernetes 认证，将导致 403 Forbidden。"
+                        "请提供 --k8s-token 或配置 KUBECONFIG/kubeconfig 文件。"
+                    )
                 
                 self.configuration = configuration
                 client.Configuration.set_default(configuration)
@@ -186,10 +218,40 @@ class IstioSidecarMonitor:
             logger.error(f"初始化 Kubernetes 客户端失败: {str(e)}")
             self.k8s_client = None
 
+    def _get_proxies_from_k8s(self) -> List[str]:
+        """通过 Kubernetes API 获取带 Istio Sidecar 的 Pod 列表（proxy ID 格式: pod_name.namespace）"""
+        if not self.k8s_client:
+            return []
+        try:
+            if self.configuration:
+                api_client = client.ApiClient(self.configuration)
+            else:
+                api_client = client.ApiClient()
+            core_v1 = client.CoreV1Api(api_client)
+            proxies = []
+            if self.namespace == "all":
+                pods = core_v1.list_pod_for_all_namespaces()
+            else:
+                pods = core_v1.list_namespaced_pod(namespace=self.namespace)
+            for pod in pods.items:
+                if pod.metadata.name and pod.status.phase == "Running":
+                    # 检查是否有 istio-proxy 容器（Sidecar）
+                    for c in (pod.spec.containers or []):
+                        if c.name == "istio-proxy":
+                            proxies.append(f"{pod.metadata.name}.{pod.metadata.namespace}")
+                            break
+            return proxies
+        except Exception as e:
+            logger.warning(f"从 K8s API 获取代理列表失败: {e}")
+            return []
+
     def _select_proxy(self) -> Optional[str]:
         """选择一个可用的代理"""
         try:
-            proxies = self.api.get_proxies()
+            # 优先使用已认证的 K8s API 获取代理（避免 istioctl/kubectl Unauthorized）
+            proxies = self._get_proxies_from_k8s() if self.k8s_client else []
+            if not proxies:
+                proxies = self.api.get_proxies()
             for proxy in proxies:
                 if self.namespace == "all" or proxy.endswith(f".{self.namespace}"):
                     logger.info(f"已选择代理: {proxy}")
@@ -198,6 +260,102 @@ class IstioSidecarMonitor:
             return None
         except Exception as e:
             logger.error(f"选择代理失败: {str(e)}")
+            return None
+
+    def _get_config_dump_via_ssh_kubectl_exec(self, proxy_id: str) -> Optional[dict]:
+        """
+        在 master 上通过 SSH 执行 kubectl exec，使用 master 的 kubeconfig
+        命令: ssh root@master "kubectl exec <pod> -n <ns> -c istio-proxy -- curl -s localhost:15000/config_dump"
+        """
+        if not self.api or not getattr(self.api, '_execute_vm_command', None):
+            return None
+        pod_name, namespace = proxy_id.split('.', 1) if '.' in proxy_id else (proxy_id, 'default')
+        # master 上常用 kubeconfig 路径，优先使用
+        for prefix in ["KUBECONFIG=/etc/kubernetes/admin.conf ", ""]:
+            for cmd in [
+                f"{prefix}kubectl exec {pod_name} -n {namespace} -c istio-proxy -- curl -s http://127.0.0.1:15000/config_dump",
+                f"{prefix}kubectl exec {pod_name} -n {namespace} -c istio-proxy -- wget -qO- http://127.0.0.1:15000/config_dump",
+            ]:
+                try:
+                    output = self.api._execute_vm_command(cmd)
+                    if output and output.strip():
+                        text = output.strip()
+                        if text.startswith("HTTP/"):
+                            text = text.split("\r\n\r\n", 1)[-1] if "\r\n\r\n" in text else text.split("\n\n", 1)[-1]
+                        return json.loads(text)
+                except Exception:
+                    continue
+        return None
+
+    def _fetch_proxy_config_all(self, proxy_id: str) -> Dict[str, Any]:
+        """
+        通过 SSH 在 master 上执行 kubectl exec 获取 Envoy config_dump，
+        解析出 routes/clusters/listeners（委托给 export_data_plane_config）
+
+        Returns:
+            {routes: [...], clusters: [...], listeners: [...]}
+        """
+        try:
+            yaml_path = os.path.join(self.output_dir, "proxy_config_all.yaml")
+            config_dump = self._get_config_dump_via_ssh_kubectl_exec(proxy_id)
+            if not config_dump:
+                return {}
+            if isinstance(config_dump, list):
+                config_dump = {'configs': config_dump}
+
+            with open(yaml_path, 'w', encoding='utf-8') as f:
+                f.write(yaml.dump(config_dump, default_flow_style=False, allow_unicode=True))
+            logger.info(f"代理配置已保存到 {yaml_path}")
+
+            result = parse_config_dump(config_dump)
+            # 保留 endpoints/bootstrap 供扩展（parse_config_dump 不解析）
+            configs = config_dump.get('configs', [])
+            for cfg in configs if isinstance(configs, list) else []:
+                ctype = str(cfg.get('@type', ''))
+                if 'EndpointsConfigDump' in ctype:
+                    result['endpoints'] = cfg.get('dynamicEndpointConfigs', cfg.get('dynamic_endpoint_configs', []))
+                elif 'BootstrapConfigDump' in ctype:
+                    result['bootstrap'] = cfg.get('bootstrap', cfg)
+            return result
+        except Exception as e:
+            logger.warning(f"获取代理配置失败: {e}")
+            return {}
+
+    def _fetch_config_via_istioctl(self, proxy_id: str, config_type: str) -> Optional[Any]:
+        """
+        通过 istioctl proxy-config 获取指定类型的配置（config_dump 不可用时的 fallback）
+        
+        Args:
+            proxy_id: 代理 ID (pod.namespace)
+            config_type: 配置类型 (routes, clusters, listeners)
+            
+        Returns:
+            配置数据，失败返回 None
+        """
+        try:
+            data = self.api.get_proxy_config(proxy_id, config_type)
+            if not data:
+                return None
+            # istioctl 输出格式可能与 config_dump 不同，需统一
+            if config_type == "clusters":
+                # istioctl clusters 可能返回 list 或 {dynamicActiveClusters: [...]}
+                if isinstance(data, list):
+                    return data
+                if isinstance(data, dict):
+                    return data.get("dynamicActiveClusters", data.get("dynamic_active_clusters", data))
+            elif config_type == "listeners":
+                if isinstance(data, list):
+                    return data
+                if isinstance(data, dict):
+                    return data.get("dynamicListeners", data.get("dynamic_listeners", data))
+            elif config_type == "routes":
+                if isinstance(data, list):
+                    return data
+                if isinstance(data, dict):
+                    return data.get("dynamicRouteConfigs", data.get("dynamic_route_configs", data))
+            return data
+        except Exception as e:
+            logger.warning(f"istioctl 获取 {config_type} 失败: {e}")
             return None
 
     def update_now(self) -> Dict[str, Any]:
@@ -223,11 +381,21 @@ class IstioSidecarMonitor:
                 logger.error("未找到可用的代理")
                 return changes
             
-            # 获取配置
+            # 通过 config_dump 或 istioctl 获取数据平面配置
+            all_configs = self._fetch_proxy_config_all(self.selected_proxy)
+            # 对缺失的配置类型使用 istioctl fallback
+            for config_type in self.config_types:
+                if not all_configs.get(config_type):
+                    fallback_data = self._fetch_config_via_istioctl(self.selected_proxy, config_type)
+                    if fallback_data:
+                        all_configs[config_type] = fallback_data
+                        logger.info(f"通过 istioctl 获取 {config_type} 配置")
             for config_type in self.config_types:
                 try:
                     logger.info(f"获取 {config_type} 配置")
-                    config_data = self.api.get_proxy_config(self.selected_proxy, config_type)
+                    config_data = all_configs.get(config_type)
+                    if not config_data:
+                        continue
                     config_hash = self._calculate_hash(config_data)
                     config_key = f"sidecar_{config_type}"
                     
@@ -260,160 +428,28 @@ class IstioSidecarMonitor:
             return {}
 
     def _get_control_plane_configs(self) -> Dict[str, Any]:
-        """获取控制平面配置"""
-        changes = {}
+        """获取控制平面配置（委托给 export_control_plane_config 模块）"""
+        if not self.k8s_client:
+            return {}
         try:
-            # 确保configuration被应用（有时会被重置）
             if self.configuration:
                 client.Configuration.set_default(self.configuration)
-                # 重新创建client以确保使用最新configuration
-                self.k8s_client = client.CustomObjectsApi(client.ApiClient(self.configuration))
-            
-            # 处理 Istio 自定义资源
-            istio_resources = [
-                ("networking.istio.io", "v1alpha3", "virtualservices"),
-                ("networking.istio.io", "v1alpha3", "destinationrules"),
-                ("networking.istio.io", "v1alpha3", "gateways"),
-                ("security.istio.io", "v1beta1", "authorizationpolicies"),
-                ("networking.istio.io", "v1alpha3", "serviceentries"),
-                ("networking.istio.io", "v1alpha3", "sidecars"),
-                ("networking.istio.io", "v1alpha3", "workloadentries"),
-                ("networking.istio.io", "v1alpha3", "workloadgroups"),
-                ("networking.istio.io", "v1alpha3", "envoyfilters")
-            ]
-            
-            # 处理 Istio 自定义资源
-            for group, version, plural in istio_resources:
-                try:
-                    response = self.k8s_client.list_cluster_custom_object(
-                        group=group,
-                        version=version,
-                        plural=plural
-                    )
-                    # 计算配置哈希
-                    config_hash = self._calculate_hash(response)
-                    config_key = f"control_plane_{plural}"
-                    
-                    # 检查配置是否有变化
-                    if config_key not in self.last_config_hashes or self.last_config_hashes[config_key] != config_hash:
-                        logger.info(f"控制平面 {plural} 配置已变更")
-                        self.last_config_hashes[config_key] = config_hash
-                        changes[config_key] = response
-                        
-                        # 为每种资源类型创建子目录
-                        resource_dir = os.path.join(self.control_plane_dir, plural)
-                        self._reset_directory(resource_dir)
-                        
-                        # 保存每个资源的 YAML 文件
-                        for item in response.get('items', []):
-                            metadata = item.get('metadata', {})
-                            name = metadata.get('name', 'unknown')
-                            namespace = metadata.get('namespace', 'default')
-                            
-                            # 创建命名空间子目录
-                            ns_dir = os.path.join(resource_dir, namespace)
-                            if not os.path.exists(ns_dir):
-                                os.makedirs(ns_dir)
-                            
-                            # 保存为 YAML 文件
-                            file_path = os.path.join(ns_dir, f"{name}.yaml")
-                            with open(file_path, 'w', encoding='utf-8') as f:
-                                yaml.dump(item, f, default_flow_style=False, allow_unicode=True)
-                            logger.info(f"控制平面配置已保存到 {file_path}")
-                        
-                        # 同时保存完整的资源列表为 JSON（用于比较）
-                        list_file = os.path.join(resource_dir, "list.json")
-                        with open(list_file, 'w', encoding='utf-8') as f:
-                            json.dump(response, f, ensure_ascii=False, indent=2)
-                        
-                except Exception as e:
-                    logger.error(f"获取控制平面 {plural} 配置失败: {str(e)}")
-                    continue
-            
-            # 处理 Kubernetes 核心服务资源
-            try:
-                # 创建 CoreV1Api 实例 - 使用相同的configuration
-                if self.configuration:
-                    api_client = client.ApiClient(self.configuration)
-                else:
-                    api_client = client.ApiClient()
-                core_v1_api = client.CoreV1Api(api_client)
-                
-                # 获取所有命名空间的服务
-                services = core_v1_api.list_service_for_all_namespaces()
-                config_hash = self._calculate_hash(services)
-                config_key = "core_services"
-                
-                if config_key not in self.last_config_hashes or self.last_config_hashes[config_key] != config_hash:
-                    logger.info("核心服务配置已变更")
-                    self.last_config_hashes[config_key] = config_hash
-                    changes[config_key] = services
-                    
-                    # 保存服务配置
-                    services_dir = os.path.join(self.control_plane_dir, "services")
-                    self._reset_directory(services_dir)
-                    
-                    # 按命名空间组织服务
-                    for service in services.items:
-                        namespace = service.metadata.namespace
-                        name = service.metadata.name
-                        
-                        # 创建命名空间子目录
-                        ns_dir = os.path.join(services_dir, namespace)
-                        if not os.path.exists(ns_dir):
-                            os.makedirs(ns_dir)
-                        
-                        # 将服务对象转换为字典
-                        service_dict = {
-                            "apiVersion": "v1",
-                            "kind": "Service",
-                            "metadata": {
-                                "name": service.metadata.name,
-                                "namespace": service.metadata.namespace,
-                                "labels": service.metadata.labels,
-                                "annotations": service.metadata.annotations
-                            },
-                            "spec": {
-                                "ports": [
-                                    {
-                                        "name": port.name,
-                                        "port": port.port,
-                                        "protocol": port.protocol,
-                                        "targetPort": port.target_port
-                                    } for port in service.spec.ports
-                                ],
-                                "selector": service.spec.selector,
-                                "type": service.spec.type,
-                                "clusterIP": service.spec.cluster_ip,
-                                "sessionAffinity": service.spec.session_affinity
-                            }
-                        }
-                        
-                        # 保存为 YAML 文件
-                        file_path = os.path.join(ns_dir, f"{name}.yaml")
-                        with open(file_path, 'w', encoding='utf-8') as f:
-                            yaml.dump(service_dict, f, default_flow_style=False, allow_unicode=True)
-                        logger.info(f"服务配置已保存到 {file_path}")
-                    
-                    # 在保存 list.json 之前添加 datetime 处理
-                    def _datetime_handler(obj):
-                        if isinstance(obj, datetime.datetime):
-                            return obj.isoformat()
-                        return obj
-
-                    # 修改保存 JSON 的代码
-                    list_file = os.path.join(services_dir, "list.json")
-                    with open(list_file, 'w', encoding='utf-8') as f:
-                        json.dump([service.to_dict() for service in services.items], 
-                                 f, ensure_ascii=False, indent=2, default=_datetime_handler)
-                
-            except Exception as e:
-                logger.error(f"获取核心服务配置失败: {str(e)}")
-            
+                api_client = client.ApiClient(self.configuration)
+            else:
+                api_client = client.ApiClient()
+            custom_api = client.CustomObjectsApi(api_client)
+            core_v1_api = client.CoreV1Api(api_client)
+            changes = do_export_control_plane(
+                output_dir=self.control_plane_dir,
+                k8s_client=custom_api,
+                core_v1_api=core_v1_api,
+            )
+            for config_key, data in changes.items():
+                self.last_config_hashes[config_key] = self._calculate_hash(data)
+            return changes
         except Exception as e:
             logger.error(f"获取控制平面配置失败: {str(e)}")
-        
-        return changes
+            return {}
 
     def request_update(self) -> None:
         """请求更新配置（异步）"""
@@ -678,7 +714,7 @@ class IstioSidecarMonitor:
             self.proxies_cache = set(proxies)
             
             # 导出每个代理的配置
-            for proxy_id in proxies[0]:
+            for proxy_id in proxies:
                 # 只处理指定命名空间的代理
                 if self.namespace != "all" and not proxy_id.endswith(f".{self.namespace}"):
                     continue
@@ -742,9 +778,9 @@ def main():
         """
     )
     parser.add_argument("--interval", type=int, default=1200, help="检查间隔（秒）")
-    parser.add_argument("--output-dir", default="./istio_sidecar_config", help="配置输出目录")
+    parser.add_argument("--output-dir", default="istio_config_parser/istio_monitor/istio_sidecar_config", help="配置输出目录")
     parser.add_argument("--namespace", default="default", help="要监控的命名空间，使用 'all' 监控所有命名空间")
-    parser.add_argument("--config-types", default="routes", help="要获取的配置类型，用逗号分隔")
+    parser.add_argument("--config-types", default="routes,clusters,listeners", help="要获取的配置类型，用逗号分隔（默认: routes,clusters,listeners）")
     parser.add_argument("--vm-host", help="虚拟机主机")
     parser.add_argument("--vm-port", type=int, default=22, help="虚拟机 SSH 端口")
     parser.add_argument("--vm-user", default="root", help="虚拟机用户名")

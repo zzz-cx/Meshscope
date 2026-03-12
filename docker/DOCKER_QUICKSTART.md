@@ -23,16 +23,16 @@ docker run -it --rm \
   -v $(pwd)/results:/app/results \
   meshscope:latest \
   python e2e_validator.py \
-    --vm-host 192.168.92.131 \
-    --vm-user root \
-    --vm-password 12345678 \
+    --vm-host ${SSH_HOST} \
+    --vm-user ${SSH_USER:-root} \
+    --vm-password ${SSH_PASSWORD} \
     --namespace default
 
 # 或使用脚本
-VM_HOST=192.168.92.131 VM_PASSWORD=12345678 ./docker-run.sh --run
+VM_HOST=${SSH_HOST} VM_PASSWORD=${SSH_PASSWORD} ./docker-run.sh --run
 
 # Windows PowerShell
-.\docker-run.ps1 -Run -VmHost "192.168.92.131" -VmPassword "12345678"
+.\docker-run.ps1 -Run -VmHost "${SSH_HOST}" -VmPassword "${SSH_PASSWORD}"
 ```
 
 ### 3. 查看结果
@@ -47,11 +47,11 @@ ls -la results/e2e_validation/
 ```bash
 # 1. 创建 .env 文件（可选）
 cat > .env << EOF
-VM_HOST=192.168.92.131
-VM_USER=root
-VM_PASSWORD=12345678
+VM_HOST=${SSH_HOST}
+VM_USER=${SSH_USER:-root}
+VM_PASSWORD=${SSH_PASSWORD}
 NAMESPACE=default
-INGRESS_URL=http://192.168.92.131:30476/productpage
+INGRESS_URL=http://${SSH_HOST}:${INGRESS_PORT:-30476}/productpage
 EOF
 
 # 2. 启动服务
@@ -104,9 +104,9 @@ docker image prune -a
 
 | 变量 | 说明 | 示例 |
 |------|------|------|
-| `VM_HOST` | 虚拟机IP | `192.168.92.131` |
-| `VM_USER` | SSH用户 | `root` |
-| `VM_PASSWORD` | SSH密码 | `12345678` |
+| `VM_HOST` | 虚拟机IP | `${SSH_HOST}` (环境变量) |
+| `VM_USER` | SSH用户 | `${SSH_USER:-root}` (环境变量，默认root) |
+| `VM_PASSWORD` | SSH密码 | `${SSH_PASSWORD}` (环境变量) |
 | `NAMESPACE` | K8s命名空间 | `default` |
 | `INGRESS_URL` | Ingress地址 | `http://192.168.92.131:30476/productpage` |
 

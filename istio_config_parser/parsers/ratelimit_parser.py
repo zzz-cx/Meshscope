@@ -5,6 +5,7 @@
 import logging
 from typing import Dict, List, Any, Optional
 from istio_config_parser.parsers.base_parser import FunctionParser
+from istio_config_parser.utils.ratelimit_utils import parse_token_bucket
 from istio_config_parser.models.function_models import (
     RateLimitFunctionModel, RateLimitRule, FunctionType, PlaneType,
     MatchCondition
@@ -65,27 +66,11 @@ class RateLimitParser(FunctionParser):
                         typed_config = patch_value.get('typed_config', {})
                         
                         if '@type' in typed_config:
-                            token_bucket = typed_config.get('token_bucket', {})
-                            
-                            if token_bucket:
-                                # 提取限流参数
-                                max_tokens = token_bucket.get('max_tokens')
-                                fill_interval = token_bucket.get('fill_interval', '')
-                                
-                                # 转换填充间隔为时间单位
-                                unit = 'SECOND'
-                                if 's' in fill_interval:
-                                    seconds = int(''.join(filter(str.isdigit, fill_interval)) or '0')
-                                    if seconds == 60:
-                                        unit = 'MINUTE'
-                                    elif seconds == 3600:
-                                        unit = 'HOUR'
-                                    elif seconds == 86400:
-                                        unit = 'DAY'
-                                
+                            parsed = parse_token_bucket(typed_config.get('token_bucket', {}))
+                            if parsed:
                                 rule = RateLimitRule(
-                                    requests_per_unit=max_tokens,
-                                    unit=unit
+                                    requests_per_unit=parsed['max_tokens'],
+                                    unit=parsed['unit']
                                 )
                                 model.rules.append(rule)
                 
@@ -199,27 +184,13 @@ class RateLimitParser(FunctionParser):
                                         'config': []
                                     }
                                 
-                                # 解析token bucket配置
-                                token_bucket = filter_config.get('tokenBucket', {})
-                                if token_bucket:
-                                    max_tokens = token_bucket.get('maxTokens')
-                                    tokens_per_fill = token_bucket.get('tokensPerFill', {}).get('value')
-                                    fill_interval = token_bucket.get('fillInterval', '')
-                                    
-                                    # 转换时间单位
-                                    unit = 'SECOND'
-                                    if 's' in str(fill_interval):
-                                        seconds = int(''.join(filter(str.isdigit, str(fill_interval))) or '0')
-                                        if seconds == 60:
-                                            unit = 'MINUTE'
-                                        elif seconds == 3600:
-                                            unit = 'HOUR'
-                                        elif seconds == 86400:
-                                            unit = 'DAY'
-                                    
+                                # 解析token bucket配置（使用公共工具）
+                                parsed = parse_token_bucket(filter_config.get('tokenBucket', {}))
+                                if parsed:
+                                    req_per_unit = parsed.get('max_tokens') or parsed.get('tokens_per_fill')
                                     service_ratelimits[service_name]['rules'].append({
-                                        'requests_per_unit': max_tokens or tokens_per_fill,
-                                        'unit': unit
+                                        'requests_per_unit': req_per_unit,
+                                        'unit': parsed['unit']
                                     })
                                 
                                 service_ratelimits[service_name]['config'].append(filter_config)

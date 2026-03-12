@@ -79,6 +79,9 @@ python main_parser.py --output my_ir.json --details
   - 支持services、virtualservices、destinationrules、envoyfilters等
 - **`istio_sidecar_config/`**：数据平面配置目录
   - routes.json、clusters.json、listeners.json等Envoy配置
+- **`export_data_plane_config.py`**：数据平面配置导出（routes/clusters/listeners，支持 istioctl / kubectl-exec / from-yaml）
+- **`export_control_plane_config.py`**：控制平面配置导出（VirtualService、DestinationRule、Service 等，支持 kubeconfig / 远程集群）
+- **`istio_sidecar_monitor.py`**：配置监控器（编排上述两个模块，支持定期拉取与变更回调）
 - **`istio_api.py`**：Istio API接口
 - **`istio_config_parser.py`**：配置解析器
 
@@ -118,6 +121,36 @@ python main_parser.py --output my_ir.json --details
    ```bash
    python main_parser.py --namespace online-boutique --max-workers 4 --export
    ```
+
+### 数据平面配置导出（补齐 clusters/listeners）
+
+一致性检验需要 `routes.json`、`clusters.json`、`listeners.json`。若缺少 clusters/listeners，可运行：
+
+```bash
+# 使用 istioctl（推荐，自动选择代理）
+python istio_monitor/export_data_plane_config.py --method istioctl
+
+# 使用 kubectl exec 指定 Pod
+python istio_monitor/export_data_plane_config.py --pod <pod-name> -n default --method kubectl-exec
+
+# 指定输出目录
+python istio_monitor/export_data_plane_config.py -o ./istio_sidecar_config --method istioctl
+```
+
+或通过 `istio_sidecar_monitor.py` 的 `--update-now` 获取（默认已包含 routes/clusters/listeners）。
+
+### 控制平面配置导出
+
+```bash
+# 使用默认 kubeconfig
+python istio_monitor/export_control_plane_config.py
+
+# 指定远程集群
+python istio_monitor/export_control_plane_config.py --k8s-host 192.168.1.100 --k8s-token <token>
+
+# 指定输出目录
+python istio_monitor/export_control_plane_config.py -o ./istio_control_config
+```
 
 ### 性能优化
 

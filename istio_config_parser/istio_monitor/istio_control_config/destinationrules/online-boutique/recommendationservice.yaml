@@ -1,0 +1,53 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: '{"apiVersion":"networking.istio.io/v1beta1","kind":"DestinationRule","metadata":{"annotations":{},"name":"recommendationservice","namespace":"online-boutique"},"spec":{"host":"recommendationservice.online-boutique.svc.cluster.local","subsets":[{"labels":{"version":"v1"},"name":"default"},{"labels":{"version":"v2"},"name":"ai-model-v2"}]}}
+
+      '
+  creationTimestamp: '2025-05-20T07:14:16Z'
+  generation: 4
+  managedFields:
+  - apiVersion: networking.istio.io/v1beta1
+    fieldsType: FieldsV1
+    fieldsV1:
+      f:metadata:
+        f:annotations:
+          .: {}
+          f:kubectl.kubernetes.io/last-applied-configuration: {}
+      f:spec:
+        .: {}
+        f:subsets: {}
+    manager: kubectl-client-side-apply
+    operation: Update
+    time: '2025-05-20T07:14:16Z'
+  - apiVersion: networking.istio.io/v1
+    fieldsType: FieldsV1
+    fieldsV1:
+      f:spec:
+        f:host: {}
+        f:trafficPolicy:
+          .: {}
+          f:portLevelSettings: {}
+    manager: kiali
+    operation: Update
+    time: '2025-05-20T11:22:10Z'
+  name: recommendationservice
+  namespace: online-boutique
+  resourceVersion: '1965652'
+  uid: 1c8bccee-d36c-4beb-9aeb-ea6ef8fbc412
+spec:
+  host: recommendationservice.online-boutique.svc.cluster.local
+  subsets:
+  - labels:
+      version: v1
+    name: default
+  - labels:
+      version: v2
+    name: ai-model-v2
+  trafficPolicy:
+    portLevelSettings:
+    - loadBalancer:
+        simple: ROUND_ROBIN
+      port:
+        number: 8080

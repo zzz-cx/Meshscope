@@ -6,7 +6,7 @@ metadata:
 
       '
   creationTimestamp: '2025-04-03T07:25:50Z'
-  generation: 1
+  generation: 2
   managedFields:
   - apiVersion: networking.istio.io/v1alpha3
     fieldsType: FieldsV1
@@ -22,9 +22,32 @@ metadata:
     manager: kubectl-client-side-apply
     operation: Update
     time: '2025-04-03T07:25:50Z'
+  - apiVersion: networking.istio.io/v1
+    fieldsType: FieldsV1
+    fieldsV1:
+      f:spec:
+        f:trafficPolicy:
+          .: {}
+          f:connectionPool:
+            .: {}
+            f:http:
+              .: {}
+              f:http1MaxPendingRequests: {}
+              f:maxRequestsPerConnection: {}
+            f:tcp:
+              .: {}
+              f:maxConnections: {}
+          f:outlierDetection:
+            .: {}
+            f:baseEjectionTime: {}
+            f:consecutiveErrors: {}
+            f:interval: {}
+    manager: kiali
+    operation: Update
+    time: '2025-06-26T09:55:58Z'
   name: productpage
   namespace: default
-  resourceVersion: '1482342'
+  resourceVersion: '2424356'
   uid: 8f68a648-6bc7-4436-8ea2-132859b7e95c
 spec:
   host: productpage
@@ -35,3 +58,14 @@ spec:
   - labels:
       version: v2
     name: v2
+  trafficPolicy:
+    connectionPool:
+      http:
+        http1MaxPendingRequests: 1
+        maxRequestsPerConnection: 1
+      tcp:
+        maxConnections: 1
+    outlierDetection:
+      baseEjectionTime: 60s
+      consecutiveErrors: 5
+      interval: 10s

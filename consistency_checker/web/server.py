@@ -268,11 +268,11 @@ class WebServer:
             """生成测试矩阵"""
             try:
                 data = request.get_json() or {}
-                config_path = data.get('config_path', 'istio_Dynamic_Test/generator/istio_config.json')
-                service_deps_path = data.get('service_deps_path', 'istio_Dynamic_Test/service_dependencies.json')
+                config_path = data.get('config_path', self.config.istio_config_file)
+                service_deps_path = data.get('service_deps_path', self.config.service_dependencies_file)
                 namespace = data.get('namespace', self.namespace)
-                output_path = data.get('output_path', 'istio_Dynamic_Test/generator/output_matrix.json')
-                ingress_url = data.get('ingress_url', 'http://localhost:8080')
+                output_path = data.get('output_path', self.config.test_matrix_file)
+                ingress_url = data.get('ingress_url', self.config.get_ingress_url() or 'http://localhost:8080')
                 
                 if not MODULES_AVAILABLE:
                     return jsonify({
@@ -324,8 +324,12 @@ class WebServer:
             """执行动态测试"""
             try:
                 data = request.get_json() or {}
-                matrix_file = data.get('matrix_file', 'istio_Dynamic_Test/generator/output_matrix.json')
-                ssh_config = data.get('ssh_config', {})
+                matrix_file = data.get('matrix_file', self.config.test_matrix_file)
+                ssh_config = data.get('ssh_config', {
+                    'host': self.config.ssh_host,
+                    'user': self.config.ssh_user,
+                    'password': self.config.ssh_password
+                })
                 namespace = data.get('namespace', self.namespace)
                 
                 if not MODULES_AVAILABLE:
@@ -361,9 +365,9 @@ class WebServer:
             """验证动态测试结果"""
             try:
                 data = request.get_json() or {}
-                matrix_file = data.get('matrix_file', 'istio_Dynamic_Test/generator/output_matrix.json')
-                log_dir = data.get('log_dir', 'istio_Dynamic_Test/results/envoy_logs')
-                output_dir = data.get('output_dir', 'istio_Dynamic_Test/results/verification')
+                matrix_file = data.get('matrix_file', self.config.test_matrix_file)
+                log_dir = data.get('log_dir', self.config.envoy_logs_dir)
+                output_dir = data.get('output_dir', self.config.verification_dir)
                 config_file = data.get('config_file')
                 
                 if not MODULES_AVAILABLE:
@@ -522,18 +526,18 @@ class WebServer:
                 
                 <div class="form-group">
                     <label>配置文件路径:</label>
-                    <input type="text" id="config-path" value="istio_Dynamic_Test/generator/istio_config.json">
+                    <input type="text" id="config-path" value="{istio_config_file}">
                 </div>
                 
                 <div class="form-group">
                     <label>Ingress URL (入口地址):</label>
-                    <input type="text" id="ingress-url" value="http://localhost:8080" placeholder="http://192.168.92.131:30476/productpage">
-                    <small style="color: #64748b; display: block; margin-top: 5px;">用于动态测试的入口地址，例如: http://192.168.92.131:30476/productpage</small>
+                    <input type="text" id="ingress-url" value="{ingress_url}" placeholder="http://{ssh_host}:{ingress_port}/productpage">
+                    <small style="color: #64748b; display: block; margin-top: 5px;">用于动态测试的入口地址，例如: http://{ssh_host}:{ingress_port}/productpage</small>
                 </div>
                 
                 <div class="form-group">
                     <label>服务依赖文件路径 (可选):</label>
-                    <input type="text" id="service-deps-path" value="istio_Dynamic_Test/service_dependencies.json" placeholder="可选">
+                    <input type="text" id="service-deps-path" value="{service_dependencies_file}" placeholder="可选">
                 </div>
                 
                 <button class="btn" onclick="generateTestMatrix()">📝 生成测试矩阵</button>
@@ -902,7 +906,16 @@ class WebServer:
 </body>
 </html>
         """
-        return html
+        # 使用配置值替换占位符
+        ingress_url = self.config.get_ingress_url() or 'http://localhost:8080'
+        ssh_host = self.config.ssh_host or 'localhost'
+        return html.format(
+            istio_config_file=self.config.istio_config_file,
+            service_dependencies_file=self.config.service_dependencies_file,
+            ingress_url=ingress_url,
+            ssh_host=ssh_host,
+            ingress_port=self.config.ingress_port
+        )
     
     def _get_report_list(self):
         """获取报告列表"""

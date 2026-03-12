@@ -16,7 +16,7 @@ metadata:
   name: prometheus
   namespace: istio-system
 spec:
-  clusterIP: 10.102.156.241
+  clusterIP: 10.105.70.106
   ports:
   - name: http
     port: 9090
@@ -27,4 +27,4 @@ spec:
     app.kubernetes.io/instance: prometheus
     app.kubernetes.io/name: prometheus
   sessionAffinity: None
-  type: ClusterIP
+  type: NodePort

@@ -87,8 +87,8 @@ python istio_sidecar_monitor.py --vm-host <虚拟机IP>
 # 2. 立即更新模式
 python istio_sidecar_monitor.py --vm-host <虚拟机IP> --update-now
 
-# 3. 更新指定代理
-python istio_sidecar_monitor.py --vm-host <虚拟机IP> --update-now --proxy-ids "proxy1,proxy2"
+# 3. 仅导出模式（不启动监控）
+python istio_sidecar_monitor.py --vm-host <虚拟机IP> --export-only
 ```
 
 #### 在代码中使用监控器
@@ -170,6 +170,34 @@ monitor.stop()
 - 如果 `kubectl` 命令执行失败，请确保虚拟机上已正确配置 Kubernetes 环境
 - 如果 `istioctl` 命令执行失败，请确保虚拟机上已正确安装 Istio
 - 如果监控器无法检测到配置变更，请检查检查间隔是否合适，以及是否有足够的权限访问配置
+
+# 模块结构
+
+配置获取已拆分为独立模块，便于单独使用或集成：
+
+| 模块 | 职责 | 独立运行 |
+|------|------|----------|
+| `export_data_plane_config.py` | 导出 routes/clusters/listeners（数据平面） | ✅ |
+| `export_control_plane_config.py` | 导出 VirtualService、DestinationRule、Service 等（控制平面） | ✅ |
+| `istio_sidecar_monitor.py` | 编排上述模块，支持定期拉取与变更回调 | ✅ |
+
+### 独立导出控制平面
+
+```bash
+python export_control_plane_config.py
+python export_control_plane_config.py --k8s-host 192.168.1.100 --k8s-token <token>
+python export_control_plane_config.py -o ./my_control_config
+```
+
+### 独立导出数据平面
+
+```bash
+python export_data_plane_config.py --method istioctl
+python export_data_plane_config.py --pod <pod> -n default --method kubectl-exec
+python export_data_plane_config.py --method from-yaml   # 从 proxy_config_all.yaml 解析
+```
+
+---
 
 # Istio Sidecar 配置监控工具
 
@@ -262,16 +290,17 @@ python istio_sidecar_monitor.py \
 - `--vm-user`：虚拟机用户名（默认 root）
 - `--vm-password`：虚拟机密码
 - `--vm-key-file`：虚拟机 SSH 密钥文件
-- `--config-dir`：Istio 配置文件目录（用于文件系统监控）
+- `--config-types`：要获取的配置类型，逗号分隔（默认 routes,clusters,listeners）
+- `--k8s-host`：Kubernetes API 地址（远程集群）
+- `--k8s-token`：认证 token
 - `--export-only`：仅导出当前配置，不启动监控
 - `--update-now`：立即更新配置
-- `--proxy-ids`：要更新的代理ID列表，用逗号分隔
 
 ### 3. 运行模式
 
 1. **监控模式**（默认）：
 ```bash
-python istio_sidecar_monitor.py --vm-host <虚拟机IP> --config-dir /path/to/istio/config
+python istio_sidecar_monitor.py --vm-host <虚拟机IP>
 ```
 - 启动后会持续监控配置变化
 - 按 Enter 键可触发即时更新

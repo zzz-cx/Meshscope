@@ -1,10 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  annotations:
-    kubectl.kubernetes.io/last-applied-configuration: '{"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"labels":{"app":"istiod","app.kubernetes.io/instance":"istio","app.kubernetes.io/managed-by":"Helm","app.kubernetes.io/name":"istiod","app.kubernetes.io/part-of":"istio","app.kubernetes.io/version":"1.24.0","helm.sh/chart":"istiod-1.24.0","install.operator.istio.io/owning-resource":"unknown","istio":"pilot","istio.io/rev":"default","operator.istio.io/component":"Pilot","release":"istio"},"name":"istiod","namespace":"istio-system"},"spec":{"ports":[{"name":"grpc-xds","port":15010,"protocol":"TCP"},{"name":"https-dns","port":15012,"protocol":"TCP"},{"name":"https-webhook","port":443,"protocol":"TCP","targetPort":15017},{"name":"http-monitoring","port":15014,"protocol":"TCP"}],"selector":{"app":"istiod","istio":"pilot"}}}
-
-      '
+  annotations: {}
   labels:
     app: istiod
     app.kubernetes.io/instance: istio
@@ -24,7 +21,7 @@ metadata:
   name: istiod
   namespace: istio-system
 spec:
-  clusterIP: 10.111.172.136
+  clusterIP: 10.108.165.215
   ports:
   - name: grpc-xds
     port: 15010
