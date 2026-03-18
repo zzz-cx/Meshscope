@@ -1,6 +1,16 @@
 """
 熔断功能解析器
 解析控制平面和数据平面的熔断配置，生成统一的CircuitBreakerFunctionModel
+
+Istio→Envoy 语义映射（控制平面与数据平面实际匹配）:
+  DestinationRule.trafficPolicy.connectionPool.tcp.maxConnections
+    → clusters[].cluster.circuit_breakers.thresholds[0].max_connections
+  DestinationRule.trafficPolicy.connectionPool.http.http1MaxPendingRequests
+    → clusters[].cluster.circuit_breakers.thresholds[0].max_pending_requests
+  DestinationRule.trafficPolicy.connectionPool.http.maxRequestsPerConnection
+    → clusters[].cluster.circuit_breakers.thresholds[0].max_requests
+  DestinationRule.trafficPolicy.outlierDetection
+    → clusters[].cluster.outlier_detection
 """
 import logging
 from typing import Dict, List, Any, Optional
@@ -188,23 +198,26 @@ class CircuitBreakerParser(FunctionParser):
                 raw_config={'clusters': clusters}
             )
             
-            # 解析每个cluster的熔断配置
+            # 解析每个cluster的熔断配置（clusters.json 中 circuit_breakers 在 cluster 内）
             for cluster_info in clusters:
                 cluster = cluster_info['cluster']
                 subset = cluster_info['subset']
                 
-                # 解析连接池配置
-                circuit_breakers_config = cluster.get('circuitBreakers', {})
+                # 解析连接池配置（兼容 camelCase 与 snake_case，Envoy 导出为 snake_case）
+                circuit_breakers_config = cluster.get('circuitBreakers') or cluster.get('circuit_breakers') or {}
                 thresholds = circuit_breakers_config.get('thresholds', [])
                 
                 if thresholds:
                     threshold = thresholds[0]
-                    
+                    max_conn = threshold.get('maxConnections') or threshold.get('max_connections')
+                    max_pending = threshold.get('maxPendingRequests') or threshold.get('max_pending_requests')
+                    max_req = threshold.get('maxRequests') or threshold.get('max_requests')
+                    max_ret = threshold.get('maxRetries') or threshold.get('max_retries')
                     conn_pool = ConnectionPoolSettings(
-                        max_connections=threshold.get('maxConnections'),
-                        http1_max_pending_requests=threshold.get('maxPendingRequests'),
-                        http2_max_requests=threshold.get('maxRequests'),
-                        max_retries=threshold.get('maxRetries')
+                        max_connections=max_conn,
+                        http1_max_pending_requests=max_pending,
+                        http2_max_requests=max_req,
+                        max_retries=max_ret
                     )
                     
                     # 如果是全局配置（没有subset）
@@ -215,15 +228,15 @@ class CircuitBreakerParser(FunctionParser):
                             model.subset_policies[subset] = {}
                         model.subset_policies[subset]['connection_pool'] = conn_pool.to_dict()
                 
-                # 解析异常检测配置
-                outlier_detection_config = cluster.get('outlierDetection', {})
+                # 解析异常检测配置（兼容 camelCase 与 snake_case）
+                outlier_detection_config = cluster.get('outlierDetection') or cluster.get('outlier_detection') or {}
                 if outlier_detection_config:
                     outlier = OutlierDetection(
-                        consecutive_5xx_errors=outlier_detection_config.get('consecutive5xx'),
-                        consecutive_gateway_errors=outlier_detection_config.get('consecutiveGatewayFailure'),
+                        consecutive_5xx_errors=outlier_detection_config.get('consecutive5xx') or outlier_detection_config.get('consecutive_5xx'),
+                        consecutive_gateway_errors=outlier_detection_config.get('consecutiveGatewayFailure') or outlier_detection_config.get('consecutive_gateway_failure'),
                         interval=outlier_detection_config.get('interval'),
-                        base_ejection_time=outlier_detection_config.get('baseEjectionTime'),
-                        max_ejection_percent=outlier_detection_config.get('maxEjectionPercent')
+                        base_ejection_time=outlier_detection_config.get('baseEjectionTime') or outlier_detection_config.get('base_ejection_time'),
+                        max_ejection_percent=outlier_detection_config.get('maxEjectionPercent') or outlier_detection_config.get('max_ejection_percent')
                     )
                     
                     if not subset:

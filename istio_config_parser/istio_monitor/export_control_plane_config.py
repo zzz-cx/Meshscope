@@ -31,6 +31,13 @@ from typing import Dict, Any, Optional
 # 添加项目路径
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
+# 修复 Windows 控制台中文乱码
+try:
+    from istio_config_parser.utils.console_encoding import fix_console_encoding
+    fix_console_encoding()
+except ImportError:
+    pass
+
 try:
     from kubernetes import client, config
 except ImportError:

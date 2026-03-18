@@ -101,6 +101,10 @@ class RoutingFunctionModel(FunctionModel):
     gateways: List[str] = field(default_factory=list)  # 关联的网关
     hosts: List[str] = field(default_factory=list)  # 主机列表
     
+    def is_gateway_bound(self) -> bool:
+        """是否绑定到 Gateway（配置在 ingress gateway 上）"""
+        return bool(self.gateways)
+    
     def add_route(self, match: Optional[MatchCondition], destinations: List[RouteDestination], priority: int = 0):
         """添加路由规则"""
         self.routes.append({
@@ -230,18 +234,33 @@ class RateLimitRule:
         }
 
 
+class RateLimitType:
+    """限流类型常量"""
+    LOCAL = "local"   # 本地限流 envoy.filters.http.local_ratelimit
+    GLOBAL = "global"  # 全局限流 envoy.filters.http.ratelimit
+
+
 @dataclass
 class RateLimitFunctionModel(FunctionModel):
-    """限流功能模型"""
+    """限流功能模型
+    
+    支持两种限流机制:
+    - 本地限流(LOCAL): EnvoyFilter → local_ratelimit filter, token_bucket
+    - 全局限流(GLOBAL): EnvoyFilter → ratelimit filter, rate_limit_service
+    """
     rules: List[RateLimitRule] = field(default_factory=list)
     
-    # 限流服务配置
+    # 限流类型: local | global
+    rate_limit_type: str = RateLimitType.LOCAL
+    
+    # 全局限流服务配置（仅 GLOBAL 类型）
     rate_limit_service: Optional[Dict[str, Any]] = None
     
     def to_dict(self) -> Dict[str, Any]:
         base = super().to_dict()
         base.update({
             'rules': [r.to_dict() for r in self.rules],
+            'rate_limit_type': self.rate_limit_type,
             'rate_limit_service': self.rate_limit_service
         })
         return base
@@ -295,18 +314,26 @@ class TrafficShiftingFunctionModel(FunctionModel):
     """流量迁移/灰度发布功能模型"""
     # 目标权重分配
     destinations: List[RouteDestination] = field(default_factory=list)
-    
+
     # 子集定义
     subsets: List[Dict[str, Any]] = field(default_factory=list)
     # 每个子集: {name, version, labels}
-    
+
+    # 关联的网关（若 VirtualService 绑定到 Gateway，配置在 ingress gateway 上而非 sidecar）
+    gateways: List[str] = field(default_factory=list)
+
     def to_dict(self) -> Dict[str, Any]:
         base = super().to_dict()
         base.update({
             'destinations': [d.to_dict() for d in self.destinations],
-            'subsets': self.subsets
+            'subsets': self.subsets,
+            'gateways': self.gateways
         })
         return base
+
+    def is_gateway_bound(self) -> bool:
+        """是否绑定到 Gateway（配置在 ingress gateway 上）"""
+        return bool(self.gateways)
 
 
 @dataclass

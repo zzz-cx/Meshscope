@@ -297,6 +297,50 @@ class StaticAnalyzer:
                     "description": f"服务 {service} 的流量权重配置不一致"
                 })
         
+        # VS→DR subset 交叉校验
+        issues.extend(self._check_vs_dr_subset_consistency())
+        
+        return issues
+
+    def _check_vs_dr_subset_consistency(self) -> List[Dict[str, Any]]:
+        """检查 VirtualService 引用的 subset 是否在 DestinationRule 中定义"""
+        issues = []
+
+        service_relations = self.control_plane_data.get('serviceRelations', {})
+        dr_subsets_by_service: Dict[str, set] = {}
+        for svc, rels in service_relations.items():
+            dr_subsets_by_service[svc] = {s['name'] for s in rels.get('subsets', [])}
+
+        for svc, rels in service_relations.items():
+            for vs in rels.get('incomingVirtualServices', []):
+                vs_name = vs.get('name', 'unknown')
+                for rule in vs.get('rules', []):
+                    for route in rule.get('route', []):
+                        dest = route.get('destination', {})
+                        target_host = dest.get('host', '')
+                        subset = dest.get('subset')
+                        if not subset:
+                            continue
+
+                        target_svc = target_host.split('.')[0] if '.' in target_host else target_host
+                        available = dr_subsets_by_service.get(target_svc, set())
+                        if not available:
+                            available = dr_subsets_by_service.get(target_host, set())
+
+                        if subset not in available:
+                            issues.append({
+                                "type": "missing_subset",
+                                "severity": "high",
+                                "service": target_svc,
+                                "virtualservice": vs_name,
+                                "missing_subset": subset,
+                                "available_subsets": list(available),
+                                "description": (
+                                    f"VirtualService '{vs_name}' 引用了 subset '{subset}'，"
+                                    f"但 DestinationRule 中只定义了 {list(available) or '(无)'}"
+                                )
+                            })
+
         return issues
     
     def get_policy_by_id(self, policy_id: str) -> Optional[StaticPolicy]:

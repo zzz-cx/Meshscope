@@ -6,7 +6,7 @@ metadata:
 
       '
   creationTimestamp: '2025-05-20T06:35:48Z'
-  generation: 1
+  generation: 2
   managedFields:
   - apiVersion: networking.istio.io/v1alpha3
     fieldsType: FieldsV1
@@ -17,7 +17,6 @@ metadata:
           f:kubectl.kubernetes.io/last-applied-configuration: {}
       f:spec:
         .: {}
-        f:configPatches: {}
         f:workloadSelector:
           .: {}
           f:labels:
@@ -26,28 +25,38 @@ metadata:
     manager: kubectl-client-side-apply
     operation: Update
     time: '2025-05-20T06:35:48Z'
+  - apiVersion: networking.istio.io/v1alpha3
+    fieldsType: FieldsV1
+    fieldsV1:
+      f:spec:
+        f:configPatches: {}
+    manager: kiali
+    operation: Update
+    time: '2026-03-12T09:18:15Z'
   name: payment-rate-limit
   namespace: online-boutique
-  resourceVersion: '1928651'
+  resourceVersion: '3483670'
   uid: 695f76fa-375b-4582-b533-e193940eb454
 spec:
   configPatches:
   - applyTo: HTTP_FILTER
     match:
-      context: GATEWAY
+      context: SIDECAR_INBOUND
+      listener:
+        filterChain:
+          filter:
+            name: envoy.filters.network.http_connection_manager
     patch:
       operation: INSERT_BEFORE
       value:
         name: envoy.filters.http.local_ratelimit
         typed_config:
-          '@type': type.googleapis.com/udpa.type.v1.TypedStruct
-          type_url: type.googleapis.com/envoy.extensions.filters.http.local_ratelimit.v3.LocalRateLimit
-          value:
-            stat_prefix: http_local_rate_limiter
-            token_bucket:
-              fill_interval: 1s
-              max_tokens: 100
-              tokens_per_fill: 10
+          '@type': type.googleapis.com/envoy.extensions.filters.http.local_ratelimit.v3.LocalRateLimit
+          stat_prefix: http_local_rate_limiter
+          token_bucket:
+            fill_interval: 1s
+            max_tokens: 100
+            tokens_per_fill: 10
   workloadSelector:
     labels:
       app: paymentservice

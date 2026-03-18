@@ -197,11 +197,37 @@ class SystemIR:
         ]
     
     def get_summary(self) -> Dict[str, Any]:
-        """获取系统级摘要"""
+        """获取系统级摘要（含服务级和功能级一致性）"""
         total_services = len(self.services)
-        consistent = len(self.get_consistent_services())
-        inconsistent = len(self.get_inconsistent_services())
-        
+        consistent_services = len(self.get_consistent_services())
+        inconsistent_services = len(self.get_inconsistent_services())
+
+        # 功能级统计：以控制平面为意图，仅检测控制平面配置是否成功映射到数据平面
+        # 只统计有控制平面配置的功能（排除 DATA_ONLY：控制平面无、数据平面有，此类忽略）
+        all_functions = [
+            func for service in self.services.values()
+            for func in service.functions.values()
+        ]
+        control_plane_functions = [
+            f for f in all_functions
+            if f.aligned_pair and f.aligned_pair.has_control_plane()
+        ]
+        total_functions = len(control_plane_functions)  # 待检测的功能数（控制平面有配置的）
+        consistent_functions = sum(
+            1 for f in control_plane_functions if f.consistency_status == ConsistencyStatus.CONSISTENT
+        )
+        inconsistent_functions = sum(
+            1 for f in control_plane_functions if f.consistency_status in (
+                ConsistencyStatus.INCONSISTENT, ConsistencyStatus.PARTIAL_CONSISTENT
+            )
+        )
+        # Gateway 绑定配置（需 ingress gateway config 才能校验，当前标记为 not_applicable）
+        gateway_bound_functions = sum(
+            1 for f in control_plane_functions
+            if f.consistency_status == ConsistencyStatus.NOT_APPLICABLE
+            and any(i.severity == "info" and "ingress gateway" in (i.description or "") for i in f.issues)
+        )
+
         total_issues = sum(len(service.get_all_issues()) for service in self.services.values())
         total_errors = sum(
             sum(func.get_error_count() for func in service.functions.values())
@@ -211,12 +237,17 @@ class SystemIR:
             sum(func.get_warning_count() for func in service.functions.values())
             for service in self.services.values()
         )
-        
+
         return {
             'total_services': total_services,
-            'consistent_services': consistent,
-            'inconsistent_services': inconsistent,
-            'consistency_rate': consistent / total_services if total_services > 0 else 0,
+            'consistent_services': consistent_services,
+            'inconsistent_services': inconsistent_services,
+            'consistency_rate': consistent_services / total_services if total_services > 0 else 0,
+            'total_functions': total_functions,
+            'consistent_functions': consistent_functions,
+            'inconsistent_functions': inconsistent_functions,
+            'gateway_bound_functions': gateway_bound_functions,
+            'function_consistency_rate': consistent_functions / total_functions if total_functions > 0 else 0,
             'total_issues': total_issues,
             'total_errors': total_errors,
             'total_warnings': total_warnings
@@ -281,6 +312,19 @@ class IRBuilder:
         return system_ir
     
     @staticmethod
+    def _is_gateway_bound(model: Optional[Any]) -> bool:
+        """检查控制平面模型是否绑定到 Gateway（配置在 ingress gateway 上）"""
+        if not model:
+            return False
+        if hasattr(model, 'is_gateway_bound') and callable(model.is_gateway_bound):
+            return model.is_gateway_bound()
+        # 从 raw_config 回退检查（兼容未实现 is_gateway_bound 的模型）
+        raw = getattr(model, 'raw_config', {}) or {}
+        vs = raw.get('virtual_service', {})
+        gateways = vs.get('spec', {}).get('gateways', [])
+        return bool(gateways)
+    
+    @staticmethod
     def _build_function_ir(pair: AlignedFunctionPair) -> FunctionIR:
         """从对齐对构建功能IR"""
         function_ir = FunctionIR(
@@ -294,23 +338,31 @@ class IRBuilder:
         if pair.alignment_status == AlignmentStatus.MATCHED:
             function_ir.consistency_status = ConsistencyStatus.CONSISTENT
         elif pair.alignment_status == AlignmentStatus.CONTROL_ONLY:
-            function_ir.consistency_status = ConsistencyStatus.NOT_APPLICABLE
-            function_ir.add_issue(ConsistencyIssue(
-                field_path="data_plane",
-                control_plane_value="configured",
-                data_plane_value="missing",
-                severity="error",
-                description="数据平面缺少对应配置"
-            ))
+            # 检查是否为 Gateway 绑定的配置（frontend-ingress、bookinfo 等）
+            # 此类配置应用在 istio-ingressgateway 上，当前 sidecar 数据平面无法校验
+            is_gateway_bound = IRBuilder._is_gateway_bound(pair.control_plane_model)
+            if is_gateway_bound:
+                function_ir.consistency_status = ConsistencyStatus.NOT_APPLICABLE
+                function_ir.add_issue(ConsistencyIssue(
+                    field_path="data_plane",
+                    control_plane_value="configured",
+                    data_plane_value="ingress_gateway_only",
+                    severity="info",
+                    description="该配置绑定到 Gateway，应用在 ingress gateway 上。"
+                    "当前数据平面来自 mesh sidecar，无法校验。需采集 istio-ingressgateway 的 config_dump 进行校验。"
+                ))
+            else:
+                function_ir.consistency_status = ConsistencyStatus.INCONSISTENT
+                function_ir.add_issue(ConsistencyIssue(
+                    field_path="data_plane",
+                    control_plane_value="configured",
+                    data_plane_value="missing",
+                    severity="error",
+                    description="数据平面缺少对应配置"
+                ))
         elif pair.alignment_status == AlignmentStatus.DATA_ONLY:
+            # 控制平面无、数据平面有：忽略，不记为问题（以控制平面为意图，仅检测意图是否映射到数据平面）
             function_ir.consistency_status = ConsistencyStatus.NOT_APPLICABLE
-            function_ir.add_issue(ConsistencyIssue(
-                field_path="control_plane",
-                control_plane_value="missing",
-                data_plane_value="configured",
-                severity="warning",
-                description="控制平面缺少对应配置（可能是默认配置）"
-            ))
         else:
             function_ir.consistency_status = ConsistencyStatus.UNKNOWN
         

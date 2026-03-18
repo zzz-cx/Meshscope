@@ -9,6 +9,15 @@ from consistency_checker.models.data_models import (
     ConfigEdge,
     InconsistencyAnnotation
 )
+from consistency_checker.models.three_layer_graph_models import (
+    ThreeLayerGraph,
+    Layer1Node,
+    Layer2Node,
+    Layer3Node,
+    PlaneType,
+    ConfigResourceType,
+    FunctionalRelationType,
+)
 
 __all__ = [
     "StaticPolicy",
@@ -17,7 +26,14 @@ __all__ = [
     "VerificationReport",
     "ServiceNode",
     "ConfigEdge",
-    "InconsistencyAnnotation"
+    "InconsistencyAnnotation",
+    "ThreeLayerGraph",
+    "Layer1Node",
+    "Layer2Node",
+    "Layer3Node",
+    "PlaneType",
+    "ConfigResourceType",
+    "FunctionalRelationType",
 ]
 
 

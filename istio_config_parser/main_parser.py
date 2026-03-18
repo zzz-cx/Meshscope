@@ -24,6 +24,25 @@ from istio_config_parser.utils.ir_to_legacy import system_ir_to_legacy
 
 logger = logging.getLogger(__name__)
 
+# 包目录与项目根，用于路径解析
+_PKG_DIR = os.path.dirname(os.path.abspath(__file__))
+_PROJECT_ROOT = os.path.dirname(_PKG_DIR)
+
+
+def _resolve_config_dir(path: str) -> str:
+    """
+    解析配置目录路径。
+    - 绝对路径：原样返回
+    - 以 istio_config_parser 开头：相对于项目根（用户从项目根传入）
+    - 否则：相对于包目录（默认 istio_monitor/...）
+    """
+    if os.path.isabs(path):
+        return path
+    if path.startswith('istio_config_parser' + os.sep) or path.startswith('istio_config_parser/'):
+        return os.path.join(_PROJECT_ROOT, path)
+    return os.path.join(_PKG_DIR, path)
+
+
 def _load_config_files(config_dir: str, resource_type: str, namespace: Optional[str] = None) -> Dict[str, Any]:
     """
     加载指定资源类型的所有配置文件
@@ -81,9 +100,8 @@ def parse_to_legacy_format(
     使用 UnifiedParser 解析并转换为 legacy 格式
     :return: (ControlPlaneResult, DataPlaneResult)
     """
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    cp_dir = os.path.join(current_dir, control_plane_dir) if not os.path.isabs(control_plane_dir) else control_plane_dir
-    dp_dir = os.path.join(current_dir, data_plane_dir) if not os.path.isabs(data_plane_dir) else data_plane_dir
+    cp_dir = _resolve_config_dir(control_plane_dir)
+    dp_dir = _resolve_config_dir(data_plane_dir)
 
     cache_key = f"{cp_dir}|{dp_dir}|{namespace}"
     if cache_key in _legacy_cache:
@@ -117,7 +135,7 @@ def parse_to_legacy_format(
 
 
 def parse_control_plane_from_dir(
-    control_plane_dir: str = 'istio_monitor/istio_control_config',
+    control_plane_dir: str = 'istio_config_parser/istio_monitor/istio_control_config',
     namespace: Optional[str] = None,
     data_plane_dir: Optional[str] = None
 ) -> ControlPlaneResult:
@@ -132,13 +150,13 @@ def parse_control_plane_from_dir(
     if dp_dir is None:
         dp_dir = control_plane_dir.replace('istio_control_config', 'istio_sidecar_config')
         if dp_dir == control_plane_dir:
-            dp_dir = 'istio_monitor/istio_sidecar_config'
+            dp_dir = 'istio_config_parser/istio_monitor/istio_sidecar_config'
     control_result, _ = parse_to_legacy_format(control_plane_dir, dp_dir, namespace)
     return control_result
 
 
 def parse_data_plane_from_dir(
-    data_plane_dir: str = 'istio_monitor/istio_sidecar_config',
+    data_plane_dir: str = 'istio_config_parser/istio_monitor/istio_sidecar_config',
     control_plane_dir: Optional[str] = None
 ) -> DataPlaneResult:
     """
@@ -151,18 +169,46 @@ def parse_data_plane_from_dir(
     if cp_dir is None:
         cp_dir = data_plane_dir.replace('istio_sidecar_config', 'istio_control_config')
         if cp_dir == data_plane_dir:
-            cp_dir = 'istio_monitor/istio_control_config'
+            cp_dir = 'istio_config_parser/istio_monitor/istio_control_config'
     _, data_result = parse_to_legacy_format(cp_dir, data_plane_dir, None)
     return data_result
 
 
+def _merge_data_plane_configs(
+    base: Dict[str, Any],
+    extra: Dict[str, Any],
+    label: str = "ingress"
+) -> Dict[str, Any]:
+    """合并数据平面配置（sidecar + ingress），用于 Gateway 绑定项校验"""
+    merged = dict(base)
+    for key in ['routes', 'clusters', 'listeners']:
+        if key not in extra or not extra[key]:
+            continue
+        a = base.get(key)
+        b = extra[key]
+        if a is None:
+            a = [] if key != 'listeners' else []
+        if b is None:
+            b = []
+        if not isinstance(a, list):
+            a = [a]
+        if not isinstance(b, list):
+            b = [b]
+        merged[key] = a + b
+        if a and b:
+            logger.info(f"已合并 {label} {key}: +{len(b)} 条")
+    return merged
+
+
 def parse_unified_from_dir(
-    control_plane_dir: str = 'istio_monitor/istio_control_config',
-    data_plane_dir: str = 'istio_monitor/istio_sidecar_config',
+    control_plane_dir: str = 'istio_config_parser/istio_monitor/istio_control_config',
+    data_plane_dir: str = 'istio_config_parser/istio_monitor/istio_sidecar_config',
+    ingress_plane_dir: Optional[str] = None,
     namespace: Optional[str] = None,
     enable_parallel: bool = True,
-    max_workers: Optional[int] = None
-) -> SystemIR:
+    max_workers: Optional[int] = None,
+    return_control_plane_configs: bool = False
+):
     """
     使用统一解析器从配置目录解析控制平面和数据平面配置，生成中间表示（IR）
     
@@ -175,7 +221,8 @@ def parse_unified_from_dir(
     
     Args:
         control_plane_dir: 控制平面配置目录（相对于当前文件）
-        data_plane_dir: 数据平面配置目录（sidecar配置，相对于当前文件）
+        data_plane_dir: 数据平面配置目录（sidecar 配置，相对于当前文件）
+        ingress_plane_dir: Ingress Gateway 配置目录（可选，用于 Gateway 绑定项如 frontend-ingress/bookinfo 校验）
         namespace: 可选的命名空间过滤
         enable_parallel: 是否启用并行处理（默认True）
         max_workers: 最大工作线程数，None表示自动计算
@@ -188,11 +235,9 @@ def parse_unified_from_dir(
         >>> summary = system_ir.get_summary()
         >>> print(f"一致性比例: {summary['consistency_rate']:.2%}")
     """
-    # 获取当前文件所在目录
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    cp_dir = os.path.join(current_dir, control_plane_dir)
-    dp_dir = os.path.join(current_dir, data_plane_dir)
-    
+    cp_dir = _resolve_config_dir(control_plane_dir)
+    dp_dir = _resolve_config_dir(data_plane_dir)
+
     # 加载控制平面配置
     logger.info("加载控制平面配置...")
     control_plane_configs = {
@@ -201,7 +246,7 @@ def parse_unified_from_dir(
         'destination_rules': _load_config_files(cp_dir, 'destinationrules', namespace),
         'envoy_filters': _load_config_files(cp_dir, 'envoyfilters', namespace)
     }
-    
+
     # 加载数据平面配置
     logger.info("加载数据平面配置...")
     data_plane_configs = {}
@@ -230,18 +275,89 @@ def parse_unified_from_dir(
     else:
         logger.warning(f"未找到监听器配置文件: {listeners_file}")
     
+    # 加载 Ingress Gateway 配置（可选，用于 Gateway 绑定项校验）
+    if ingress_plane_dir:
+        ig_dir = _resolve_config_dir(ingress_plane_dir)
+        ig_routes = os.path.join(ig_dir, 'routes.json')
+        ig_clusters = os.path.join(ig_dir, 'clusters.json')
+        ig_listeners = os.path.join(ig_dir, 'listeners.json')
+        ingress_configs = {}
+        if os.path.exists(ig_routes):
+            ingress_configs['routes'] = load_json_file(ig_routes)
+        if os.path.exists(ig_clusters):
+            ingress_configs['clusters'] = load_json_file(ig_clusters)
+        if os.path.exists(ig_listeners):
+            ingress_configs['listeners'] = load_json_file(ig_listeners)
+        if ingress_configs:
+            data_plane_configs = _merge_data_plane_configs(
+                data_plane_configs, ingress_configs, "ingress gateway"
+            )
+        else:
+            logger.warning(f"Ingress 目录 {ig_dir} 下未找到 routes/clusters/listeners.json")
+    
     # 使用统一解析器
     logger.info("开始解析和对齐配置...")
     parser = UnifiedParser(enable_parallel=enable_parallel, max_workers=max_workers)
     system_ir = parser.parse_align_and_build_ir(control_plane_configs, data_plane_configs)
     
     logger.info("解析完成")
+    if return_control_plane_configs:
+        return system_ir, control_plane_configs
     return system_ir
 
 
+def export_three_layer_graph(
+    control_plane_dir: str = 'istio_config_parser/istio_monitor/istio_control_config',
+    data_plane_dir: str = 'istio_config_parser/istio_monitor/istio_sidecar_config',
+    ingress_plane_dir: Optional[str] = None,
+    output_file: str = 'models_output/three_layer_graph.json',
+    namespace: Optional[str] = None,
+    enable_parallel: bool = True,
+    max_workers: Optional[int] = None
+) -> str:
+    """
+    解析配置并导出三层配置依赖图
+    
+    三层结构：
+    - 第一层（平面层）：控制面/数据面全局节点，边为一致/不一致匹配
+    - 第二层（服务层）：服务与子服务节点，边为服务间功能关系
+    - 第三层（配置层）：配置资源（VS/DR/EF），边为配置依赖
+    
+    跨层：第三层→第二层表示配置归属服务；第三层内边表示服务内配置依赖
+    
+    Returns:
+        导出的 JSON 文件路径
+    """
+    from istio_config_parser.visualizer.three_layer_graph import ThreeLayerGraphGenerator
+    
+    system_ir = parse_unified_from_dir(
+        control_plane_dir=control_plane_dir,
+        data_plane_dir=data_plane_dir,
+        ingress_plane_dir=ingress_plane_dir,
+        namespace=namespace,
+        enable_parallel=enable_parallel,
+        max_workers=max_workers
+    )
+    
+    cp_dir = _resolve_config_dir(control_plane_dir)
+    control_plane_configs = {
+        'virtual_services': _load_config_files(cp_dir, 'virtualservices', namespace),
+        'destination_rules': _load_config_files(cp_dir, 'destinationrules', namespace),
+        'envoy_filters': _load_config_files(cp_dir, 'envoyfilters', namespace)
+    }
+    
+    generator = ThreeLayerGraphGenerator(system_ir, control_plane_configs)
+    generator.generate()
+    
+    out_path = output_file if os.path.isabs(output_file) else os.path.join(_PROJECT_ROOT, output_file)
+    generator.save_to_file(out_path)
+    
+    return out_path
+
+
 def parse_and_export_models(
-    control_plane_dir: str = 'istio_monitor/istio_control_config',
-    data_plane_dir: str = 'istio_monitor/istio_sidecar_config',
+    control_plane_dir: str = 'istio_config_parser/istio_monitor/istio_control_config',
+    data_plane_dir: str = 'istio_config_parser/istio_monitor/istio_sidecar_config',
     output_dir: str = 'models_output',
     namespace: Optional[str] = None,
     enable_parallel: bool = True,
@@ -270,12 +386,10 @@ def parse_and_export_models(
         >>> files = parse_and_export_models(namespace='online-boutique')
         >>> print(f"控制平面模型: {files['control_plane_file']}")
     """
-    # 获取当前文件所在目录
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    cp_dir = os.path.join(current_dir, control_plane_dir)
-    dp_dir = os.path.join(current_dir, data_plane_dir)
-    out_dir = os.path.join(current_dir, output_dir)
-    
+    cp_dir = _resolve_config_dir(control_plane_dir)
+    dp_dir = _resolve_config_dir(data_plane_dir)
+    out_dir = _resolve_config_dir(output_dir) if not os.path.isabs(output_dir) else output_dir
+
     # 加载控制平面配置
     logger.info("加载控制平面配置...")
     control_plane_configs = {
@@ -328,7 +442,9 @@ def save_ir_to_file(system_ir: SystemIR, output_file: str):
 
 if __name__ == "__main__":
     import argparse
-    
+    from istio_config_parser.utils.console_encoding import fix_console_encoding
+    fix_console_encoding()
+
     # 设置日志级别
     logging.basicConfig(
         level=logging.INFO,
@@ -371,6 +487,8 @@ if __name__ == "__main__":
                            help='输出IR文件路径（unified模式）')
     parser_cli.add_argument('--export', action='store_true',
                            help='导出独立的模型文件（控制平面/数据平面/可视化）')
+    parser_cli.add_argument('--export-three-layer-graph', action='store_true',
+                           help='导出三层配置依赖图（平面层/服务层/配置层）')
     parser_cli.add_argument('--output-dir', type=str, default='models_output',
                            help='模型文件输出目录（与--export一起使用）')
     parser_cli.add_argument('--summary', action='store_true', default=True,
@@ -378,20 +496,25 @@ if __name__ == "__main__":
     parser_cli.add_argument('--details', action='store_true',
                            help='显示详细的服务和功能信息')
     parser_cli.add_argument('--control-plane-dir', type=str, 
-                           default='istio_monitor/istio_control_config',
-                           help='控制平面配置目录')
+                           default='istio_config_parser/istio_monitor/istio_control_config',
+                           help='控制平面配置目录（支持项目根相对路径）')
     parser_cli.add_argument('--data-plane-dir', type=str,
-                           default='istio_monitor/istio_sidecar_config',
-                           help='数据平面配置目录')
+                           default='istio_config_parser/istio_monitor/istio_sidecar_config',
+                           help='数据平面配置目录（支持项目根相对路径）')
+    parser_cli.add_argument('--ingress-plane-dir', type=str,
+                           default='istio_config_parser/istio_monitor/istio_ingress_config',
+                           help='Ingress Gateway 配置目录（默认启用，用于 frontend-ingress/bookinfo 等 Gateway 绑定项校验。目录不存在时自动跳过。使用 --no-ingress 可禁用）')
+    parser_cli.add_argument('--no-ingress', action='store_true',
+                           help='禁用 Ingress Gateway 配置校验（不加载 istio_ingress_config）')
     parser_cli.add_argument('--no-parallel', action='store_true',
                            help='禁用并行处理（使用串行处理）')
     parser_cli.add_argument('--max-workers', type=int, default=None,
                            help='最大工作线程数（默认自动计算）')
     args = parser_cli.parse_args()
-    
-    # 获取当前文件所在目录
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    
+
+    # --no-ingress 时禁用 ingress 配置
+    ingress_plane_dir = None if args.no_ingress else args.ingress_plane_dir
+
     if args.mode == 'unified':
         # 解析并行处理选项
         enable_parallel = not args.no_parallel
@@ -402,6 +525,8 @@ if __name__ == "__main__":
         print("="*80)
         print(f"控制平面目录: {args.control_plane_dir}")
         print(f"数据平面目录: {args.data_plane_dir}")
+        if ingress_plane_dir:
+            print(f"Ingress 目录:   {ingress_plane_dir} （Gateway 绑定项校验）")
         if args.namespace:
             print(f"命名空间过滤: {args.namespace}")
         print(f"并行处理: {'启用' if enable_parallel else '禁用'}")
@@ -440,23 +565,32 @@ if __name__ == "__main__":
             system_ir = parse_unified_from_dir(
                 control_plane_dir=args.control_plane_dir,
                 data_plane_dir=args.data_plane_dir,
+                ingress_plane_dir=ingress_plane_dir,
                 namespace=args.namespace,
                 enable_parallel=enable_parallel,
                 max_workers=max_workers
             )
             
-            # 打印摘要
+            # 打印摘要（功能级：以控制平面为意图，仅检测控制平面配置是否成功映射到数据平面）
             if args.summary:
                 print("\n[系统级摘要]")
                 print("-"*80)
                 summary = system_ir.get_summary()
-                print(f"总服务数:       {summary['total_services']}")
-                print(f"一致的服务:     {summary['consistent_services']} ({summary['consistent_services']/max(summary['total_services'],1)*100:.1f}%)")
-                print(f"不一致的服务:   {summary['inconsistent_services']} ({summary['inconsistent_services']/max(summary['total_services'],1)*100:.1f}%)")
-                print(f"一致性比例:     {summary['consistency_rate']:.2%}")
+                total_func = summary.get('total_functions', 0)
+                consistent_func = summary.get('consistent_functions', 0)
+                inconsistent_func = summary.get('inconsistent_functions', 0)
+                func_rate = summary.get('function_consistency_rate', 0)
+                gateway_bound = summary.get('gateway_bound_functions', 0)
+                print(f"待检测功能数:   {total_func} （控制平面有配置的路由/流量拆分/熔断等，DATA_ONLY 已忽略）")
+                print(f"一致的功能:     {consistent_func} ({consistent_func/max(total_func,1)*100:.1f}%)")
+                print(f"不一致的功能:   {inconsistent_func} ({inconsistent_func/max(total_func,1)*100:.1f}%)")
+                if gateway_bound > 0:
+                    print(f"Gateway 绑定:   {gateway_bound} （需采集 ingress gateway 配置才能校验，如 frontend-ingress/bookinfo）")
+                print(f"一致性比例:     {func_rate:.2%}")
                 print(f"总问题数:       {summary['total_issues']}")
                 print(f"  - 错误:       {summary['total_errors']}")
                 print(f"  - 警告:       {summary['total_warnings']}")
+                print(f"（服务级: {summary['total_services']} 服务, {summary['consistent_services']} 一致）")
             
             # 打印详细信息
             if args.details:
@@ -497,9 +631,9 @@ if __name__ == "__main__":
         print("[警告] 旧版解析器不支持语义聚合和一致性验证")
         print("="*80)
         
-        # 与 config.py 保持一致：istio_monitor/istio_control_config, istio_monitor/istio_sidecar_config
-        control_plane_dir = os.path.join(current_dir, args.control_plane_dir)
-        data_plane_dir = os.path.join(current_dir, args.data_plane_dir)
+        # 与 config.py 保持一致：istio_config_parser/istio_monitor/istio_control_config, istio_sidecar_config
+        control_plane_dir = _resolve_config_dir(args.control_plane_dir)
+        data_plane_dir = _resolve_config_dir(args.data_plane_dir)
         print(f"控制平面目录: {control_plane_dir}")
         print(f"数据平面目录: {data_plane_dir}")
         

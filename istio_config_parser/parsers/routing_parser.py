@@ -142,6 +142,21 @@ class RoutingParser(FunctionParser):
                             namespace = parts[1]
                         break
                 
+                # Gateway 场景：domain 为 '*' 时，从 route metadata 提取 VirtualService 名
+                # 格式: /apis/networking.istio.io/v1/namespaces/{ns}/virtual-service/{name}
+                if service_name == 'unknown' and domains and domains[0] == '*':
+                    for route in vhost.get('routes', []):
+                        cfg_path = (route.get('metadata') or {}).get('filter_metadata') or {}
+                        cfg_path = (cfg_path.get('istio') or {}).get('config') or ''
+                        if '/virtual-service/' in cfg_path:
+                            parts = cfg_path.split('/virtual-service/')
+                            if len(parts) == 2:
+                                ns_part = parts[0].split('/namespaces/')[-1].split('/')[0]
+                                service_name = parts[1].split('/')[0] or parts[1].strip()
+                                if ns_part:
+                                    namespace = ns_part
+                                break
+                
                 model = RoutingFunctionModel(
                     function_type=FunctionType.ROUTING,
                     service_name=service_name,

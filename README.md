@@ -37,11 +37,11 @@ pip install -r requirements.txt
 
 # 运行完整端到端验证流程
 python e2e_validator.py \
-  --vm-host 192.168.92.131 \
+  --vm-host 192.168.92.100 \
   --vm-user root \
   --vm-password 12345678 \
   --namespace default \
-  --ingress-url http://192.168.92.131:30476/productpage
+  --ingress-url http://192.168.92.100:30476/productpage
 ```
 
 **功能**：
@@ -62,7 +62,7 @@ docker build -t meshscope:latest -f docker/Dockerfile .
 docker run -it --rm \
   -v $(pwd)/results:/app/results \
   meshscope:latest e2e \
-  --vm-host 192.168.92.131 \
+  --vm-host 192.168.92.100 \
   --vm-user root \
   --vm-password 12345678
 
@@ -99,6 +99,10 @@ python -m consistency_checker.main --mode web --port 8080
 ```bash
 # 1. 静态分析
 python -m istio_config_parser.main_parser --namespace default
+
+# 1b. （可选）Gateway 绑定项校验：采集 Ingress Gateway 配置后，可对 frontend-ingress、bookinfo 等做一致性校验
+python -m istio_config_parser.istio_monitor.export_ingress_gateway_config --method kubectl-exec
+python -m istio_config_parser.main_parser --ingress-plane-dir istio_config_parser/istio_monitor/istio_ingress_config --summary --details
 
 # 2. 动态测试
 cd istio_Dynamic_Test

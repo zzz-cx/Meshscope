@@ -129,6 +129,26 @@ class WebServer:
                     return jsonify(json.load(f))
             else:
                 return jsonify({"error": "图数据不存在"}), 404
+
+        @self.app.route('/api/three_layer_graph/<report_id>')
+        def get_three_layer_graph(report_id):
+            """获取三层空间配置依赖图数据"""
+            graph_file = os.path.join(
+                self.config.visualization_output_dir,
+                f"{report_id}_three_layer_graph.json"
+            )
+            if os.path.exists(graph_file):
+                with open(graph_file, 'r', encoding='utf-8') as f:
+                    return jsonify(json.load(f))
+            return jsonify({"error": "三层图数据不存在"}), 404
+
+        @self.app.route('/three_layer_graph')
+        def three_layer_graph_viewer():
+            """三层图查看器页面"""
+            return send_from_directory(
+                os.path.join(os.path.dirname(__file__), 'static'),
+                'three_layer_graph_viewer.html'
+            )
         
         # 静态分析相关 API
         @self.app.route('/api/static/analyze', methods=['POST'])

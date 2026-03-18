@@ -81,6 +81,11 @@ class TrafficShiftingParser(FunctionParser):
             if not isinstance(hosts, list):
                 hosts = [hosts]
             
+            # 获取 gateways（若绑定到 Gateway，配置在 ingress gateway 上）
+            gateways = spec.get('gateways', [])
+            if not isinstance(gateways, list):
+                gateways = [gateways] if gateways else []
+            
             # 处理每个HTTP路由规则
             for http_route in spec.get('http', []):
                 routes = http_route.get('route', [])
@@ -110,7 +115,8 @@ class TrafficShiftingParser(FunctionParser):
                             service_name=service_name,
                             namespace=namespace,
                             plane_type=PlaneType.CONTROL_PLANE,
-                            raw_config={'virtual_service': vs}
+                            raw_config={'virtual_service': vs},
+                            gateways=gateways
                         )
                         
                         # 添加子集定义（如果有）
@@ -171,6 +177,20 @@ class TrafficShiftingParser(FunctionParser):
                             namespace = parts[1]
                         break
                 
+                # Gateway 场景：domain 为 '*' 时，从 route metadata 提取 VirtualService 名
+                if service_name == 'unknown' and domains and domains[0] == '*':
+                    for route in vhost.get('routes', []):
+                        cfg_path = (route.get('metadata') or {}).get('filter_metadata') or {}
+                        cfg_path = (cfg_path.get('istio') or {}).get('config') or ''
+                        if '/virtual-service/' in cfg_path:
+                            parts = cfg_path.split('/virtual-service/')
+                            if len(parts) == 2:
+                                ns_part = parts[0].split('/namespaces/')[-1].split('/')[0]
+                                service_name = parts[1].split('/')[0] or parts[1].strip()
+                                if ns_part:
+                                    namespace = ns_part
+                                break
+                
                 # 检查路由规则中的weighted clusters
                 for route in vhost.get('routes', []):
                     if 'route' not in route:
@@ -184,10 +204,21 @@ class TrafficShiftingParser(FunctionParser):
                         
                         # 只有当有多个集群时才认为是流量迁移
                         if len(clusters) > 1:
+                            # Gateway 场景：domain 为 '*' 时，从首个 cluster 的 host 提取目标服务名
+                            rs_name, rs_ns = service_name, namespace
+                            if domains and domains[0] == '*':
+                                c0 = clusters[0].get('name', '')
+                                if '|' in c0:
+                                    p = c0.split('|')
+                                    if len(p) >= 4:
+                                        host = p[3]
+                                        parts = host.split('.')
+                                        rs_name = parts[0] if parts else 'unknown'
+                                        rs_ns = parts[1] if len(parts) >= 2 else 'default'
                             model = TrafficShiftingFunctionModel(
                                 function_type=FunctionType.TRAFFIC_SHIFTING,
-                                service_name=service_name,
-                                namespace=namespace,
+                                service_name=rs_name,
+                                namespace=rs_ns,
                                 plane_type=PlaneType.DATA_PLANE,
                                 raw_config={'route': route}
                             )
