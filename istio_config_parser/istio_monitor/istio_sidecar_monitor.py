@@ -3,6 +3,16 @@
 
 import os
 import sys
+
+# 修复 Windows 控制台中文乱码（需在 logging 之前执行）
+try:
+    _parent = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
+    if _parent not in sys.path:
+        sys.path.insert(0, _parent)
+    from istio_config_parser.utils.console_encoding import fix_console_encoding
+    fix_console_encoding()
+except Exception:
+    pass
 import json
 import time
 import hashlib
@@ -43,7 +53,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler("istio_sidecar_monitor.log"),
+        logging.FileHandler("istio_sidecar_monitor.log", encoding='utf-8'),
         logging.StreamHandler()
     ]
 )
