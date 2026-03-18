@@ -1,0 +1,39 @@
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: '{"apiVersion":"networking.istio.io/v1","kind":"VirtualService","metadata":{"annotations":{},"creationTimestamp":"2026-03-13T07:23:15Z","generation":1,"name":"productpage","namespace":"default","resourceVersion":"3701883","uid":"f94fe962-f8ff-4f81-b630-f5ab3fbc9b19"},"spec":{"hosts":["productpage"],"http":[{"route":[{"destination":{"host":"productpage"}}]},{"match":[{"headers":{"end-user":{"exact":"zcx"}}}],"route":[{"destination":{"host":"productpage","subset":"v1"}}]},{"route":[{"destination":{"host":"productpage","subset":"v2"}}]}]}}
+
+      '
+  creationTimestamp: '2026-03-13T07:24:26Z'
+  generation: 1
+  name: productpage
+  namespace: default
+  resourceVersion: '3702078'
+  uid: 26f6f006-0b39-4d27-a368-4fbc2ff04e89
+spec:
+  hosts:
+  - productpage
+  http:
+  - route:
+    - destination:
+        host: nonexistent-service.default.svc.cluster.local
+      weight: 80
+    - destination:
+        host: productpage
+      weight: 20
+  - route:
+    - destination:
+        host: productpage
+  - match:
+    - headers:
+        end-user:
+          exact: zcx
+    route:
+    - destination:
+        host: productpage
+        subset: v1
+  - route:
+    - destination:
+        host: productpage
+        subset: v2

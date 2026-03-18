@@ -1,0 +1,195 @@
+{
+  "description": "声明需要进行动态测试的 Istio 策略。生成器将根据此文件的 'true'/'false' 值来决定激活哪些正交维度来生成测试用例矩阵。",
+  "enabled_policies": {
+    "routing": true,
+    "retry": true,
+    "circuit_breaker": true,
+    "rate_limit": false,
+    "fault_injection": true
+  },
+  "virtualServices": [
+    {
+      "name": "bookinfo",
+      "spec": {
+        "gateways": [
+          "bookinfo-gateway"
+        ],
+        "hosts": [
+          "*"
+        ],
+        "http": [
+          {
+            "match": [
+              {
+                "uri": {
+                  "exact": "/productpage"
+                }
+              },
+              {
+                "uri": {
+                  "prefix": "/static"
+                }
+              },
+              {
+                "uri": {
+                  "exact": "/login"
+                }
+              },
+              {
+                "uri": {
+                  "exact": "/logout"
+                }
+              },
+              {
+                "uri": {
+                  "prefix": "/api/v1/products"
+                }
+              }
+            ],
+            "route": [
+              {
+                "destination": {
+                  "host": "productpage",
+                  "port": {
+                    "number": 9080
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "productpage",
+      "spec": {
+        "hosts": [
+          "productpage"
+        ],
+        "http": [
+          {
+            "match": [
+              {
+                "headers": {
+                  "end-user": {
+                    "exact": "zcx"
+                  }
+                }
+              }
+            ],
+            "route": [
+              {
+                "destination": {
+                  "host": "productpage",
+                  "subset": "v1"
+                }
+              }
+            ]
+          },
+          {
+            "route": [
+              {
+                "destination": {
+                  "host": "productpage",
+                  "subset": "v2"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "reviews",
+      "spec": {
+        "hosts": [
+          "reviews"
+        ],
+        "http": [
+          {
+            "route": [
+              {
+                "destination": {
+                  "host": "reviews",
+                  "subset": "v1"
+                },
+                "weight": 20
+              },
+              {
+                "destination": {
+                  "host": "reviews",
+                  "subset": "v2"
+                },
+                "weight": 80
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "destinationRules": [
+    {
+      "name": "productpage",
+      "spec": {
+        "host": "productpage",
+        "subsets": [
+          {
+            "labels": {
+              "version": "v1"
+            },
+            "name": "v1"
+          },
+          {
+            "labels": {
+              "version": "v2"
+            },
+            "name": "v2"
+          }
+        ],
+        "trafficPolicy": {
+          "connectionPool": {
+            "http": {
+              "http1MaxPendingRequests": 1,
+              "maxRequestsPerConnection": 1
+            },
+            "tcp": {
+              "maxConnections": 1
+            }
+          },
+          "outlierDetection": {
+            "baseEjectionTime": "60s",
+            "consecutiveErrors": 5,
+            "interval": "10s"
+          }
+        }
+      }
+    },
+    {
+      "name": "reviews",
+      "spec": {
+        "host": "reviews.default.svc.cluster.local",
+        "subsets": [
+          {
+            "labels": {
+              "version": "v1"
+            },
+            "name": "v1"
+          },
+          {
+            "labels": {
+              "version": "v2"
+            },
+            "name": "v2"
+          },
+          {
+            "labels": {
+              "version": "v3"
+            },
+            "name": "v3"
+          }
+        ]
+      }
+    }
+  ]
+}
