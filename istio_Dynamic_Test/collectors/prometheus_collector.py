@@ -1,7 +1,5 @@
 """PrometheusCollector —— 采集 Prometheus 指标。"""
 
-from __future__ import annotations
-
 import json
 import os
 from typing import Optional

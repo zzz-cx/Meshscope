@@ -1,7 +1,5 @@
 """EnvoyCollector —— 采集 Envoy access log 和 Gateway 日志。"""
 
-from __future__ import annotations
-
 import os
 import re
 from concurrent.futures import ThreadPoolExecutor
@@ -58,6 +56,8 @@ class _EnvoyLogCollectorImpl:
         return logs
 
     def collect_gateway_logs(self, case_id, tail_lines=200):
+        """采集 Gateway 日志并返回 {gateway_<pod>: log}，用于熔断 UO 检测。"""
+        result = {}
         try:
             pods = PodLogFetcher.get_pods_by_label(
                 "istio=ingressgateway", namespace="istio-system", ssh_client=self.ssh_client,
@@ -68,6 +68,7 @@ class _EnvoyLogCollectorImpl:
                         pod, namespace="istio-system", container="istio-proxy",
                         tail_lines=tail_lines, ssh_client=self.ssh_client,
                     )
+                    result[f"gateway_{pod}"] = log
                     filename = f"{case_id}_gateway_{pod}.log"
                     with open(os.path.join(self.result_dir, filename), 'w', encoding='utf-8') as f:
                         f.write(log)
@@ -76,6 +77,7 @@ class _EnvoyLogCollectorImpl:
                     print(f"    Warning: gateway log failed for {pod}: {e}")
         except Exception as e:
             print(f"    Warning: cannot get gateway pods: {e}")
+        return result
 
 
 # ── BaseCollector 封装 ───────────────────────────────────────────────────
@@ -92,7 +94,7 @@ class EnvoyCollector(BaseCollector):
         )
         self._enabled: Set[str] = set()
 
-    def collect(self, test_case: TestCase, pre_snapshot: dict = None) -> CollectionResult:
+    def collect(self, test_case: TestCase, pre_snapshot: dict = None, **kwargs) -> CollectionResult:
         tail = max(test_case.request_count * 3, 200)
         tasks = self._build_tasks(test_case, tail)
         envoy_logs = self._collect_parallel(tasks)
@@ -100,7 +102,12 @@ class EnvoyCollector(BaseCollector):
         if pre_snapshot and envoy_logs:
             envoy_logs = self._diff_logs(envoy_logs, pre_snapshot)
 
-        self._impl.collect_gateway_logs(test_case.case_id, tail)
+        # Gateway 日志含 response_flags=UO（熔断直接证据），合并供 CircuitBreakerValidator 使用
+        gateway_logs = self._impl.collect_gateway_logs(test_case.case_id, tail)
+        if gateway_logs:
+            envoy_logs = dict(envoy_logs or {})
+            envoy_logs.update(gateway_logs)
+
         return CollectionResult(case_id=test_case.case_id, envoy_logs=envoy_logs)
 
     def snapshot_log_lines(self, test_case: TestCase) -> dict:
@@ -149,7 +156,18 @@ class EnvoyCollector(BaseCollector):
         return result
 
     def ensure_access_log(self, service: str, subset: Optional[str] = None):
+        # service 在用例里可能是 FQDN 或被拼接的异常字符串；这里只对“真实 deployment 名”启用 access log。
+        # 我们的合成 workload 的 deployment 命名是: <svc>-<version>（例如 meshscope-svc-0000-v1）。
         dep = f"{service}-{subset}" if subset else service
+        # 1) FQDN -> short
+        if ".svc.cluster.local" in dep:
+            dep = dep.split(".svc.cluster.local", 1)[0]
+        # 2) 如果还包含 namespace/service 域，继续截断（meshscope-svc-0000.meshscope-verify -> meshscope-svc-0000）
+        if "." in dep and not dep.endswith(("-v1", "-v2")):
+            dep = dep.split(".", 1)[0]
+        # 3) 合成服务默认按 v1 作为采集目标（避免对不存在的 deployment/<svc> 进行 patch）
+        if dep.startswith("meshscope-svc-") and ("-v" not in dep):
+            dep = f"{dep}-v1"
         if dep not in self._enabled:
             try:
                 self._impl.ensure_envoy_access_log(dep, skip_if_enabled=True)
@@ -162,13 +180,16 @@ class EnvoyCollector(BaseCollector):
         svcs: Set[Tuple[str, Optional[str]]] = set()
         for tc in cases:
             svc = tc.host or tc.source_service
+            if not _valid(svc) and _valid(tc.source_service):
+                svc = tc.source_service
             if not svc or not _valid(svc):
                 continue
             if tc.expected_distribution:
                 for ver in tc.expected_distribution:
                     svcs.add((svc, ver))
             elif tc.expected_destination and _valid(tc.expected_destination):
-                svcs.add((svc, tc.expected_destination))
+                subset = None if tc.expected_destination == svc else tc.expected_destination
+                svcs.add((svc, subset))
             else:
                 svcs.add((svc, None))
         print(f"  [COLLECTOR] warming up access logs for {len(svcs)} service/version(s)")
@@ -178,12 +199,16 @@ class EnvoyCollector(BaseCollector):
     def _build_tasks(self, tc, tail):
         tasks = []
         svc = tc.host or tc.source_service
+        if not _valid(svc) and _valid(tc.source_service):
+            svc = tc.source_service  # host='*' 时用 source_service（如 productpage）作为采集目标
         if tc.expected_distribution:
             for ver in tc.expected_distribution:
                 if _valid(svc):
                     tasks.append((tc.case_id, svc, ver, tail))
         elif tc.expected_destination and _valid(svc) and _valid(tc.expected_destination):
-            tasks.append((tc.case_id, svc, tc.expected_destination, tail))
+            # expected_destination 为 subset（v1）时用 version 采集；为 service 名（productpage）时用 subset=None
+            subset = None if tc.expected_destination == svc else tc.expected_destination
+            tasks.append((tc.case_id, svc, subset, tail))
         elif _valid(svc):
             tasks.append((tc.case_id, svc, None, tail))
         return tasks

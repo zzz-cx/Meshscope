@@ -3,6 +3,8 @@ from .routing_validator import RoutingValidator
 from .traffic_split_validator import TrafficSplitValidator
 from .circuit_breaker_validator import CircuitBreakerValidator
 from .retry_validator import RetryValidator
+from .timeout_validator import TimeoutValidator
 from .fault_injection_validator import FaultInjectionValidator
+from .rate_limit_validator import RateLimitValidator
 from .composite_validator import CompositeValidator
 from .report_generator import ReportGenerator

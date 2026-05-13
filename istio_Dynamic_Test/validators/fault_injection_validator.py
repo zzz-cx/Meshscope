@@ -1,7 +1,5 @@
 """FaultInjectionValidator —— 验证故障注入是否正确生效。"""
 
-from __future__ import annotations
-
 from typing import Optional
 
 from istio_Dynamic_Test.models.test_case import (
@@ -73,12 +71,13 @@ class FaultInjectionValidator(BaseValidator):
                 actual=len(fault_entries),
             ))
 
+        # 严格模式：任一 FAILED 则整体 FAILED
         overall = (
-            ValidationStatus.PASSED
-            if any(d.status == ValidationStatus.PASSED for d in details)
+            ValidationStatus.FAILED
+            if any(d.status == ValidationStatus.FAILED for d in details)
             else ValidationStatus.WARNING
             if any(d.status == ValidationStatus.WARNING for d in details)
-            else ValidationStatus.FAILED
+            else ValidationStatus.PASSED
         )
         return ValidationResult(
             case_id=test_case.case_id,

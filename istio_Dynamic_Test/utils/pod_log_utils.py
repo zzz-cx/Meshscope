@@ -24,7 +24,7 @@ class PodLogFetcher:
             return output
         else:
             # 本地执行
-            result = subprocess.run(cmd, capture_output=True, text=True)
+            result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
             if result.returncode == 0:
                 return result.stdout
             else:
@@ -49,7 +49,7 @@ class PodLogFetcher:
             return output.strip().split()
         else:
             # 本地执行
-            result = subprocess.run(cmd, capture_output=True, text=True)
+            result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
             if result.returncode == 0:
                 return result.stdout.strip().split()
             else:

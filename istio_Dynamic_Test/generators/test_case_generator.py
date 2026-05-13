@@ -53,9 +53,11 @@ class TestCaseGenerator:
         return "default"
 
     def _calculate_requests_for_split(self, weights, z=1.96, e=0.08):
-        """根据权重，使用统计学公式估算测试分流所需的最少请求数。"""
+        """根据权重，使用统计学公式估算测试分流所需的最少请求数。
+        推荐多次少量（如 10 轮 × 10 请求 = 100），与 TrafficSplitValidator 增量验证对齐。
+        """
         if not weights or sum(weights) == 0:
-            return 100
+            return 50 if getattr(self, "_orthogonal_minimize_enabled", False) else 100
         total_weight = sum(weights)
         max_var = 0
         for w in weights:
@@ -64,7 +66,9 @@ class TestCaseGenerator:
             if var > max_var:
                 max_var = var
         num = (z * z * max_var) / (e * e)
-        return max(100, int(num + 1))  # 至少 100 次请求以稳定分布
+        # 最小化模式下允许降到 50（但更容易波动）；默认至少 100 以稳定增量分布
+        floor = 50 if getattr(self, "_orthogonal_minimize_enabled", False) else 100
+        return max(floor, int(num + 1))
 
     def _get_dest_rule_for_host(self, host):
         for dr in self.config.get("destinationRules", []):
@@ -99,11 +103,210 @@ class TestCaseGenerator:
         return False
 
     def generate(self):
-        # 只要有一个host存在熔断或限流，所有分流用例都低并发
-        self.low_concurrency = self._any_host_has_conn_limit_or_outlier()
+        ep = self.config.get("enabled_policies") or {}
+        self._orthogonal_minimize_enabled = bool(ep.get("orthogonal_minimize"))
+        # 只要有一个 host 存在熔断/限流，分流用例使用低并发
+        self.low_concurrency = self._any_host_has_conn_limit_or_outlier() or bool(
+            ep.get("rate_limit")
+        )
         self._parse_virtual_services()
         self._parse_destination_rules()
+        self._append_rate_limit_cases_if_enabled()
+        # 最小化（按四个正交维度：如果/什么/哪里/何时）
+        if self._orthogonal_minimize_enabled:
+            self.test_cases = self._orthogonal_minimize(self.test_cases, ep)
         return self.test_cases
+
+    @staticmethod
+    def _case_strategies(tc: Dict[str, Any]) -> List[str]:
+        return list(tc.get("test_strategies") or [])
+
+    @staticmethod
+    def _pick_first(cases: List[Dict[str, Any]], pred) -> Dict[str, Any]:
+        for c in cases:
+            try:
+                if pred(c):
+                    return c
+            except Exception:
+                continue
+        return {}
+
+    def _orthogonal_minimize(self, cases: List[Dict[str, Any]], ep: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """
+        按用户提出的四个正交维度最小化用例集：
+        - 如果（谓词）：保留 1 个正向可路由谓词（host/path/header 任一即可）
+        - 什么（动作）：每个已启用策略至少保留 1 个代表用例（routing/traffic_split/circuit_breaker/connection_pool/...）
+        - 哪里（作用域）：覆盖 VS(局部)/DR(全局)/EnvoyFilter(工作负载) 对应策略的代表用例
+        - 何时（约束）：至少覆盖一次“负载触发/时间窗口触发”类约束（如 outlier baseEjectionTime、限流突发）
+        """
+        if not cases:
+            return cases
+
+        keep: List[Dict[str, Any]] = []
+        kept_ids = set()
+
+        def _keep(tc: Dict[str, Any]):
+            cid = tc.get("case_id")
+            if not tc or not cid or cid in kept_ids:
+                return
+            keep.append(tc)
+            kept_ids.add(cid)
+
+        # ---- 如果（谓词）：最小保留 1 条“正向可路由”用例 ----
+        routing_like = [
+            c for c in cases
+            if (c.get("type") == "single_request" and "request_params" in c)
+        ]
+        # 优先：host='*' 且无额外 header（最通用谓词）；否则退化为任一 single_request
+        pred_case = self._pick_first(
+            routing_like,
+            lambda c: (c.get("request_params", {}) or {}).get("host") == "*" and not (c.get("request_params", {}) or {}).get("headers")
+        ) or (routing_like[0] if routing_like else {})
+        _keep(pred_case)
+
+        # ---- 什么（动作）+ 哪里（作用域）+ 何时（约束）：按策略挑代表 ----
+        # 1) traffic_split（VS 权重 + DR subset，统计分布约束）
+        ts_case = self._pick_first(
+            cases,
+            lambda c: "traffic_split" in self._case_strategies(c)
+        )
+        _keep(ts_case)
+
+        # 2) circuit_breaker + connection_pool (+ 可选 routing)（DR 全局策略，负载触发）
+        cb_cp_case = self._pick_first(
+            cases,
+            lambda c: ("circuit_breaker" in self._case_strategies(c) and "connection_pool" in self._case_strategies(c))
+        )
+        _keep(cb_cp_case)
+
+        # 3) connection_pool_outlier（consecutiveErrors + baseEjectionTime，时间约束）
+        outlier_case = self._pick_first(
+            cases,
+            lambda c: "connection_pool_outlier" in self._case_strategies(c)
+        )
+        _keep(outlier_case)
+
+        # 4) rate_limit（EnvoyFilter 工作负载策略，突发约束；只保留“高压应见拒绝”的那条）
+        if bool(ep.get("rate_limit")):
+            rl_over = self._pick_first(
+                cases,
+                lambda c: (
+                    "rate_limit" in self._case_strategies(c)
+                    and ((c.get("expected_outcome", {}) or {}).get("rate_limit", {}) or {}).get("mode") == "should_see_limits"
+                )
+            )
+            _keep(rl_over)
+
+        # ---- 兜底：对 enabled_policies=true 但尚未覆盖到的策略，各补 1 条 ----
+        enabled_map = {
+            "routing": "routing",
+            "retry": "retry",
+            "circuit_breaker": "circuit_breaker",
+            "rate_limit": "rate_limit",
+            "fault_injection": "fault_injection",
+        }
+        covered = set()
+        for tc in keep:
+            covered.update(self._case_strategies(tc))
+        for ep_key, strat in enabled_map.items():
+            if not bool(ep.get(ep_key)):
+                continue
+            if strat in covered:
+                continue
+            extra = self._pick_first(cases, lambda c: strat in self._case_strategies(c))
+            _keep(extra)
+            covered.update(self._case_strategies(extra))
+
+        # 保持原始顺序输出（仅过滤）
+        order = {c.get("case_id"): i for i, c in enumerate(cases)}
+        keep.sort(key=lambda c: order.get(c.get("case_id"), 10**9))
+        return keep
+
+    def _first_routable_anchor(self):
+        """取首个可路由的 VS 规则，用于限流最小用例与路由维度对齐。"""
+        for vs in self.config.get("virtualServices", []):
+            spec = vs.get("spec") or {}
+            hosts = spec.get("hosts") or []
+            if not hosts:
+                continue
+            host = hosts[0]
+            for route_block in spec.get("http", []):
+                if "route" not in route_block:
+                    continue
+                params = self._extract_route_params(route_block)
+                dest = route_block["route"][0].get("destination", {})
+                dest_host = (dest.get("host") or "").split(".")[0]
+                source_svc = dest_host if (host == "*" and dest_host) else host
+                return host, params, source_svc
+        return None, {}, ""
+
+    def _append_rate_limit_cases_if_enabled(self):
+        ep = self.config.get("enabled_policies") or {}
+        if not ep.get("rate_limit"):
+            return
+        vs_host, params, source_svc = self._first_routable_anchor()
+        if not vs_host and not source_svc:
+            return
+        req_host = vs_host or source_svc
+        path_val = params.get("path") if params.get("path") else "/"
+        req_base = {"host": req_host, "path": path_val}
+        if params.get("headers"):
+            req_base["headers"] = params["headers"]
+
+        minimize = bool(ep.get("orthogonal_minimize"))
+        base_req = int(ep.get("rate_limit_baseline_requests", 8 if not minimize else 5))
+        over_n = int(ep.get("rate_limit_over_requests", 72 if not minimize else 24))
+        over_c = int(ep.get("rate_limit_over_concurrency", 18 if not minimize else 8))
+
+        # DestinationRule 连接池过小 / 熔断与本地限流在拒绝链路上耦合：高压时常见 503(UO)
+        # 先于 429。未显式配置时，若配置里存在激进 connectionPool 或 outlierDetection，则
+        # 高压用例默认允许用 503 计数满足 min_429（见 RateLimitValidator）。
+        aggressive_pool = self._any_host_has_conn_limit_or_outlier()
+        if "rate_limit_allow_503_as_throttle" in ep:
+            rl_allow_503 = bool(ep.get("rate_limit_allow_503_as_throttle"))
+        else:
+            rl_allow_503 = aggressive_pool
+
+        self.test_cases.append({
+            "case_id": self._generate_case_id(),
+            "description": f"限流正交-基线(低压应无或少 429) for host '{req_host}'",
+            "type": "load_test",
+            "request_params": dict(req_base),
+            "load_params": {"num_requests": base_req, "concurrency": 1},
+            "expected_outcome": {
+                "rate_limit": {
+                    "mode": "should_pass_all",
+                    "max_429": int(ep.get("rate_limit_baseline_max_429", 1)),
+                },
+                "note": "与首条 VS 路由维度对齐；enabled_policies 可调 baseline/over 参数",
+            },
+            "source_service": source_svc or req_host,
+            "test_strategies": ["routing", "rate_limit"],
+        })
+
+        high_desc = f"限流正交-突发高压(应出现拒绝"
+        if rl_allow_503:
+            high_desc += "；本集群含激进 DR 时 503 可计为背压，见 allow_503_as_throttle"
+        else:
+            high_desc += "；应出现 429"
+        high_desc += f") for host '{req_host}'"
+
+        self.test_cases.append({
+            "case_id": self._generate_case_id(),
+            "description": high_desc,
+            "type": "load_test",
+            "request_params": dict(req_base),
+            "load_params": {"num_requests": over_n, "concurrency": over_c},
+            "expected_outcome": {
+                "rate_limit": {
+                    "mode": "should_see_limits",
+                    "min_429": int(ep.get("rate_limit_min_429", 1)),
+                    **({"allow_503_as_throttle": True} if rl_allow_503 else {}),
+                },
+            },
+            "source_service": source_svc or req_host,
+            "test_strategies": ["routing", "rate_limit"],
+        })
 
     def _extract_route_params(self, route_block):
         """提取路由匹配参数"""
@@ -124,10 +327,32 @@ class TestCaseGenerator:
                     # 默认处理其他情况
                     val = str(list(rule.values())[0])
                 params["headers"] = {key: val}
+
+            # queryParams 匹配（如 ?ver=v2）
+            qp_match = route_block["match"][0].get("queryParams", {})
+            if qp_match:
+                qk, qrule = list(qp_match.items())[0]
+                if "exact" in qrule:
+                    qv = qrule["exact"]
+                elif "prefix" in qrule:
+                    qv = qrule["prefix"] + "test"
+                else:
+                    qv = str(list(qrule.values())[0])
+                params["query"] = {qk: qv}
+
             uri_match = route_block["match"][0].get("uri", {})
             if uri_match:
                 prefix = uri_match.get("prefix", "")
                 params["path"] = prefix
+
+        # 将 query 合并到 path（HttpExecutor 使用 path 字符串）
+        if params.get("query"):
+            qk = list(params["query"].keys())[0]
+            qv = list(params["query"].values())[0]
+            base = params.get("path") or "/"
+            sep = "&" if "?" in base else "?"
+            params["path"] = f"{base}{sep}{qk}={qv}"
+            params.pop("query", None)
         return params
 
     def _get_policy_combination(self, route_block):
@@ -212,16 +437,21 @@ class TestCaseGenerator:
         
         # 基础路由测试
         if case_type == "basic":
+            dest = route_block["route"][0]["destination"]
+            dest_host = (dest.get("host") or "").split(".")[0]  # productpage.default.svc.cluster.local -> productpage
+            # host='*' 时 _valid('*') 为 False，采集器无法收集；用 route destination 作为 source_service
+            source_svc = dest_host if (host == "*" and dest_host) else host
             return {
                 "case_id": self._generate_case_id(),
                 "description": f"正向匹配路由测试 for host '{host}'",
                 "type": "single_request",
                 "request_params": {"host": host, **params},
                 "expected_outcome": {
-                    "destination": self._destination_label(route_block["route"][0]["destination"]),
+                    "destination": self._destination_label(dest),
                     "note": "验证正向命中路由。"
                 },
-                "source_service": host
+                "source_service": source_svc if dest_host else host,
+                "test_strategies": ["routing"],
             }
         
         # 正交组合策略测试 - 基于四种正交原则
@@ -241,11 +471,15 @@ class TestCaseGenerator:
                     request_params["trigger_condition"] = "simulate_config_fault_with_timeout"
                     request_params["fault_type"] = "abort"
                     request_params["fault_status"] = fault_config["abort"]["httpStatus"]
-                    request_params["fault_percentage"] = fault_config["abort"]["percent"]
+                    request_params["fault_percentage"] = (
+                        fault_config["abort"].get("percent")
+                        if "percent" in fault_config["abort"]
+                        else (fault_config["abort"].get("percentage", {}) or {}).get("value", 100)
+                    )
                     request_params["timeout_limit"] = policies["timeout_value"]
                     test_strategies.extend(["fault_injection", "retry", "timeout"])
                     expected_behaviors.extend([
-                        f"故障注入：{fault_config['abort']['httpStatus']}错误({fault_config['abort']['percent']}%)",
+                        f"故障注入：{fault_config['abort']['httpStatus']}错误({request_params['fault_percentage']}%)",
                         f"重试机制：失败时重试{policies['retry_attempts']}次",
                         f"超时控制：请求不超过{policies['timeout_value']}"
                     ])
@@ -267,20 +501,28 @@ class TestCaseGenerator:
                     request_params["trigger_condition"] = "simulate_config_fault"
                     request_params["fault_type"] = "abort"
                     request_params["fault_status"] = fault_config["abort"]["httpStatus"]
-                    request_params["fault_percentage"] = fault_config["abort"]["percent"]
+                    request_params["fault_percentage"] = (
+                        fault_config["abort"].get("percent")
+                        if "percent" in fault_config["abort"]
+                        else (fault_config["abort"].get("percentage", {}) or {}).get("value", 100)
+                    )
                     test_strategies.extend(["fault_injection", "retry"])
                     expected_behaviors.extend([
-                        f"故障注入：{fault_config['abort']['httpStatus']}错误({fault_config['abort']['percent']}%)",
+                        f"故障注入：{fault_config['abort']['httpStatus']}错误({request_params['fault_percentage']}%)",
                         f"重试机制：故障后重试{policies['retry_attempts']}次"
                     ])
                 elif "delay" in fault_config:
                     request_params["trigger_condition"] = "simulate_config_fault"
                     request_params["fault_type"] = "delay"
                     request_params["fault_delay"] = fault_config["delay"]["fixedDelay"]
-                    request_params["fault_percentage"] = fault_config["delay"]["percent"]
+                    request_params["fault_percentage"] = (
+                        fault_config["delay"].get("percent")
+                        if "percent" in fault_config["delay"]
+                        else (fault_config["delay"].get("percentage", {}) or {}).get("value", 100)
+                    )
                     test_strategies.extend(["delay_injection", "retry"])
                     expected_behaviors.extend([
-                        f"延迟注入：{fault_config['delay']['fixedDelay']}延迟({fault_config['delay']['percent']}%)",
+                        f"延迟注入：{fault_config['delay']['fixedDelay']}延迟({request_params['fault_percentage']}%)",
                         f"重试机制：延迟后重试{policies['retry_attempts']}次"
                     ])
             
@@ -298,9 +540,13 @@ class TestCaseGenerator:
                     request_params["trigger_condition"] = "simulate_config_fault"
                     request_params["fault_type"] = "abort"
                     request_params["fault_status"] = fault_config["abort"]["httpStatus"]
-                    request_params["fault_percentage"] = fault_config["abort"]["percent"]
+                    request_params["fault_percentage"] = (
+                        fault_config["abort"].get("percent")
+                        if "percent" in fault_config["abort"]
+                        else (fault_config["abort"].get("percentage", {}) or {}).get("value", 100)
+                    )
                     test_strategies.append("fault_injection")
-                    expected_behaviors.append(f"验证配置故障注入({fault_config['abort']['httpStatus']}, {fault_config['abort']['percent']}%)")
+                    expected_behaviors.append(f"验证配置故障注入({fault_config['abort']['httpStatus']}, {request_params['fault_percentage']}%)")
             
             # 策略6: 仅重试测试（失败触发）
             elif policies["has_retries"]:
@@ -485,16 +731,24 @@ class TestCaseGenerator:
                             load_params["trigger_condition"] = "simulate_config_fault"
                             load_params["fault_type"] = "abort"
                             load_params["fault_status"] = fault_config["abort"]["httpStatus"]
-                            load_params["fault_percentage"] = fault_config["abort"]["percent"]
+                            load_params["fault_percentage"] = (
+                                fault_config["abort"].get("percent")
+                                if "percent" in fault_config["abort"]
+                                else (fault_config["abort"].get("percentage", {}) or {}).get("value", 100)
+                            )
                             test_strategies.append("fault_injection")
-                            expected_behaviors.append(f"验证故障注入：{fault_config['abort']['httpStatus']}错误({fault_config['abort']['percent']}%)")
+                            expected_behaviors.append(f"验证故障注入：{fault_config['abort']['httpStatus']}错误({load_params['fault_percentage']}%)")
                         elif "delay" in fault_config:
                             load_params["trigger_condition"] = "simulate_config_fault"
                             load_params["fault_type"] = "delay"
                             load_params["fault_delay"] = fault_config["delay"]["fixedDelay"]
-                            load_params["fault_percentage"] = fault_config["delay"]["percent"]
+                            load_params["fault_percentage"] = (
+                                fault_config["delay"].get("percent")
+                                if "percent" in fault_config["delay"]
+                                else (fault_config["delay"].get("percentage", {}) or {}).get("value", 100)
+                            )
                             test_strategies.append("fault_injection")
-                            expected_behaviors.append(f"验证延迟注入：{fault_config['delay']['fixedDelay']}({fault_config['delay']['percent']}%)")
+                            expected_behaviors.append(f"验证延迟注入：{fault_config['delay']['fixedDelay']}({load_params['fault_percentage']}%)")
                     
                     test_description = f"正交组合测试({'+'.join(test_strategies)}) for host '{host}'"
                     
@@ -571,6 +825,9 @@ class TestCaseGenerator:
             
             description_suffix = "+".join(test_strategies)
             
+            base_ejection = outlier_config.get("baseEjectionTime", "60s")
+            interval = outlier_config.get("interval", "10s")
+
             test_cases.append({
                 "case_id": self._generate_case_id(),
                 "description": f"全局/局部正交组合测试({description_suffix}) for host '{host}'",
@@ -585,10 +842,39 @@ class TestCaseGenerator:
                     "behaviors": expected_behaviors,
                     "circuit_breaker_threshold": consecutive_errors,
                     "connection_limits": {"tcp": tcp_max, "http_pending": http_pending},
+                    "base_ejection_time": base_ejection,
+                    "interval": interval,
                     "orthogonal_note": "全局策略(DR)与局部策略(VS)的正交验证"
                 },
                 "source_service": host,
                 "test_strategies": test_strategies
+            })
+
+            # 新增：连接池与熔断参数专项验证（consecutiveErrors、baseEjectionTime）
+            test_cases.append({
+                "case_id": self._generate_case_id(),
+                "description": f"连接池与熔断参数验证(consecutiveErrors={consecutive_errors}, baseEjectionTime={base_ejection}) for host '{host}'",
+                "type": "load_test",
+                "request_params": {
+                    "host": host,
+                    "trigger_condition": "connection_pool_outlier_validation",
+                },
+                "load_params": {
+                    "concurrency": max(tcp_max * 2, 20),
+                    "num_requests": consecutive_errors * 15,
+                },
+                "expected_outcome": {
+                    "behaviors": [
+                        f"熔断触发：{consecutive_errors}次连续错误后熔断",
+                        f"熔断恢复：baseEjectionTime={base_ejection} 后恢复",
+                        f"连接池：maxConnections={tcp_max}, http1MaxPendingRequests={http_pending}",
+                    ],
+                    "circuit_breaker_threshold": consecutive_errors,
+                    "base_ejection_time": base_ejection,
+                    "connection_limits": {"tcp": tcp_max, "http_pending": http_pending, "consecutive_errors": consecutive_errors},
+                },
+                "source_service": host,
+                "test_strategies": ["connection_pool_outlier"],
             })
         
         # 正交组合2: 仅熔断测试

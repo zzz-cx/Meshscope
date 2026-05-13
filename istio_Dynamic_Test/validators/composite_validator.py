@@ -4,8 +4,6 @@
 它会根据 test_case.policy_types 自动委托给对应的子 Validator。
 """
 
-from __future__ import annotations
-
 from typing import Dict, List, Optional, Type
 
 from istio_Dynamic_Test.models.test_case import (
@@ -20,8 +18,12 @@ from .base import BaseValidator
 from .routing_validator import RoutingValidator
 from .traffic_split_validator import TrafficSplitValidator
 from .circuit_breaker_validator import CircuitBreakerValidator
+from .connection_pool_validator import ConnectionPoolValidator
+from .connection_pool_outlier_validator import ConnectionPoolOutlierValidator
 from .retry_validator import RetryValidator
 from .fault_injection_validator import FaultInjectionValidator
+from .rate_limit_validator import RateLimitValidator
+from .timeout_validator import TimeoutValidator
 
 
 # 策略 → Validator 映射
@@ -29,8 +31,12 @@ _VALIDATOR_REGISTRY: Dict[PolicyType, Type[BaseValidator]] = {
     PolicyType.ROUTING: RoutingValidator,
     PolicyType.TRAFFIC_SPLIT: TrafficSplitValidator,
     PolicyType.CIRCUIT_BREAKER: CircuitBreakerValidator,
+    PolicyType.CONNECTION_POOL: ConnectionPoolValidator,
+    PolicyType.CONNECTION_POOL_OUTLIER: ConnectionPoolOutlierValidator,
     PolicyType.RETRY: RetryValidator,
     PolicyType.FAULT_INJECTION: FaultInjectionValidator,
+    PolicyType.RATE_LIMIT: RateLimitValidator,
+    PolicyType.TIMEOUT: TimeoutValidator,
 }
 
 
@@ -40,8 +46,17 @@ class CompositeValidator(BaseValidator):
     支持一个 TestCase 同时验证多种策略（正交组合）。
     """
 
-    def __init__(self, extra_validators: Optional[Dict[PolicyType, BaseValidator]] = None):
+    def __init__(
+        self,
+        extra_validators: Optional[Dict[PolicyType, BaseValidator]] = None,
+        prometheus_url: Optional[str] = None,
+        ingress_url: Optional[str] = None,
+        namespace: str = "default",
+    ):
         self._instances: Dict[PolicyType, BaseValidator] = {}
+        self._prometheus_url = prometheus_url
+        self._ingress_url = ingress_url
+        self._namespace = namespace
         if extra_validators:
             self._instances.update(extra_validators)
 
@@ -84,16 +99,43 @@ class CompositeValidator(BaseValidator):
         cls = _VALIDATOR_REGISTRY.get(policy)
         if cls is None:
             return None
-        instance = cls()
+        # TrafficSplitValidator 需要 prometheus_url/ingress_url
+        if policy == PolicyType.TRAFFIC_SPLIT and cls is TrafficSplitValidator:
+            instance = cls(
+                prometheus_url=self._prometheus_url,
+                ingress_url=self._ingress_url,
+                namespace=self._namespace,
+            )
+        # CircuitBreakerValidator 可选 Prometheus 交叉验证
+        elif policy == PolicyType.CIRCUIT_BREAKER and cls is CircuitBreakerValidator:
+            instance = cls(
+                prometheus_url=self._prometheus_url,
+                namespace=self._namespace,
+            )
+        elif policy == PolicyType.CONNECTION_POOL_OUTLIER and cls is ConnectionPoolOutlierValidator:
+            instance = cls()
+        elif policy == PolicyType.RATE_LIMIT and cls is RateLimitValidator:
+            instance = cls(
+                prometheus_url=self._prometheus_url,
+                namespace=self._namespace,
+            )
+        elif policy == PolicyType.TIMEOUT and cls is TimeoutValidator:
+            instance = cls(
+                prometheus_url=self._prometheus_url,
+                namespace=self._namespace,
+            )
+        else:
+            instance = cls()
         self._instances[policy] = instance
         return instance
 
     @staticmethod
     def _merge_status(results: List[ValidationResult]) -> ValidationStatus:
+        """严格模式：所有子验证器都通过才算通过，任一 FAILED 则整体 FAILED。"""
         if not results:
             return ValidationStatus.SKIPPED
-        if any(r.overall_status == ValidationStatus.PASSED for r in results):
-            return ValidationStatus.PASSED
+        if any(r.overall_status == ValidationStatus.FAILED for r in results):
+            return ValidationStatus.FAILED
         if any(r.overall_status == ValidationStatus.WARNING for r in results):
             return ValidationStatus.WARNING
-        return ValidationStatus.FAILED
+        return ValidationStatus.PASSED

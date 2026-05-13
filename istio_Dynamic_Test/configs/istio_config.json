@@ -4,15 +4,199 @@
     "routing": true,
     "retry": true,
     "circuit_breaker": true,
-    "rate_limit": false,
-    "fault_injection": true
+    "rate_limit": true,
+    "fault_injection": true,
+    "orthogonal_minimize": true
   },
+  "envoyFilters": [
+    {
+      "apiVersion": "networking.istio.io/v1alpha3",
+      "kind": "EnvoyFilter",
+      "metadata": {
+        "name": "productpage-local-ratelimit",
+        "namespace": "default"
+      },
+      "spec": {
+        "workloadSelector": {
+          "labels": {
+            "app": "productpage"
+          }
+        },
+        "configPatches": [
+          {
+            "applyTo": "HTTP_FILTER",
+            "match": {
+              "context": "SIDECAR_INBOUND",
+              "listener": {
+                "filterChain": {
+                  "filter": {
+                    "name": "envoy.filters.network.http_connection_manager"
+                  }
+                }
+              }
+            },
+            "patch": {
+              "operation": "INSERT_BEFORE",
+              "value": {
+                "name": "envoy.filters.http.local_ratelimit",
+                "typed_config": {
+                  "@type": "type.googleapis.com/envoy.extensions.filters.http.local_ratelimit.v3.LocalRateLimit",
+                  "stat_prefix": "productpage_http_local_rl",
+                  "token_bucket": {
+                    "fill_interval": "1s",
+                    "max_tokens": 6,
+                    "tokens_per_fill": 6
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  ],
   "virtualServices": [
     {
-      "name": "bookinfo",
+      "name": "meshscope-svc-0000-vs",
+      "spec": {
+        "hosts": [
+          "meshscope-svc-0000"
+        ],
+        "http": [
+          {
+            "match": [
+              {
+                "uri": {
+                  "prefix": "/s0/v0/"
+                }
+              }
+            ],
+            "retries": {
+              "attempts": 2,
+              "perTryTimeout": "2s",
+              "retryOn": "5xx,connect-failure,refused-stream"
+            },
+            "route": [
+              {
+                "destination": {
+                  "host": "meshscope-svc-0000",
+                  "port": {
+                    "number": 80
+                  },
+                  "subset": "v1"
+                }
+              }
+            ],
+            "timeout": "1s"
+          },
+          {
+            "retries": {
+              "attempts": 2,
+              "perTryTimeout": "2s",
+              "retryOn": "5xx,connect-failure,refused-stream"
+            },
+            "route": [
+              {
+                "destination": {
+                  "host": "meshscope-svc-0000",
+                  "port": {
+                    "number": 80
+                  },
+                  "subset": "v1"
+                }
+              }
+            ],
+            "timeout": "1s"
+          }
+        ]
+      }
+    },
+    {
+      "name": "meshscope-svc-0001-vs",
+      "spec": {
+        "hosts": [
+          "meshscope-svc-0001"
+        ],
+        "http": [
+          {
+            "match": [
+              {
+                "uri": {
+                  "prefix": "/s1/v0/"
+                }
+              }
+            ],
+            "retries": {
+              "attempts": 2,
+              "perTryTimeout": "0.5s",
+              "retryOn": "5xx,connect-failure,refused-stream"
+            },
+            "route": [
+              {
+                "destination": {
+                  "host": "meshscope-svc-0001",
+                  "port": {
+                    "number": 80
+                  },
+                  "subset": "v1"
+                }
+              }
+            ],
+            "timeout": "5s"
+          },
+          {
+            "retries": {
+              "attempts": 2,
+              "perTryTimeout": "0.5s",
+              "retryOn": "5xx,connect-failure,refused-stream"
+            },
+            "route": [
+              {
+                "destination": {
+                  "host": "meshscope-svc-0001",
+                  "port": {
+                    "number": 80
+                  },
+                  "subset": "v1"
+                }
+              }
+            ],
+            "timeout": "5s"
+          }
+        ]
+      }
+    },
+    {
+      "name": "meshscope-svc-0002.meshscope-verify.svc.cluster.local",
+      "spec": {
+        "hosts": [
+          "meshscope-svc-0002.meshscope-verify.svc.cluster.local"
+        ],
+        "http": [
+          {
+            "route": [
+              {
+                "destination": {
+                  "host": "nonexistent-service.default.svc.cluster.local"
+                },
+                "weight": 80
+              },
+              {
+                "destination": {
+                  "host": "meshscope-svc-0002.meshscope-verify.svc.cluster.local"
+                },
+                "weight": 20
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "meshscope-synth-ingress",
       "spec": {
         "gateways": [
-          "bookinfo-gateway"
+          "meshscope-synth-gateway"
         ],
         "hosts": [
           "*"
@@ -22,65 +206,37 @@
             "match": [
               {
                 "uri": {
-                  "exact": "/productpage"
-                }
-              },
-              {
-                "uri": {
-                  "prefix": "/static"
-                }
-              },
-              {
-                "uri": {
-                  "exact": "/login"
-                }
-              },
-              {
-                "uri": {
-                  "exact": "/logout"
-                }
-              },
-              {
-                "uri": {
-                  "prefix": "/api/v1/products"
+                  "prefix": "/s0/"
                 }
               }
             ],
             "route": [
               {
                 "destination": {
-                  "host": "productpage",
+                  "host": "meshscope-svc-0000",
                   "port": {
-                    "number": 9080
-                  }
+                    "number": 80
+                  },
+                  "subset": "v1"
                 }
               }
             ]
-          }
-        ]
-      }
-    },
-    {
-      "name": "productpage",
-      "spec": {
-        "hosts": [
-          "productpage"
-        ],
-        "http": [
+          },
           {
             "match": [
               {
-                "headers": {
-                  "end-user": {
-                    "exact": "zcx"
-                  }
+                "uri": {
+                  "prefix": "/s1/"
                 }
               }
             ],
             "route": [
               {
                 "destination": {
-                  "host": "productpage",
+                  "host": "meshscope-svc-0001",
+                  "port": {
+                    "number": 80
+                  },
                   "subset": "v1"
                 }
               }
@@ -90,37 +246,12 @@
             "route": [
               {
                 "destination": {
-                  "host": "productpage",
-                  "subset": "v2"
-                }
-              }
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "name": "reviews",
-      "spec": {
-        "hosts": [
-          "reviews"
-        ],
-        "http": [
-          {
-            "route": [
-              {
-                "destination": {
-                  "host": "reviews",
+                  "host": "meshscope-svc-0000",
+                  "port": {
+                    "number": 80
+                  },
                   "subset": "v1"
-                },
-                "weight": 20
-              },
-              {
-                "destination": {
-                  "host": "reviews",
-                  "subset": "v2"
-                },
-                "weight": 80
+                }
               }
             ]
           }
@@ -130,65 +261,65 @@
   ],
   "destinationRules": [
     {
-      "name": "productpage",
+      "name": "meshscope-svc-0000-dr",
       "spec": {
-        "host": "productpage",
+        "host": "meshscope-svc-0000.meshscope-verify.svc.cluster.local",
         "subsets": [
           {
             "labels": {
               "version": "v1"
             },
             "name": "v1"
-          },
-          {
-            "labels": {
-              "version": "v2"
-            },
-            "name": "v2"
           }
         ],
         "trafficPolicy": {
           "connectionPool": {
             "http": {
-              "http1MaxPendingRequests": 1,
-              "maxRequestsPerConnection": 1
+              "http1MaxPendingRequests": 16,
+              "maxRequestsPerConnection": 2
             },
             "tcp": {
-              "maxConnections": 1
+              "maxConnections": 32
             }
           },
           "outlierDetection": {
-            "baseEjectionTime": "60s",
-            "consecutiveErrors": 5,
-            "interval": "10s"
+            "baseEjectionTime": "120s",
+            "consecutive5xxErrors": 3,
+            "interval": "10s",
+            "maxEjectionPercent": 20
           }
         }
       }
     },
     {
-      "name": "reviews",
+      "name": "meshscope-svc-0001-dr",
       "spec": {
-        "host": "reviews.default.svc.cluster.local",
+        "host": "meshscope-svc-0001.meshscope-verify.svc.cluster.local",
         "subsets": [
           {
             "labels": {
               "version": "v1"
             },
             "name": "v1"
-          },
-          {
-            "labels": {
-              "version": "v2"
-            },
-            "name": "v2"
-          },
-          {
-            "labels": {
-              "version": "v3"
-            },
-            "name": "v3"
           }
-        ]
+        ],
+        "trafficPolicy": {
+          "connectionPool": {
+            "http": {
+              "http1MaxPendingRequests": 32,
+              "maxRequestsPerConnection": 2
+            },
+            "tcp": {
+              "maxConnections": 16
+            }
+          },
+          "outlierDetection": {
+            "baseEjectionTime": "120s",
+            "consecutive5xxErrors": 5,
+            "interval": "5s",
+            "maxEjectionPercent": 20
+          }
+        }
       }
     }
   ]

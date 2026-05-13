@@ -4,16 +4,15 @@
 典型用途：流量分割验证、熔断触发、连接池压测。
 """
 
-from __future__ import annotations
-
 import re
+import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Optional
 
 from istio_Dynamic_Test.models.test_case import ExecutionResult, TestCase
 from istio_Dynamic_Test.utils.ssh_utils import SSHClient
-from .base import BaseExecutor
+from .base import BaseExecutor, compose_request_url
 
 
 class LoadExecutor(BaseExecutor):
@@ -37,19 +36,49 @@ class LoadExecutor(BaseExecutor):
     def _check_hey(self) -> bool:
         if self._hey_available is not None:
             return self._hey_available
-        out, err = self._ssh.run_command("hey -h")
-        self._hey_available = "Usage:" in out and "not found" not in err and "not recognized" not in err
+        out, err = self._ssh.run_command("hey --help 2>&1 || hey 2>&1")
+        combined = (out or "") + (err or "")
+        self._hey_available = "Usage:" in combined and "not found" not in combined.lower() and "not recognized" not in combined.lower()
         if not self._hey_available:
             print("  [LOAD] hey not found, fallback to batch curl")
         return self._hey_available
 
     def _execute_hey(self, tc: TestCase) -> ExecutionResult:
         header_parts = []
+        host_for_header = tc.host
+        if host_for_header == "*" and tc.source_service:
+            host_for_header = tc.source_service
+        if (
+            host_for_header
+            and host_for_header != "*"
+            and "Host" not in (tc.headers or {})
+            and "host" not in (tc.headers or {})
+        ):
+            header_parts.append(f'-H "Host: {host_for_header}"')
         for k, v in tc.headers.items():
             header_parts.append(f'-H "{k}: {v}"')
         header_str = " ".join(header_parts)
-        url = tc.target_url or ""
-        hey_cmd = f'hey -n {tc.request_count} -c {tc.concurrency} {header_str} "{url}"'
+        url = compose_request_url(tc.target_url, tc.path or "")
+        # 熔断/连接池/限流：禁用 keep-alive，使请求边界更清晰
+        extra = ""
+        if tc.policy_types:
+            from istio_Dynamic_Test.models.test_case import PolicyType
+            if (
+                PolicyType.CIRCUIT_BREAKER in tc.policy_types
+                or PolicyType.CONNECTION_POOL in tc.policy_types
+                or PolicyType.RATE_LIMIT in tc.policy_types
+            ):
+                extra = " -disable-keepalive"
+        # hey 约束：总请求数 -n 不能小于并发 -c，否则直接报错退出
+        n = int(tc.request_count or 0)
+        c = int(tc.concurrency or 0)
+        if n <= 0:
+            n = 1
+        if c <= 0:
+            c = 1
+        if n < c:
+            n = c
+        hey_cmd = f'hey -n {n} -c {c}{extra} {header_str} "{url}"'
         print(f"  [LOAD] {hey_cmd}")
         output, error = self._ssh.run_command(hey_cmd)
         if error:
@@ -97,11 +126,22 @@ class LoadExecutor(BaseExecutor):
         n = tc.request_count
         conc = min(tc.concurrency, n, 10)
         header_parts = []
+        host_for_header = tc.host
+        if host_for_header == "*" and tc.source_service:
+            host_for_header = tc.source_service
+        if (
+            host_for_header
+            and host_for_header != "*"
+            and "Host" not in (tc.headers or {})
+            and "host" not in (tc.headers or {})
+        ):
+            header_parts.append(f'-H "Host: {host_for_header}"')
         for k, v in tc.headers.items():
             header_parts.append(f'-H "{k}: {v}"')
         header_str = " ".join(header_parts)
-        url = tc.target_url or ""
-        curl_cmd = f'curl.exe -s -o NUL -w "%{{http_code}}" {header_str} "{url}"'
+        url = compose_request_url(tc.target_url, tc.path or "")
+        _null = "NUL" if sys.platform == "win32" else "/dev/null"
+        curl_cmd = f'curl -s -o {_null} -w "%{{http_code}}" {header_str} "{url}"'
 
         print(f"  [LOAD] batch curl x{n} (concurrency={conc})")
         codes: dict[str, int] = {}

@@ -4,14 +4,15 @@
 通过 curl 命令（本地或 SSH）发送请求，解析返回的 HTTP 状态码。
 """
 
-from __future__ import annotations
-
+import sys
 import time
 from typing import Optional
 
 from istio_Dynamic_Test.models.test_case import ExecutionResult, TestCase
 from istio_Dynamic_Test.utils.ssh_utils import SSHClient
-from .base import BaseExecutor
+from .base import BaseExecutor, compose_request_url
+
+_CURL_NULL = "NUL" if sys.platform == "win32" else "/dev/null"
 
 
 class HttpExecutor(BaseExecutor):
@@ -25,14 +26,26 @@ class HttpExecutor(BaseExecutor):
         self._ssh = ssh_client or SSHClient()
 
     def execute(self, test_case: TestCase) -> ExecutionResult:
+        # 与 LoadExecutor 一致：Ingress URL 常为 IP:port，须显式 Host 才能匹配 VS；
+        # 仅依赖 URL 时 curl 会发送 Host: <ip>，路由/手动 curl 使用 -H "Host: ..." 会不一致。
         header_parts = []
+        host_for_header = test_case.host
+        if host_for_header == "*" and test_case.source_service:
+            host_for_header = test_case.source_service
+        if (
+            host_for_header
+            and host_for_header != "*"
+            and "Host" not in (test_case.headers or {})
+            and "host" not in (test_case.headers or {})
+        ):
+            header_parts.append(f'-H "Host: {host_for_header}"')
         for k, v in test_case.headers.items():
             header_parts.append(f'-H "{k}: {v}"')
         header_str = " ".join(header_parts)
 
-        url = f"{test_case.target_url}{test_case.path}"
+        url = compose_request_url(test_case.target_url, test_case.path)
         curl_cmd = (
-            f'curl.exe -s -o NUL -w "%{{http_code}}" '
+            f'curl -s -o {_CURL_NULL} -w "%{{http_code}}" '
             f"{header_str} \"{url}\""
         )
 

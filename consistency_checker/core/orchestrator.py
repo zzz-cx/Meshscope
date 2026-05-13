@@ -17,7 +17,12 @@ from consistency_checker.core.dynamic_analyzer import DynamicAnalyzer
 from consistency_checker.core.consistency_checker import ConsistencyChecker
 from consistency_checker.visualizer.report_generator import ComprehensiveReportGenerator
 from consistency_checker.visualizer.graph_generator import GraphGenerator
-from consistency_checker.visualizer.three_layer_graph_generator import ThreeLayerGraphGenerator
+try:
+    from consistency_checker.visualizer.three_layer_graph_generator import ThreeLayerGraphGenerator  # type: ignore
+    _THREE_LAYER_AVAILABLE = True
+except Exception:  # pragma: no cover
+    ThreeLayerGraphGenerator = None  # type: ignore
+    _THREE_LAYER_AVAILABLE = False
 from consistency_checker.models.data_models import VerificationReport
 
 logger = logging.getLogger(__name__)
@@ -318,17 +323,20 @@ class Pipeline:
             os.path.join(self.config.visualization_output_dir, f"{report.report_id}_graph.json")
         )
 
-        # 4b. 生成三层空间配置依赖图
-        logger.info("  🔹 生成三层空间配置依赖图...")
-        three_layer_gen = ThreeLayerGraphGenerator.from_static_result(
-            self.static_result,
-            consistency_result=self.consistency_result,
-            namespace=self.namespace,
-        )
-        three_layer_gen.generate()
-        three_layer_gen.save_to_file(
-            os.path.join(self.config.visualization_output_dir, f"{report.report_id}_three_layer_graph.json")
-        )
+        # 4b. 生成三层空间配置依赖图（若模块存在）
+        if _THREE_LAYER_AVAILABLE and ThreeLayerGraphGenerator is not None:
+            logger.info("  🔹 生成三层空间配置依赖图...")
+            three_layer_gen = ThreeLayerGraphGenerator.from_static_result(
+                self.static_result,
+                consistency_result=self.consistency_result,
+                namespace=self.namespace,
+            )
+            three_layer_gen.generate()
+            three_layer_gen.save_to_file(
+                os.path.join(self.config.visualization_output_dir, f"{report.report_id}_three_layer_graph.json")
+            )
+        else:
+            logger.info("  ⚠ 跳过三层空间图生成（three_layer_graph_generator 不可用）")
         
         # 5. 生成HTML报告
         logger.info("  🔹 生成HTML报告...")

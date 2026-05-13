@@ -4,8 +4,6 @@
 所有层之间的数据交换都通过这些数据类完成，确保接口清晰、类型安全。
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional
@@ -26,6 +24,7 @@ class PolicyType(Enum):
     RETRY = "retry"
     RATE_LIMIT = "rate_limit"
     CONNECTION_POOL = "connection_pool"
+    CONNECTION_POOL_OUTLIER = "connection_pool_outlier"  # 连接池与熔断参数专项验证
     TIMEOUT = "timeout"
     ORTHOGONAL_MATCHING = "orthogonal_matching"
     COMPOSITE = "composite"
@@ -81,6 +80,9 @@ class TestCase:
     source_service: str = ""
     metadata: Dict[str, Any] = field(default_factory=dict)
 
+    # 限流动态验证：来自 expected_outcome.rate_limit，由 RateLimitValidator 消费
+    rate_limit_expect: Optional[Dict[str, Any]] = None
+
     # ── 兼容旧版矩阵 JSON 的工厂方法 ─────────────────────────────────────
     @classmethod
     def from_matrix_dict(cls, d: Dict[str, Any], ingress_url: str = "") -> "TestCase":
@@ -99,13 +101,33 @@ class TestCase:
                 else:
                     distribution[ver] = float(w)
 
-        strategies = d.get("test_strategies", [])
+        strategies = list(d.get("test_strategies", []))
+        rl_expect = outcome.get("rate_limit")
+        rl_expect = rl_expect if isinstance(rl_expect, dict) else None
+        if rl_expect and "rate_limit" not in strategies:
+            strategies.append("rate_limit")
         policy_types = [_strategy_to_policy(s) for s in strategies]
+
         if not policy_types:
             if distribution:
                 policy_types = [PolicyType.TRAFFIC_SPLIT]
             elif outcome.get("destination"):
                 policy_types = [PolicyType.ROUTING]
+
+        expected_fault_code = None  # type: Optional[int]
+        ofc = outcome.get("fault_code") if outcome.get("fault_code") is not None else outcome.get("expected_fault_code")
+        if ofc is not None:
+            try:
+                expected_fault_code = int(ofc)
+            except (TypeError, ValueError):
+                expected_fault_code = None
+        if expected_fault_code is None and (params.get("fault_type") or "").strip() == "abort":
+            fs = params.get("fault_status")
+            if fs is not None:
+                try:
+                    expected_fault_code = int(fs)
+                except (TypeError, ValueError):
+                    pass
 
         return cls(
             case_id=d.get("case_id", ""),
@@ -131,13 +153,14 @@ class TestCase:
             expected_distribution=distribution,
             expected_success_rate=None,
             expected_fault_rate=None,
-            expected_fault_code=None,
+            expected_fault_code=expected_fault_code,
             expected_retry_attempts=None,
             expected_circuit_breaker_threshold=outcome.get("circuit_breaker_threshold"),
             margin_of_error=float(outcome.get("margin_of_error", 0.1)),
             test_strategies=strategies,
             source_service=d.get("source_service", ""),
             metadata=d,
+            rate_limit_expect=rl_expect,
         )
 
 
@@ -224,6 +247,8 @@ class PipelineResult:
     execution: Optional[ExecutionResult] = None
     collection: Optional[CollectionResult] = None
     validation: Optional[ValidationResult] = None
+    # 单用例完整耗时（秒）：从错误注入开始到故障恢复结束
+    case_duration_seconds: Optional[float] = None
 
 
 # ─── 内部辅助 ────────────────────────────────────────────────────────────────
@@ -236,6 +261,7 @@ _STRATEGY_POLICY_MAP = {
     "retry": PolicyType.RETRY,
     "rate_limit": PolicyType.RATE_LIMIT,
     "connection_pool": PolicyType.CONNECTION_POOL,
+    "connection_pool_outlier": PolicyType.CONNECTION_POOL_OUTLIER,
     "timeout": PolicyType.TIMEOUT,
     "orthogonal_matching": PolicyType.ORTHOGONAL_MATCHING,
     "delay_injection": PolicyType.FAULT_INJECTION,

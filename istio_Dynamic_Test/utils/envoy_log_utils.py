@@ -19,7 +19,7 @@ class EnvoyLogEnabler:
         if ssh_client and K8sEnvDetector.should_use_ssh(ssh_client):
             output, error = ssh_client.run_command(cmd)
         else:
-            result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+            result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
             output, error = result.stdout, result.stderr
         
         if output and "proxy.istio.io/config" in output:
@@ -41,7 +41,7 @@ class EnvoyLogEnabler:
         if use_ssh:
             replicas_output, _ = ssh_client.run_command(replicas_cmd)
         else:
-            result = subprocess.run(replicas_cmd, shell=True, capture_output=True, text=True)
+            result = subprocess.run(replicas_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
             replicas_output = result.stdout
         
         try:
@@ -55,7 +55,7 @@ class EnvoyLogEnabler:
             if use_ssh:
                 ready_output, _ = ssh_client.run_command(ready_cmd)
             else:
-                result = subprocess.run(ready_cmd, shell=True, capture_output=True, text=True)
+                result = subprocess.run(ready_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
                 ready_output = result.stdout
             
             try:
@@ -225,7 +225,7 @@ class EnvoyLogEnabler:
         if use_ssh:
             output, error = ssh_client.run_command(cmd)
         else:
-            result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+            result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
             output, error = result.stdout, result.stderr
         
         if error:
@@ -244,7 +244,7 @@ class EnvoyLogEnabler:
         if use_ssh:
             pod_output, pod_error = ssh_client.run_command(pod_cmd)
         else:
-            result = subprocess.run(pod_cmd, shell=True, capture_output=True, text=True)
+            result = subprocess.run(pod_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
             pod_output, pod_error = result.stdout, result.stderr
         
         if not pod_error:
@@ -261,7 +261,7 @@ class EnvoyLogEnabler:
         cmd = [
             "kubectl", "logs", pod_name, "-n", namespace, "-c", "istio-proxy", "--tail", str(tail_lines)
         ]
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
         if result.returncode == 0:
             return result.stdout
         else:

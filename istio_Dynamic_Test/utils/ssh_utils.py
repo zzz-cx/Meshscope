@@ -73,8 +73,9 @@ class SSHClient:
                 result = subprocess.run(
                     command,
                     shell=True,
-                    capture_output=True,
-                    text=True
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    universal_newlines=True
                 )
                 return result.stdout, result.stderr
             except Exception as e:

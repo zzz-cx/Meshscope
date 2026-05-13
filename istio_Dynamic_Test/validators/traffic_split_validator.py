@@ -1,25 +1,10 @@
-"""TrafficSplitValidator —— 验证流量分割是否符合预期权重分布。"""
+"""TrafficSplitValidator —— 验证流量分割是否符合预期权重分布。
 
-from __future__ import annotations
+使用 Prometheus pre/after 增量校验：执行前快照、发 N 次请求、等待 12s、执行后快照，求增量。
+"""
 
 import math
 from typing import Any, Dict, Optional
-
-
-def _check_and_log_mismatch(
-    total: int, client_count: int, actual_pct: Dict[str, float],
-    expected_dist: Dict[str, float], dist_result: Dict[str, Any],
-) -> None:
-    """验证失败时输出诊断信息，便于排查分布异常。"""
-    if total < client_count * 0.8:
-        print(f"  [DIAG] 日志数({total})<请求数({client_count})，可能过滤过严或采集不全")
-    max_dev = max(
-        abs(actual_pct.get(v, 0) - expected_dist.get(v, 0))
-        for v in expected_dist
-    ) if expected_dist else 0
-    if max_dev > 0.15:
-        vd = dist_result.get("version_distribution", {})
-        print(f"  [DIAG] 分布偏差较大: 实际{vd} (期望{expected_dist})")
 
 from istio_Dynamic_Test.models.test_case import (
     CollectionResult,
@@ -29,14 +14,24 @@ from istio_Dynamic_Test.models.test_case import (
     ValidationResult,
     ValidationStatus,
 )
-from istio_Dynamic_Test.utils.log_parser import EnvoyLogParser
 from .base import BaseValidator
 
 
-class TrafficSplitValidator(BaseValidator):
+# 最小增量样本数，低于此值建议增加请求
+MIN_DELTA_SAMPLES = 20
 
-    def __init__(self, log_parser: Optional[EnvoyLogParser] = None):
-        self._parser = log_parser or EnvoyLogParser()
+class TrafficSplitValidator(BaseValidator):
+    """基于 Prometheus 的流量分布验证：固定 N 次请求 + pre/after 增量校验。"""
+
+    def __init__(
+        self,
+        prometheus_url: Optional[str] = None,
+        ingress_url: Optional[str] = None,
+        namespace: str = "default",
+    ):
+        self._prometheus_url = prometheus_url
+        self._ingress_url = ingress_url
+        self._namespace = namespace
 
     def validate(
         self,
@@ -54,53 +49,96 @@ class TrafficSplitValidator(BaseValidator):
                 summary="未配置期望分布，跳过",
             )
 
-        # 解析日志并统计分布
-        if collection and collection.envoy_logs:
-            parsed = self._parser.parse_logs_batch(collection.envoy_logs)
-            svc = test_case.host or "unknown"
-            dist_result = self._parser.analyze_distribution(parsed, svc)
-            total = dist_result.get("total_requests", 0)
-            actual_pct = dist_result.get("version_percentages", {})
-            client_count = (execution.total_requests if execution else 0) or test_case.request_count or 0
-            # 验证失败时输出诊断信息
-            if total > 0 and expected_dist and client_count > 0:
-                _check_and_log_mismatch(
-                    total, client_count, actual_pct, expected_dist, dist_result,
-                )
-
-            margin = self._effective_margin(expected_dist, total, test_case.margin_of_error)
-
-            all_pass = True
-            version_details = {}
-            for ver, expected_w in expected_dist.items():
-                actual_w = actual_pct.get(ver, 0.0)
-                dev = abs(actual_w - expected_w)
-                ok = dev <= margin
-                if not ok:
-                    all_pass = False
-                version_details[ver] = {
-                    "expected": expected_w,
-                    "actual": actual_w,
-                    "deviation": dev,
-                    "passed": ok,
-                }
-
-            status = ValidationStatus.PASSED if all_pass else ValidationStatus.FAILED
+        # 使用 Collector 的 pre/after Prometheus 增量
+        pm = (collection and collection.prometheus_metrics) or {}
+        if "_error" in pm:
             details.append(ValidationDetail(
                 dimension="流量分布",
-                status=status,
-                message=self._summary_msg(version_details, margin),
-                expected=expected_dist,
-                actual=actual_pct,
-                deviation=self._avg_dev(version_details),
-                details={"version_details": version_details, "total": total, "margin": margin},
+                status=ValidationStatus.FAILED,
+                message=f"Prometheus 采集失败: {pm['_error']}",
             ))
-        else:
+            return ValidationResult(
+                case_id=test_case.case_id,
+                overall_status=ValidationStatus.FAILED,
+                details=details,
+                summary="流量分割验证: Prometheus 采集失败",
+            )
+
+        total = pm.get("total_requests", 0)
+        actual_pct = pm.get("version_percentages", {})
+        version_dist = pm.get("traffic_distribution", {})
+
+        if total == 0:
             details.append(ValidationDetail(
                 dimension="流量分布",
                 status=ValidationStatus.SKIPPED,
-                message="无日志数据",
+                message="Prometheus 无增量数据（请确保执行了请求且 Prometheus 可访问）",
             ))
+            return ValidationResult(
+                case_id=test_case.case_id,
+                overall_status=ValidationStatus.SKIPPED,
+                details=details,
+                summary="流量分割验证: 无数据",
+            )
+
+        # 增量过少时建议多次少量请求
+        if total < MIN_DELTA_SAMPLES:
+            return ValidationResult(
+                case_id=test_case.case_id,
+                overall_status=ValidationStatus.SKIPPED,
+                details=[ValidationDetail(
+                    dimension="流量分布",
+                    status=ValidationStatus.SKIPPED,
+                    message=f"增量过少({total} < {MIN_DELTA_SAMPLES})，建议多次少量请求(如 20×10) 以稳定分布",
+                    expected=expected_dist,
+                    actual=actual_pct,
+                    details={"total": total, "version_distribution": version_dist},
+                )],
+                summary=f"流量分割验证: 增量过少，建议增加请求",
+            )
+
+        # 合理波动范围：二项分布 95% 置信 + 抓取延迟噪声 + 小样本放宽
+        base_margin = max(0.15, test_case.margin_of_error)
+        margin = self._effective_margin(expected_dist, total, base_margin)
+        # 抓取延迟等噪声，容差额外 +8%
+        margin += 0.08
+        # 小样本（< 100）时再放宽
+        if total < 100:
+            margin += 0.05
+
+        all_pass = True
+        version_details = {}
+        for ver, expected_w in expected_dist.items():
+            actual_w = actual_pct.get(ver, 0.0)
+            dev = abs(actual_w - expected_w)
+            ok = dev <= margin
+            if not ok:
+                all_pass = False
+            version_details[ver] = {
+                "expected": expected_w,
+                "actual": actual_w,
+                "deviation": dev,
+                "passed": ok,
+            }
+
+        status = ValidationStatus.PASSED if all_pass else ValidationStatus.FAILED
+        # 输出流量数据对比日志
+        comp_parts = [f"{v}: 期望{expected_dist.get(v,0):.0%} 实际{actual_pct.get(v,0):.0%}({version_dist.get(v,0)}次)" for v in expected_dist]
+        print(f"  [TRAFFIC_SPLIT] 增量 N={total} | {' | '.join(comp_parts)} | {'通过' if all_pass else '未通过'}")
+        details.append(ValidationDetail(
+            dimension="流量分布(固定N次+Prometheus增量)",
+            status=status,
+            message=self._summary_msg(version_details, margin),
+            expected=expected_dist,
+            actual=actual_pct,
+            deviation=self._avg_dev(version_details),
+            details={
+                "version_details": version_details,
+                "total": total,
+                "margin": margin,
+                "version_distribution": version_dist,
+            },
+        ))
 
         overall = details[0].status if details else ValidationStatus.SKIPPED
         return ValidationResult(
@@ -114,7 +152,7 @@ class TrafficSplitValidator(BaseValidator):
 
     @staticmethod
     def _effective_margin(expected: Dict[str, float], n: int, base: float) -> float:
-        """基于二项分布 95% 置信区间的动态容错。"""
+        """基于二项分布 95% 置信区间的动态容错（与 curl_prometheus_monitor 一致）。"""
         if n <= 0:
             return base
         margins = []

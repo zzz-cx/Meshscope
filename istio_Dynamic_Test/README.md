@@ -267,6 +267,7 @@ istio_Dynamic_Test/
 │   ├── circuit_breaker_validator.py # 熔断策略验证
 │   ├── retry_validator.py           # 重试策略验证
 │   ├── fault_injection_validator.py # 故障注入验证
+│   ├── rate_limit_validator.py      # 限流验证（429 / 日志 / Prometheus）
 │   ├── composite_validator.py       # 组合验证器（按策略自动分发）
 │   └── report_generator.py          # JSON / TXT 报告生成
 │
@@ -342,44 +343,37 @@ python -m istio_Dynamic_Test.main \
     --ssh-host 192.168.92.131 --ssh-user root --ssh-password xxx
 ```
 
-## 扩展新功能
+## 限流（Rate Limit）验证
 
-以 **限流（Rate Limit）** 为例，只需三步：
+已内置 `RateLimitValidator`，并在 `CompositeValidator` 中注册 `PolicyType.RATE_LIMIT`。
 
-### 1. 新增 Validator
+### 启用方式
 
-```python
-# validators/ratelimit_validator.py
-class RateLimitValidator(BaseValidator):
-    def validate(self, test_case, execution, collection) -> ValidationResult:
-        limited = execution.status_codes.get("429", 0)
-        return ValidationResult(
-            case_id=test_case.case_id,
-            overall_status=ValidationStatus.PASSED if limited > 0 else ValidationStatus.FAILED,
-            details=[ValidationDetail(
-                dimension="限流效果",
-                status=ValidationStatus.PASSED if limited > 0 else ValidationStatus.FAILED,
-                message=f"检测到 {limited} 个 429 响应",
-            )],
-        )
-```
+1. 在 `istio_config.json` 的 `enabled_policies` 中设置 `"rate_limit": true`（且存在 `envoyFilters` 等限流配置时，推断亦为 true）。
+2. `TestCaseGenerator` 会在矩阵末尾追加 **2 条最小正交用例**：低压基线（期望极少 429）与突发高压（期望出现 429）。可通过同一 `enabled_policies` 下的可选参数微调：
+   - `rate_limit_baseline_requests`、`rate_limit_baseline_max_429`
+   - `rate_limit_over_requests`、`rate_limit_over_concurrency`、`rate_limit_min_429`
+3. CLI 建议传入 `--prometheus-url`，以便与 `istio_requests_total{response_code="429"}` 交叉验证；Executor 使用 `LoadExecutor`（`load_test`）。
 
-### 2. 注册到 CompositeValidator
+### 期望结构 `expected_outcome.rate_limit`
 
-在 `validators/composite_validator.py` 的 `_VALIDATOR_REGISTRY` 中添加：
+| `mode` | 含义 |
+|--------|------|
+| `should_pass_all` | 429 ≤ `max_429`（默认容差见 `epsilon_abs`） |
+| `should_see_limits` | 429 ≥ `min_429`；可选 `allow_503_as_throttle: true` 时也可用 503 计数满足 `min_429`（慎用，见下文） |
+| `proportion` | `allowed_budget` 与总请求数推导「应被拒」；默认可用 `429+503`（若 `allow_503_as_throttle`），`proportion_429_only: true` 则只算 429 |
 
-```python
-PolicyType.RATE_LIMIT: RateLimitValidator,
-```
+未配置 `rate_limit` 字段但策略含限流时，验证器使用简单启发式（高压应见 429、低压应极少 429）。`RoutingValidator` 在组合 `routing`+`rate_limit` 时将 **429 视为合法响应**（与 2xx 并列），避免高压用例被误判为路由失败。
 
-### 3. 运行
+### 为何压测只见 503、不见 429？（限流与熔断/连接池耦合）
 
-```python
-tester = DynamicTester(generator=RateLimitGenerator(), collector=EnvoyCollector())
-tester.run()
-```
+在同一服务上若 **DestinationRule** 把连接池压得很小（例如 `maxConnections: 1`、`http1MaxPendingRequests: 1`）并开启 **outlierDetection**，并发稍大时 **连接池溢出（response_flags=UO）或熔断** 往往**先于** Envoy `local_ratelimit` 的 **429** 生效，客户端看到的主要是 **503**。这不是「限流没配上」，而是**拒绝链路的优先级**问题：池化/熔断与本地限流在观测上耦合，单靠 HTTP 状态码很难只证「限流」一条策略。
 
-Executor / Collector 完全复用，无需新增。
+**建议的验证策略：**
+
+1. **隔离验证**：单独挑一个**只有** EnvoyFilter 本地限流、**无**激进 `connectionPool`/`outlierDetection` 的 host/service 做动态用例；或临时放宽 bookinfo `productpage` 的 DR 再测限流。
+2. **观测区分**：结合 Envoy access log / Prometheus（429 计数、`envoy_http_ratelimit_*`、与 503+UO 对比）判断拒绝来源。
+3. **期望放宽（慎用）**：在 `expected_outcome.rate_limit` 中设置 `allow_503_as_throttle: true` 时，`should_see_limits` 可把 **503 数量**也计入「有拒绝」（默认仍以 429 为准）；**proportion** 模式下可将 `429+503` 作为拒绝数（除非设 `proportion_429_only: true`）。仍建议配合日志甄别，避免把熔断误判为限流。
 
 ## 数据模型
 
@@ -403,4 +397,5 @@ Executor / Collector 完全复用，无需新增。
 | 故障注入 | ConfigGenerator | HttpExecutor + FaultInjector | EnvoyCollector | FaultInjectionValidator |
 | 熔断 | ConfigGenerator | LoadExecutor + FaultInjector | EnvoyCollector | CircuitBreakerValidator |
 | 重试 | ConfigGenerator | HttpExecutor + FaultInjector | EnvoyCollector | RetryValidator |
+| 限流 | ConfigGenerator（`enabled_policies.rate_limit`） | LoadExecutor | EnvoyCollector（+ 可选 Prometheus） | RateLimitValidator |
 | 正交组合 | ConfigGenerator | Auto-select | EnvoyCollector | CompositeValidator |

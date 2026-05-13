@@ -4,8 +4,6 @@
 ValidationResult 列表直接生成摘要的能力。
 """
 
-from __future__ import annotations
-
 import json
 import os
 from datetime import datetime
@@ -56,6 +54,8 @@ class ReportGenerator:
                 "description": r.test_case.description,
                 "policy_types": [p.value for p in r.test_case.policy_types],
             }
+            if r.case_duration_seconds is not None:
+                entry["case_duration_seconds"] = r.case_duration_seconds
             if r.execution:
                 entry["execution"] = {
                     "status_codes": r.execution.status_codes,
@@ -99,7 +99,8 @@ class ReportGenerator:
         for r in results:
             status = r.validation.overall_status.value if r.validation else "skipped"
             icon = {"passed": "PASS", "failed": "FAIL", "warning": "WARN"}.get(status, "SKIP")
-            lines.append(f"[{icon}] {r.test_case.case_id}: {r.test_case.description}")
+            dur = f" ({r.case_duration_seconds:.1f}s)" if r.case_duration_seconds is not None else ""
+            lines.append(f"[{icon}] {r.test_case.case_id}: {r.test_case.description}{dur}")
             if r.validation:
                 for d in r.validation.details:
                     lines.append(f"      [{d.status.value.upper()}] {d.dimension}: {d.message}")

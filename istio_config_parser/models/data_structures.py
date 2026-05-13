@@ -1,4 +1,17 @@
-from typing import Dict, List, Any, TypedDict, Optional, Union
+from typing import Dict, List, Any, Optional, Union
+
+try:
+    # Python 3.8+
+    from typing import TypedDict
+except ImportError:  # pragma: no cover
+    # Python 3.6/3.7 环境下仅用于类型标注；为兼容 `class X(TypedDict, total=False)` 语法，
+    # 这里提供一个最小实现：运行时等价于 dict 子类，并吞掉 total=... 等关键字参数。
+    class _TypedDictMeta(type):
+        def __new__(mcls, name, bases, namespace, **kwargs):  # noqa: N804
+            return super(_TypedDictMeta, mcls).__new__(mcls, name, bases, namespace)
+
+    class TypedDict(dict, metaclass=_TypedDictMeta):  # type: ignore
+        pass
 
 class ServicePort(TypedDict):
     name: str
