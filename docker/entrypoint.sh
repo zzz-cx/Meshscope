@@ -54,7 +54,7 @@ case "${1:-help}" in
         ;;
     dynamic)
         shift
-        exec python -m istio_Dynamic_Test.checker.traffic_driver "$@"
+        exec python -m istio_Dynamic_Test.cmd "$@"
         ;;
     web)
         shift

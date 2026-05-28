@@ -1,0 +1,30 @@
+# Bookinfo 经 Ingress 访问时的网关侧本地限流（便于动态测试验证 429）
+# kubectl apply -f bookinfo-ingress-local-ratelimit.yaml
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: bookinfo-ingress-local-ratelimit
+  namespace: istio-system
+spec:
+  workloadSelector:
+    labels:
+      istio: ingressgateway
+  configPatches:
+    - applyTo: HTTP_FILTER
+      match:
+        context: GATEWAY
+        listener:
+          filterChain:
+            filter:
+              name: envoy.filters.network.http_connection_manager
+      patch:
+        operation: INSERT_BEFORE
+        value:
+          name: envoy.filters.http.local_ratelimit
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.filters.http.local_ratelimit.v3.LocalRateLimit
+            stat_prefix: bookinfo_http_local_rate
+            token_bucket:
+              max_tokens: 8
+              tokens_per_fill: 8
+              fill_interval: 1s

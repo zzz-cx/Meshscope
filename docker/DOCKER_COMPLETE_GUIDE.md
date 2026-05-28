@@ -118,9 +118,9 @@ ssh -V
 
 | 文件 | 执行方式 |
 |------|----------|
-| `istio_Dynamic_Test/generator/test_case_generator.py` | `python -m istio_Dynamic_Test.generator.test_case_generator` |
-| `istio_Dynamic_Test/checker/traffic_driver.py` | `dynamic` 或 `python -m istio_Dynamic_Test.checker.traffic_driver` |
-| `istio_Dynamic_Test/verifier/main_verifier.py` | `python -m istio_Dynamic_Test.verifier.main_verifier` |
+| `istio_Dynamic_Test/internal/testcase/generators/test_case_generator.py` | 直接运行或经 experiment4 调用 |
+| `istio_Dynamic_Test/cmd` | `dynamic` 或 `python -m istio_Dynamic_Test.cmd` |
+| `istio_Dynamic_Test/internal/validation/offline.py` | 离线验证（由 Pipeline / API 调用） |
 
 ### 评估模块
 

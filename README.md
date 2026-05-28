@@ -104,18 +104,16 @@ python -m istio_config_parser.main_parser --namespace default
 python -m istio_config_parser.istio_monitor.export_ingress_gateway_config --method kubectl-exec
 python -m istio_config_parser.main_parser --ingress-plane-dir istio_config_parser/istio_monitor/istio_ingress_config --summary --details
 
-# 2. 动态测试
-cd istio_Dynamic_Test
-python generator/test_case_generator.py -i generator/istio_config.json \
-  --service-deps service_dependencies.json \
+# 2. 动态测试（四层流水线：testcase → traffic → telemetry → validation）
+python -m istio_Dynamic_Test.cmd \
+  -i istio_Dynamic_Test/configs/istio_config.json \
+  --service-deps istio_Dynamic_Test/service_dependencies.json \
   --ingress-url http://${SSH_HOST}:${INGRESS_PORT:-30476}/productpage \
-  -o output_matrix.json
-
-python checker/traffic_driver.py -i output_matrix.json \
   --ssh-host ${SSH_HOST} --ssh-user ${SSH_USER:-root} --ssh-password ${SSH_PASSWORD}
 
-python verifier/main_verifier.py --matrix output_matrix.json \
-  --logs results/envoy_logs --output results/verification
+# 或从已有矩阵运行
+python -m istio_Dynamic_Test.cmd --matrix istio_Dynamic_Test/configs/output_matrix.json \
+  --ssh-host ${SSH_HOST} --ssh-user ${SSH_USER:-root} --ssh-password ${SSH_PASSWORD}
 
 # 3. 一致性验证
 cd ..

@@ -37,9 +37,10 @@ try:
         parse_control_plane_from_dir,
         parse_data_plane_from_dir
     )
-    from istio_Dynamic_Test.generator.test_case_generator import TestCaseGenerator
-    from istio_Dynamic_Test.checker.traffic_driver import TrafficDriver
-    from istio_Dynamic_Test.verifier.main_verifier import run_verification
+    from istio_Dynamic_Test.internal.testcase.generators import TestCaseGenerator
+    from istio_Dynamic_Test.internal.pipeline import DynamicTester
+    from istio_Dynamic_Test.internal.models import TestSuite
+    from istio_Dynamic_Test.internal.validation import run_verification
     MODULES_AVAILABLE = True
 except ImportError as e:
     logger.warning(f"部分模块导入失败: {e}")
@@ -358,20 +359,32 @@ class WebServer:
                         "error": "istio_Dynamic_Test 模块不可用"
                     }), 500
                 
-                traffic_driver = TrafficDriver(
-                    matrix_file=matrix_file,
-                    ssh_config=ssh_config if ssh_config else None,
-                    namespace=namespace
-                )
-                
-                # 执行测试（run() 方法不返回结果，结果存储在实例属性中）
-                traffic_driver.run()
-                
+                ssh = None
+                if ssh_config:
+                    ssh = {
+                        "hostname": ssh_config.get("host") or ssh_config.get("hostname"),
+                        "username": ssh_config.get("user") or ssh_config.get("username"),
+                        "password": ssh_config.get("password"),
+                        "port": ssh_config.get("port", 22),
+                    }
+                suite = TestSuite.from_matrix_file(matrix_file)
+                results = DynamicTester(ssh_config=ssh, namespace=namespace).run(suite)
+                http_results = {}
+                for pr in results:
+                    if pr.execution:
+                        http_results[pr.test_case.case_id] = {
+                            "status_codes": pr.execution.status_codes,
+                            "total_requests": pr.execution.total_requests,
+                            "success_rate": pr.execution.success_rate,
+                            "avg_response_time": pr.execution.avg_response_time,
+                            "error_count": pr.execution.error_count,
+                        }
+
                 return jsonify({
                     "success": True,
                     "message": "动态测试执行完成",
-                    "total_cases": len(traffic_driver.test_cases),
-                    "http_results": traffic_driver.http_results if hasattr(traffic_driver, 'http_results') else {}
+                    "total_cases": len(suite.cases),
+                    "http_results": http_results,
                 })
             except Exception as e:
                 logger.error(f"动态测试执行失败: {e}", exc_info=True)

@@ -260,12 +260,12 @@ docker rm meshscope-web
    docker run -it --rm meshscope:latest exec python -m istio_Dynamic_Test.generator.test_case_generator --help
    ```
 
-5. **`istio_Dynamic_Test/checker/traffic_driver.py`** - 流量驱动
+5. **`istio_Dynamic_Test/main.py`** - 动态验证流水线
    ```bash
    docker run -it --rm meshscope:latest exec python -m istio_Dynamic_Test.checker.traffic_driver --help
    ```
 
-6. **`istio_Dynamic_Test/verifier/main_verifier.py`** - 验证器
+6. **`istio_Dynamic_Test/validators/`** - 验证器（含离线验证）
    ```bash
    docker run -it --rm meshscope:latest exec python -m istio_Dynamic_Test.verifier.main_verifier --help
    ```

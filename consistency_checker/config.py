@@ -20,7 +20,7 @@ class GlobalConfig:
     data_plane_config_dir: str = "istio_config_parser/istio_monitor/istio_sidecar_config"
     
     # 动态测试配置
-    test_matrix_file: str = "istio_Dynamic_Test/generator/output_matrix.json"
+    test_matrix_file: str = "istio_Dynamic_Test/configs/output_matrix.json"
     envoy_logs_dir: str = "istio_Dynamic_Test/results/envoy_logs"
     http_results_dir: str = "istio_Dynamic_Test/results/http_results"
     verification_dir: str = "istio_Dynamic_Test/results/verification"
@@ -44,7 +44,7 @@ class GlobalConfig:
     
     # 动态测试文件路径配置
     service_dependencies_file: str = "istio_Dynamic_Test/service_dependencies.json"
-    istio_config_file: str = "istio_Dynamic_Test/generator/istio_config.json"
+    istio_config_file: str = "istio_Dynamic_Test/configs/istio_config.json"
     
     # 可视化配置
     web_port: int = 8080

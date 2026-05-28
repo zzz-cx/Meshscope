@@ -56,7 +56,7 @@ pip install -r requirements.txt
 {
   "namespace": "online-boutique",
   "control_plane_config_dir": "istio_config_parser/istio_control_config",
-  "test_matrix_file": "istio_Dynamic_Test/generator/output_matrix.json",
+  "test_matrix_file": "istio_Dynamic_Test/configs/output_matrix.json",
   "consistency_output_dir": "results/consistency",
   "traffic_split_tolerance": 0.1
 }
@@ -242,7 +242,7 @@ result = analyzer.analyze()
 from consistency_checker.core.dynamic_analyzer import DynamicAnalyzer
 
 analyzer = DynamicAnalyzer(
-    test_matrix_file="istio_Dynamic_Test/generator/output_matrix.json",
+    test_matrix_file="istio_Dynamic_Test/configs/output_matrix.json",
     verification_dir="istio_Dynamic_Test/results/verification"
 )
 result = analyzer.analyze()
