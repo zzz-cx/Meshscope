@@ -1,362 +1,191 @@
-# Istio API 客户端
+# Istio 配置监控与导出（`istio_monitor`）
 
-这是一个用于连接 Istio 服务网格的 Python API 客户端，支持获取控制平面和数据平面的配置信息。
+MeshScope 静态分析与动态验证的**配置数据源**：从 Kubernetes / Istio 控制面与数据面拉取配置，落盘到本地目录，供 `main_parser`、一致性检查与 `istio_Dynamic_Test` 使用。
 
-## 功能特点
+## 在 MeshScope 中的位置
 
-- 支持通过 HTTP API 和 kubectl 命令行工具获取 Istio 配置
-- 支持通过 SSH 连接到远程虚拟机执行命令
-- 支持 Windows 和 Linux/Mac 环境
-- 提供丰富的 API 获取各种 Istio 资源
-- 包含配置解析器，可以解析和提取 Istio 配置中的关键信息
-- 支持定时监控 Istio 配置变更，自动更新本地数据
-
-## 安装依赖
-
-```bash
-pip install -r requirements.txt
+```text
+集群 (K8s + Istio)
+    ↓  istio_monitor 导出
+istio_control_config/     # VirtualService、DestinationRule、Service、Gateway …
+istio_sidecar_config/     # Sidecar Envoy routes/clusters/listeners
+istio_ingress_config/     # Ingress Gateway Envoy 配置（入口 VS 校验）
+    ↓  istio_config_parser.main_parser
+IR / 配置图谱
+    ↓  istio_Dynamic_Test（可选 --control-plane-config / --from-control-plane）
+动态验证流水线
 ```
 
-## 使用方法
+| 下游模块 | 使用的目录 / 能力 |
+|----------|-------------------|
+| `istio_config_parser.main_parser` | `--control-plane-dir`、`--data-plane-dir`、`--ingress-plane-dir` |
+| `istio_Dynamic_Test` | `--control-plane-config`（默认本目录下 `istio_control_config`） |
+| `consistency_checker` / `e2e_validator` | 通过 `IstioSidecarMonitor` 拉取并解析 |
+| `evaluation/*` | 消融 / e2e 实验前刷新控制面快照 |
 
-### 基本用法
+## 目录结构
+
+```text
+istio_monitor/
+├── istio_api.py                      # Istio / K8s API 客户端（SSH、kubectl、istioctl）
+├── istio_config_parser.py            # 监控目录内 YAML/JSON 的轻量解析
+├── export_control_plane_config.py    # 导出控制面 CRD → istio_control_config/
+├── export_data_plane_config.py       # 导出 Sidecar Envoy → istio_sidecar_config/
+├── export_ingress_gateway_config.py  # 导出 Ingress Gateway → istio_ingress_config/
+├── istio_sidecar_monitor.py          # 编排：定期/即时拉取 + 变更回调
+├── istio_control_config/             # 控制面快照（按资源类型/命名空间）
+├── istio_sidecar_config/             # 数据面快照（routes/clusters/listeners JSON）
+└── istio_ingress_config/             # 入口 Gateway 快照
+```
+
+## 快速开始
+
+在项目根目录执行（推荐 `python -m` 形式）：
+
+```bash
+# 1. 导出控制面（VirtualService、DestinationRule 等）
+python -m istio_config_parser.istio_monitor.export_control_plane_config
+
+# 2. 导出数据面 Sidecar（routes / clusters / listeners）
+python -m istio_config_parser.istio_monitor.export_data_plane_config --method istioctl
+
+# 3. 导出 Ingress Gateway（入口 VS / Gateway 绑定校验）
+python -m istio_config_parser.istio_monitor.export_ingress_gateway_config --method kubectl-exec
+
+# 4. 静态解析（使用上述目录）
+python -m istio_config_parser.main_parser \
+  --namespace default \
+  --control-plane-dir istio_config_parser/istio_monitor/istio_control_config \
+  --data-plane-dir istio_config_parser/istio_monitor/istio_sidecar_config \
+  --ingress-plane-dir istio_config_parser/istio_monitor/istio_ingress_config \
+  --export
+```
+
+远程集群（SSH 到节点执行 kubectl）：
+
+```bash
+python -m istio_config_parser.istio_monitor.export_control_plane_config \
+  --k8s-host <节点IP> --k8s-user root --k8s-password <密码>
+
+python -m istio_config_parser.istio_monitor.export_data_plane_config \
+  --method kubectl-exec --pod <pod名> -n default
+```
+
+## 模块说明
+
+### `export_control_plane_config.py`
+
+- **输出**：`istio_control_config/`（按类型分子目录：`virtualservices/`、`destinationrules/`、`services/` …）
+- **用途**：静态 IR、正交用例生成输入、动态验证前配置同步
+
+```bash
+python -m istio_config_parser.istio_monitor.export_control_plane_config -o ./istio_control_config
+python -m istio_config_parser.istio_monitor.export_control_plane_config --k8s-host <host> --k8s-token <token>
+```
+
+### `export_data_plane_config.py`
+
+- **输出**：`istio_sidecar_config/` 下 `routes.json`、`clusters.json`、`listeners.json` 等
+- **方法**：`istioctl`（推荐）、`kubectl-exec`、`from-yaml`（从已有 dump 解析）
+
+```bash
+python -m istio_config_parser.istio_monitor.export_data_plane_config --method istioctl
+python -m istio_config_parser.istio_monitor.export_data_plane_config \
+  --pod <pod> -n default --method kubectl-exec
+```
+
+### `export_ingress_gateway_config.py`
+
+- **输出**：`istio_ingress_config/`
+- **用途**：校验绑定在 Ingress Gateway 上的 VirtualService（如 `frontend-ingress`、`bookinfo`），**不会**出现在普通 Sidecar 配置中
+
+```bash
+python -m istio_config_parser.istio_monitor.export_ingress_gateway_config --method kubectl-exec
+python -m istio_config_parser.istio_monitor.export_ingress_gateway_config \
+  -o istio_config_parser/istio_monitor/istio_ingress_config
+```
+
+### `istio_sidecar_monitor.py`
+
+编排控制面 + 数据面导出，支持定期监控、即时更新、变更回调。
+
+| 模式 | 命令 |
+|------|------|
+| 持续监控 | `python -m istio_config_parser.istio_monitor.istio_sidecar_monitor --vm-host <IP>` |
+| 立即导出 | 加 `--update-now` |
+| 仅导出 | 加 `--export-only` |
+
+```bash
+python -m istio_config_parser.istio_monitor.istio_sidecar_monitor \
+  --vm-host <IP> --vm-user root --vm-password <密码> \
+  --interval 60 \
+  --output-dir istio_config_parser/istio_monitor
+```
+
+### `istio_api.py`
+
+供脚本或评估代码导入的 API 封装：
 
 ```python
-from istio_api import IstioAPI
+from istio_config_parser.istio_monitor.istio_api import IstioAPI
 
-# 初始化 API 客户端
-istio = IstioAPI(
-    host="localhost",
-    port=8080,
-    namespace="istio-system",
+api = IstioAPI(
     use_vm=True,
-    vm_host="192.168.1.100",  # 虚拟机 IP
-    vm_port=22,
+    vm_host="192.168.92.131",
     vm_user="root",
-    vm_password="password"  # 虚拟机密码
+    vm_password="<密码>",
 )
-
-# 获取 Istio 版本
-version = istio.get_istio_version()
-print(version)
-
-# 获取虚拟服务
-vs = istio.get_virtual_services()
-print(vs)
-
-# 获取服务网格概览
-overview = istio.get_service_mesh_overview()
-print(overview)
+vs = api.get_virtual_services(namespace="default")
 ```
 
-### 使用配置解析器
+常用方法：`get_virtual_services`、`get_destination_rules`、`get_envoy_filters`、`get_service_mesh_overview`、`export_config` 等。
 
-```python
-from istio_config_parser import IstioConfigParser
+### `istio_config_parser.py`（本目录）
 
-# 初始化配置解析器
-parser = IstioConfigParser()
+解析 `istio_control_config` / `istio_sidecar_config` 下的文件，提取限流、路由等片段（与顶层 `istio_config_parser.parsers` 主解析器互补）。
 
-# 解析配置文件
-result = parser.parse_yaml_files('services.yaml', 'istio-config.yaml')
+## 与动态验证的衔接
 
-# 提取限流配置
-rate_limits = parser.extract_rate_limits()
-print(rate_limits)
-
-# 提取流量路由配置
-routing = parser.extract_traffic_routing()
-print(routing)
-```
-
-### 运行测试脚本
+动态模块默认从控制面目录同步最新 VS/DR：
 
 ```bash
-python test_istio_api.py
+python -m istio_Dynamic_Test.cmd \
+  --from-control-plane \
+  --control-plane-config istio_config_parser/istio_monitor/istio_control_config \
+  --ingress-url http://<host>:<port>/productpage \
+  --ssh-host <host> --ssh-user root --ssh-password <pwd>
 ```
 
-### 使用配置监控工具
-
-配置监控工具可以定时检查 Istio 配置变更，并自动更新本地数据。
+或先导出再指定本地 JSON：
 
 ```bash
-# 1. 定期监控模式（支持即时更新）
-python istio_sidecar_monitor.py --vm-host <虚拟机IP>
-# 运行后，按 Enter 键可以触发即时更新
-
-# 2. 立即更新模式
-python istio_sidecar_monitor.py --vm-host <虚拟机IP> --update-now
-
-# 3. 仅导出模式（不启动监控）
-python istio_sidecar_monitor.py --vm-host <虚拟机IP> --export-only
+python -m istio_Dynamic_Test.cmd \
+  -i istio_Dynamic_Test/configs/istio_config.json \
+  --ingress-url http://<host>:<port>/productpage \
+  --ssh-host <host>
 ```
 
-#### 在代码中使用监控器
+动态验证支持 **HTTP**（curl/hey）与 **gRPC**（grpcurl）；Envoy 访问日志含 `grpc_status` 字段（见 `istio_Dynamic_Test` 模块文档）。
 
-```python
-from istio_sidecar_monitor import IstioMonitor
+## 依赖与环境
 
-# 定义配置变更回调函数
-def my_callback(changes):
-    print(f"配置已变更，变更项数量: {len(changes)}")
-    for key in changes.keys():
-        print(f"  - {key}")
-
-# 创建监控器
-monitor = IstioMonitor(
-    interval=60,  # 检查间隔（秒）
-    output_dir="./istio_config",
-    vm_host="192.168.1.100",
-    vm_user="root",
-    vm_password="password",
-    callback=my_callback  # 配置变更时的回调函数
-)
-
-# 导出当前配置
-monitor.export_current_config()
-
-# 启动监控
-monitor.start()
-
-# ... 应用程序逻辑 ...
-
-# 停止监控
-monitor.stop()
-```
-
-## API 参考
-
-### 控制平面 API
-
-- `get_istio_version()`: 获取 Istio 版本信息
-- `get_control_plane_status()`: 获取控制平面状态
-- `get_gateways()`: 获取所有网关
-- `get_virtual_services(namespace=None)`: 获取虚拟服务
-- `get_destination_rules(namespace=None)`: 获取目标规则
-- `get_envoy_filters(namespace=None)`: 获取 Envoy 过滤器
-- `get_service_entries(namespace=None)`: 获取服务条目
-- `get_authorization_policies(namespace=None)`: 获取授权策略
-
-### 数据平面 API
-
-- `get_proxies()`: 获取所有代理（Sidecar）的列表
-- `get_proxy_config(proxy_id, config_type)`: 获取代理配置
-- `get_proxy_metrics(proxy_id)`: 获取代理指标
-
-### 辅助方法
-
-- `get_service_mesh_overview()`: 获取服务网格概览
-- `get_service_dependencies(namespace=None)`: 获取服务依赖关系
-- `get_rate_limits(namespace=None)`: 获取限流配置
-- `get_fault_injection(namespace=None)`: 获取故障注入配置
-- `export_config(output_dir)`: 导出 Istio 配置
-
-### 监控器方法
-
-- `start()`: 启动监控
-- `stop()`: 停止监控
-- `export_current_config()`: 导出当前配置
-
-## 注意事项
-
-1. 在 Windows 环境下，需要安装 `paramiko` 库来支持 SSH 连接
-2. 确保虚拟机上已安装 `kubectl` 和 `istioctl` 命令行工具
-3. 如果使用密钥文件连接，请确保密钥文件权限正确设置
-4. 监控器会在检测到配置变更时自动更新本地数据，并调用回调函数
+- Python 3.7+
+- 集群侧：`kubectl`、`istioctl`（按导出方式选用）
+- 远程节点：SSH（`paramiko`），见项目根目录 `requirements.txt`
+- 可选：`kubernetes`、`watchdog`（API / 文件监控）
 
 ## 故障排除
 
-- 如果无法连接到虚拟机，请检查 IP 地址、用户名和密码是否正确
-- 如果 `kubectl` 命令执行失败，请确保虚拟机上已正确配置 Kubernetes 环境
-- 如果 `istioctl` 命令执行失败，请确保虚拟机上已正确安装 Istio
-- 如果监控器无法检测到配置变更，请检查检查间隔是否合适，以及是否有足够的权限访问配置
+| 现象 | 建议 |
+|------|------|
+| SSH / kubectl 失败 | 检查 `--vm-host`、账号密码、kubeconfig |
+| 缺少 `clusters.json` / `listeners.json` | 运行 `export_data_plane_config --method istioctl` |
+| Gateway VS 校验无数据 | 运行 `export_ingress_gateway_config` 并在 `main_parser` 传入 `--ingress-plane-dir` |
+| 监控无变更 | 增大 `--interval` 或 `--update-now` 手动刷新 |
 
-# 模块结构
+## 相关文档
 
-配置获取已拆分为独立模块，便于单独使用或集成：
-
-| 模块 | 职责 | 独立运行 |
-|------|------|----------|
-| `export_data_plane_config.py` | 导出 routes/clusters/listeners（数据平面） | ✅ |
-| `export_control_plane_config.py` | 导出 VirtualService、DestinationRule、Service 等（控制平面） | ✅ |
-| `istio_sidecar_monitor.py` | 编排上述模块，支持定期拉取与变更回调 | ✅ |
-
-### 独立导出控制平面
-
-```bash
-python export_control_plane_config.py
-python export_control_plane_config.py --k8s-host 192.168.1.100 --k8s-token <token>
-python export_control_plane_config.py -o ./my_control_config
-```
-
-### 独立导出数据平面
-
-```bash
-python export_data_plane_config.py --method istioctl
-python export_data_plane_config.py --pod <pod> -n default --method kubectl-exec
-python export_data_plane_config.py --method from-yaml   # 从 proxy_config_all.yaml 解析
-```
-
----
-
-# Istio Sidecar 配置监控工具
-
-这是一个用于监控 Istio 数据平面 Sidecar 配置的工具。它支持定期监控和即时更新两种模式，能够自动检测配置变更并保存最新配置。
-
-## 功能特点
-
-### 1. 多种监控模式
-
-- **定期监控**：按设定的时间间隔自动检查配置变化
-- **即时更新**：支持手动触发和自动触发的即时更新
-- **文件系统监控**：监控 Istio 配置文件的变化
-- **Kubernetes API 监控**：监听 Istio 相关资源的变更事件
-
-### 2. 自动检测机制
-
-工具通过以下三种方式自动检测配置变更：
-
-1. **文件系统监控**
-   - 监控指定目录下的 `.yaml` 和 `.yml` 文件变化
-   - 当检测到文件变更时自动触发配置更新
-   - 支持递归监控子目录
-
-2. **Kubernetes API 监控**
-   - 监听 Istio 相关资源（如 VirtualService）的变更事件
-   - 实时响应 Kubernetes API 中的配置变化
-   - 自动处理资源的增加、修改和删除事件
-
-3. **定期配置检查**
-   - 定期获取并比对配置，确保不会遗漏任何变化
-   - 使用哈希值比对检测配置变更
-   - 支持检查多种配置类型（clusters、listeners、routes、endpoints 等）
-
-### 3. 配置管理
-
-- 为每个代理创建独立的配置目录
-- 按类型分别保存配置文件（JSON 格式）
-- 支持导出当前完整配置
-- 提供配置变更通知回调机制
-
-## 安装
-
-1. 安装依赖：
-```bash
-pip install -r requirements.txt
-```
-
-主要依赖包括：
-```
-requests>=2.25.0
-paramiko>=2.7.0
-kubernetes>=12.0.0
-watchdog>=2.1.0
-```
-
-2. 确保有正确的权限访问：
-   - Kubernetes 集群（如果使用 Kubernetes API 监控）
-   - Istio 配置文件目录（如果使用文件系统监控）
-   - 虚拟机访问权限（用于执行 istioctl 命令）
-
-## 使用方法
-
-### 1. 基本用法
-
-```bash
-python istio_sidecar_monitor.py --vm-host <虚拟机IP>
-```
-
-### 2. 完整参数说明
-
-```bash
-python istio_sidecar_monitor.py \
-    --vm-host <虚拟机IP> \
-    --vm-user root \
-    --vm-password <密码> \
-    --interval 60 \
-    --namespace default \
-    --output-dir ./istio_sidecar_config \
-    --config-types clusters,listeners,routes,endpoints \
-    --config-dir /path/to/istio/config
-```
-
-参数说明：
-- `--interval`：检查间隔（秒）
-- `--output-dir`：配置输出目录
-- `--namespace`：要监控的命名空间（使用 'all' 监控所有命名空间）
-- `--config-types`：要获取的配置类型，用逗号分隔
-- `--vm-host`：虚拟机主机（必需）
-- `--vm-port`：虚拟机 SSH 端口（默认 22）
-- `--vm-user`：虚拟机用户名（默认 root）
-- `--vm-password`：虚拟机密码
-- `--vm-key-file`：虚拟机 SSH 密钥文件
-- `--config-types`：要获取的配置类型，逗号分隔（默认 routes,clusters,listeners）
-- `--k8s-host`：Kubernetes API 地址（远程集群）
-- `--k8s-token`：认证 token
-- `--export-only`：仅导出当前配置，不启动监控
-- `--update-now`：立即更新配置
-
-### 3. 运行模式
-
-1. **监控模式**（默认）：
-```bash
-python istio_sidecar_monitor.py --vm-host <虚拟机IP>
-```
-- 启动后会持续监控配置变化
-- 按 Enter 键可触发即时更新
-- 按 Ctrl+C 停止监控
-
-2. **立即更新模式**：
-```bash
-python istio_sidecar_monitor.py --vm-host <虚拟机IP> --update-now
-```
-- 获取并保存当前配置后退出
-
-3. **导出模式**：
-```bash
-python istio_sidecar_monitor.py --vm-host <虚拟机IP> --export-only
-```
-- 导出当前所有配置后退出
-
-### 4. 配置变更通知
-
-工具提供了配置变更通知机制：
-- 可以通过回调函数处理配置变更事件
-- 默认回调函数会打印变更信息
-- 可以自定义回调函数进行扩展处理
-
-## 输出说明
-
-1. **日志输出**：
-   - 所有操作日志保存在 `istio_sidecar_monitor.log`
-   - 同时在控制台显示重要信息
-
-2. **配置文件**：
-   - 保存在指定的输出目录中（默认 `./istio_sidecar_config`）
-   - 按代理 ID 创建子目录
-   - 每种配置类型保存为独立的 JSON 文件
-
-## 注意事项
-
-1. 确保有足够的权限执行 istioctl 命令
-2. 建议使用 SSH 密钥文件而不是密码进行认证
-3. 监控大量代理时，建议适当增加检查间隔
-4. 配置文件监控需要读取权限
-5. Kubernetes API 监控需要集群访问权限
-
-## 故障排除
-
-1. 如果无法连接虚拟机：
-   - 检查网络连接
-   - 验证认证信息
-   - 确认 SSH 服务状态
-
-2. 如果配置更新失败：
-   - 检查 istioctl 命令是否可用
-   - 验证代理 ID 是否正确
-   - 查看详细错误日志
-
-3. 如果文件监控不工作：
-   - 确认配置目录路径正确
-   - 检查目录权限
-   - 验证文件系统支持 inotify 
+- [静态解析模块 README](../README.md)
+- [MeshScope 总览](../../README.md)
+- [目录结构说明](../../docs/DIRECTORY_STRUCTURE.md)
+- [Ingress Gateway 配置说明](../../docs/INGRESS_GATEWAY_CONFIG.md)
