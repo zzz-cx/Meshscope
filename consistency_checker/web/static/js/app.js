@@ -227,41 +227,397 @@ async function runStaticAnalysis() {
       namespace: ns("static-namespace"),
     });
     const conflictN = (data.conflicts || []).length;
-    showStatus("static-status", "ok", "静态对齐完成，跨资源冲突 " + conflictN + " 项，可执行动态验证");
-    $("static-results").innerHTML = "<pre>" + JSON.stringify(data.summary || data, null, 2) + "</pre>";
+    const meta = (data.graph_data && data.graph_data.metadata) || {};
+    showStatus(
+      "static-status",
+      "ok",
+      "静态对齐完成：服务 " + (meta.service_count || (data.services || []).length) +
+        "，资源 " + (meta.resource_count || 0) +
+        "，跨资源冲突 " + conflictN + " 项"
+    );
+    renderStaticSummary(data);
     if (data.graph_data) drawGraph(data.graph_data);
   } catch (err) {
     showStatus("static-status", "err", "分析失败: " + (err.response?.data?.error || err.message));
   }
 }
 
-function drawGraph(graphData) {
-  const container = $("graph-container");
-  const width = container.clientWidth || 800;
-  const height = 520;
-  d3.select("#graph-container").selectAll("*").remove();
-  const svg = d3.select("#graph-container").append("svg").attr("width", width).attr("height", height);
-  const nodes = (graphData.nodes || []).map((d) => ({ ...d }));
-  const edges = (graphData.edges || []).map((d) => ({ ...d }));
-  const simulation = d3.forceSimulation(nodes)
-    .force("link", d3.forceLink(edges).id((d) => d.id).distance(110))
-    .force("charge", d3.forceManyBody().strength(-280))
-    .force("center", d3.forceCenter(width / 2, height / 2));
-  const link = svg.append("g").selectAll("line").data(edges).enter().append("line")
-    .attr("stroke", "#4b5d78").attr("stroke-width", 1.5);
-  const node = svg.append("g").selectAll("circle").data(nodes).enter().append("circle")
-    .attr("r", 16).attr("fill", "#3d8bfd")
-    .call(d3.drag()
-      .on("start", (event) => { if (!event.active) simulation.alphaTarget(0.3).restart(); event.subject.fx = event.subject.x; event.subject.fy = event.subject.y; })
-      .on("drag", (event) => { event.subject.fx = event.x; event.subject.fy = event.y; })
-      .on("end", (event) => { if (!event.active) simulation.alphaTarget(0); event.subject.fx = null; event.subject.fy = null; }));
-  const label = svg.append("g").selectAll("text").data(nodes).enter().append("text")
-    .text((d) => d.label || d.id).attr("fill", "#d7e3f4").attr("font-size", 12).attr("dx", 20).attr("dy", 4);
-  simulation.on("tick", () => {
-    link.attr("x1", (d) => d.source.x).attr("y1", (d) => d.source.y).attr("x2", (d) => d.target.x).attr("y2", (d) => d.target.y);
-    node.attr("cx", (d) => d.x).attr("cy", (d) => d.y);
-    label.attr("x", (d) => d.x).attr("y", (d) => d.y);
+function renderStaticSummary(data) {
+  const box = $("static-results");
+  const s = data.summary || {};
+  const conflicts = data.conflicts || [];
+  const nsList = ((data.graph_data || {}).metadata || {}).namespaces || [];
+  box.innerHTML =
+    `<div class="static-stat-row">
+      <span>命名空间 <strong>${escapeHtml(nsList.join(", ") || "-")}</strong></span>
+      <span>功能对齐 <strong>${s.aligned_pair_count || 0}</strong> / ${s.total_functions || 0}</span>
+      <span>期望元组 <strong>${data.expected_tuple_count || s.expected_tuple_count || 0}</strong></span>
+    </div>` +
+    (conflicts.length
+      ? `<div class="conflict-list">${conflicts.map((c) =>
+          `<div class="conflict-item"><div class="ttl">${escapeHtml(c.type || c.conflict_type || "冲突")}</div>${escapeHtml(c.description || c.message || JSON.stringify(c))}</div>`
+        ).join("")}</div>`
+      : "");
+}
+
+const KIND_COLOR = {
+  service: "#3e8635",
+  VirtualService: "#2b9af3",
+  DestinationRule: "#ec7a08",
+  EnvoyFilter: "#c46162",
+  Gateway: "#73bcf7",
+  Service: "#6a6e73",
+};
+
+let staticGraph = { nodes: [], edges: [], metadata: {} };
+let staticSelected = null;
+
+function alignmentClass(status) {
+  if (["inconsistent", "mismatched", "control_only", "data_only"].indexOf(status) >= 0) return "inconsistent";
+  if (["partial_matched", "partial"].indexOf(status) >= 0) return "partial";
+  if (["matched", "consistent"].indexOf(status) >= 0) return "consistent";
+  return "unknown";
+}
+
+function nodeFill(d) {
+  if (d.type === "service") {
+    const cls = alignmentClass(d.alignment);
+    if (cls === "inconsistent") return "#c46162";
+    if (cls === "partial") return "#f0ab00";
+    if (cls === "consistent") return "#3e8635";
+    return "#6a6e73";
+  }
+  return KIND_COLOR[d.kind] || "#8a8d90";
+}
+
+function visibleStaticNodes() {
+  const ns = ($("static-ns-filter") && $("static-ns-filter").value) || "all";
+  const typ = ($("static-type-filter") && $("static-type-filter").value) || "all";
+  const q = (($("static-search") && $("static-search").value) || "").trim().toLowerCase();
+  return (staticGraph.nodes || []).filter((n) => {
+    if (ns !== "all" && n.namespace !== ns) return false;
+    if (typ === "service" && n.type !== "service") return false;
+    if (typ !== "all" && typ !== "service" && n.kind !== typ) return false;
+    if (q) {
+      const hay = [n.label, n.id, n.namespace, n.kind, n.name].join(" ").toLowerCase();
+      if (hay.indexOf(q) < 0) return false;
+    }
+    const cfgOnly = $("static-cfg-only") && $("static-cfg-only").checked;
+    if (cfgOnly) {
+      if (n.type === "resource") return true;
+      const hasRes = (n.resources || []).length || (n.declarative || []).length;
+      const hasCp = (n.functions || []).some((f) =>
+        ["matched", "partial_matched", "control_only"].indexOf(f.alignment_status) >= 0
+      );
+      if (!hasRes && !hasCp) return false;
+    }
+    return true;
   });
+}
+
+function drawGraph(graphData) {
+  staticGraph = graphData || { nodes: [], edges: [] };
+  const workspace = $("static-workspace");
+  if (workspace) workspace.classList.add("on");
+  fillStaticFilters();
+  bindStaticFilters();
+  renderStaticLegend();
+  paintStaticGraph();
+  renderStaticInspector(null);
+}
+
+function fillStaticFilters() {
+  const sel = $("static-ns-filter");
+  if (!sel) return;
+  const current = sel.value || "all";
+  const nss = ((staticGraph.metadata || {}).namespaces || []).slice().sort();
+  sel.innerHTML = '<option value="all">全部</option>' + nss.map((n) =>
+    `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`
+  ).join("");
+  sel.value = nss.indexOf(current) >= 0 || current === "all" ? current : "all";
+}
+
+function bindStaticFilters() {
+  ["static-ns-filter", "static-type-filter", "static-search", "static-cfg-only"].forEach((id) => {
+    const el = $(id);
+    if (!el || el.dataset.bound) return;
+    el.dataset.bound = "1";
+    el.addEventListener(id === "static-search" ? "input" : "change", () => {
+      paintStaticGraph();
+    });
+  });
+}
+
+function renderStaticLegend() {
+  const box = $("static-legend");
+  if (!box) return;
+  const items = [
+    ["#3e8635", "服务（已对齐）"],
+    ["#f0ab00", "服务（部分对齐）"],
+    ["#c46162", "服务（不一致 / 单边）"],
+    ["#2b9af3", "VirtualService"],
+    ["#ec7a08", "DestinationRule"],
+    ["#c46162", "EnvoyFilter"],
+    ["#73bcf7", "Gateway"],
+  ];
+  box.innerHTML = items.map(([c, t]) =>
+    `<div class="legend-item"><span class="legend-dot" style="background:${c}"></span>${t}</div>`
+  ).join("");
+}
+
+function layoutStaticNodes(nodes, width, height) {
+  const byNs = {};
+  nodes.forEach((n) => {
+    const key = n.namespace || "default";
+    if (!byNs[key]) byNs[key] = { services: [], resources: [] };
+    if (n.type === "service") byNs[key].services.push(n);
+    else byNs[key].resources.push(n);
+  });
+  const nss = Object.keys(byNs).sort();
+  const colW = Math.max(280, width / Math.max(nss.length, 1));
+  nss.forEach((ns, col) => {
+    const bucket = byNs[ns];
+    const svcX = 36 + col * colW;
+    let y = 48;
+    const claimed = new Set();
+    bucket.services.sort((a, b) => String(a.label).localeCompare(String(b.label)));
+    bucket.services.forEach((svc) => {
+      svc.x = svcX + 70;
+      svc.y = y + 18;
+      const owned = bucket.resources.filter((r) =>
+        (svc.resources || []).some((ref) => ref.id === r.id)
+      );
+      owned.forEach((res, i) => {
+        res.x = svcX + 190 + (i % 2) * 118;
+        res.y = y + 10 + Math.floor(i / 2) * 36;
+        claimed.add(res.id);
+      });
+      const rows = Math.max(1, Math.ceil(owned.length / 2));
+      y += Math.max(64, rows * 36 + 28);
+    });
+    bucket.resources.filter((r) => !claimed.has(r.id)).forEach((res) => {
+      res.x = svcX + 70;
+      res.y = y + 12;
+      y += 40;
+    });
+  });
+  return nss.map((ns, col) => ({ ns, x: 16 + col * colW, y: 18, colW }));
+}
+
+function paintStaticGraph() {
+  const container = $("graph-container");
+  if (!container) return;
+  const width = container.clientWidth || 800;
+  const height = container.clientHeight || 520;
+  const nodes = visibleStaticNodes().map((d) => ({ ...d }));
+  d3.select("#graph-container").selectAll("*").remove();
+  if (!nodes.length) {
+    container.innerHTML = '<div class="empty" style="padding:24px">当前筛选下没有节点。可取消「只显示有声明式配置的节点」查看全部服务。</div>';
+    return;
+  }
+
+  const idSet = new Set(nodes.map((n) => n.id));
+  const edges = (staticGraph.edges || []).filter((e) => idSet.has(e.source) && idSet.has(e.target));
+  const headers = layoutStaticNodes(nodes, width, height);
+
+  const svg = d3.select("#graph-container").append("svg")
+    .attr("width", width).attr("height", height);
+  const root = svg.append("g");
+  svg.call(d3.zoom().scaleExtent([0.35, 2.5]).on("zoom", (event) => {
+    root.attr("transform", event.transform);
+  }));
+
+  root.selectAll("text.ns-head").data(headers).enter().append("text")
+    .attr("class", "ns-head")
+    .attr("x", (d) => d.x)
+    .attr("y", (d) => d.y)
+    .attr("fill", "#b8bbbe")
+    .attr("font-size", 12)
+    .text((d) => d.ns);
+
+  const byId = {};
+  nodes.forEach((n) => { byId[n.id] = n; });
+
+  root.append("g").selectAll("path").data(edges).enter().append("path")
+    .attr("fill", "none")
+    .attr("stroke", (d) => d.type === "declares" ? "#5a5e62" : "#73bcf7")
+    .attr("stroke-width", (d) => d.type === "declares" ? 1 : 1.4)
+    .attr("stroke-dasharray", (d) => d.type === "declares" ? "4 3" : null)
+    .attr("d", (d) => {
+      const s = byId[d.source];
+      const t = byId[d.target];
+      if (!s || !t) return "";
+      const mx = (s.x + t.x) / 2;
+      return `M${s.x},${s.y} Q${mx},${s.y} ${t.x},${t.y}`;
+    });
+
+  root.append("g").selectAll("text.elabel").data(edges.filter((e) => e.type === "route" && e.label)).enter().append("text")
+    .attr("class", "elabel")
+    .attr("x", (d) => (byId[d.source].x + byId[d.target].x) / 2)
+    .attr("y", (d) => (byId[d.source].y + byId[d.target].y) / 2 - 4)
+    .attr("fill", "#b8bbbe")
+    .attr("font-size", 10)
+    .attr("text-anchor", "middle")
+    .text((d) => d.label);
+
+  const g = root.append("g").selectAll("g.node").data(nodes).enter().append("g")
+    .attr("class", "node")
+    .attr("transform", (d) => `translate(${d.x},${d.y})`)
+    .style("cursor", "pointer")
+    .on("click", (event, d) => {
+      event.stopPropagation();
+      staticSelected = d.id;
+      paintStaticGraph();
+      renderStaticInspector(d);
+    });
+
+  svg.on("click", () => {
+    staticSelected = null;
+    paintStaticGraph();
+    renderStaticInspector(null);
+  });
+
+  g.append("rect")
+    .attr("x", (d) => d.type === "service" ? -64 : -52)
+    .attr("y", (d) => d.type === "service" ? -16 : -12)
+    .attr("width", (d) => d.type === "service" ? 128 : 104)
+    .attr("height", (d) => d.type === "service" ? 32 : 24)
+    .attr("rx", 2)
+    .attr("fill", nodeFill)
+    .attr("stroke", (d) => d.id === staticSelected ? "#f0f0f0" : "transparent")
+    .attr("stroke-width", 2);
+
+  g.append("text")
+    .attr("text-anchor", "middle")
+    .attr("dy", (d) => d.type === "service" ? 0 : 4)
+    .attr("fill", "#fff")
+    .attr("font-size", 11)
+    .text((d) => {
+      const name = d.type === "service" ? d.label : (d.name || d.label);
+      return String(name).length > 14 ? String(name).slice(0, 13) + "…" : name;
+    });
+
+  g.filter((d) => d.type === "service").append("text")
+    .attr("text-anchor", "middle")
+    .attr("dy", 12)
+    .attr("fill", "rgba(255,255,255,0.85)")
+    .attr("font-size", 9)
+    .text((d) => d.namespace);
+}
+
+function renderStaticInspector(node) {
+  const box = $("static-inspect");
+  if (!box) return;
+  if (!node) {
+    box.innerHTML = '<div class="empty">点击节点查看命名空间、声明式配置和对应服务的数据面规则。</div>';
+    return;
+  }
+  const full = (staticGraph.nodes || []).find((n) => n.id === node.id) || node;
+  if (full.type === "resource") {
+    box.innerHTML = resourceInspectorHtml(full);
+    return;
+  }
+  box.innerHTML = serviceInspectorHtml(full);
+  box.querySelectorAll("[data-res]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const target = (staticGraph.nodes || []).find((n) => n.id === btn.dataset.res);
+      if (target) {
+        staticSelected = target.id;
+        paintStaticGraph();
+        renderStaticInspector(target);
+      }
+    });
+  });
+}
+
+function serviceInspectorHtml(d) {
+  const funcs = (d.functions || []).map((f) =>
+    `<span class="badge ${alignmentClass(f.alignment_status)}">${escapeHtml(f.function_type)} · ${escapeHtml(f.alignment_status)}</span>`
+  ).join(" ");
+  const subsets = (d.subsets || []).length ? (d.subsets || []).join(", ") : "—";
+  const resBtns = (d.resources || []).map((r) =>
+    `<button type="button" class="res-btn" data-res="${escapeHtml(r.id)}">${escapeHtml(r.kind)}/${escapeHtml(r.name)} <span style="color:var(--muted)">${escapeHtml(r.namespace)}</span></button>`
+  ).join("");
+  const manifests = (d.declarative || []).map((m) =>
+    `<div class="sec-title">${escapeHtml((m.kind || "Resource") + "/" + ((m.metadata || {}).name || ""))}</div><pre>${escapeHtml(JSON.stringify(m, null, 2))}</pre>`
+  ).join("");
+  const dps = (d.data_plane_rules || []).map(dataPlaneBlock).join("");
+  return `
+    <div class="insp-title">${escapeHtml(d.label)}</div>
+    <dl class="kv">
+      <dt>命名空间</dt><dd>${escapeHtml(d.namespace || "default")}</dd>
+      <dt>类型</dt><dd>服务</dd>
+      <dt>对齐</dt><dd><span class="badge ${alignmentClass(d.alignment)}">${escapeHtml(d.alignment || "unknown")}</span></dd>
+      <dt>subset</dt><dd>${escapeHtml(subsets)}</dd>
+    </dl>
+    <div class="sec-title">功能</div>
+    <div>${funcs || "—"}</div>
+    <div class="sec-title">声明式资源</div>
+    ${resBtns || '<div class="empty" style="padding:0">无控制面资源</div>'}
+    ${manifests}
+    <div class="sec-title">数据面规则</div>
+    ${dps || '<div class="empty" style="padding:0">无对应数据面规则</div>'}
+  `;
+}
+
+function resourceInspectorHtml(d) {
+  const manifests = (d.declarative || []).map((m) =>
+    `<pre>${escapeHtml(JSON.stringify(m, null, 2))}</pre>`
+  ).join("");
+  const svc = (staticGraph.nodes || []).find((n) =>
+    n.type === "service" && (n.resources || []).some((r) => r.id === d.id)
+  );
+  const dp = svc ? (svc.data_plane_rules || []).map(dataPlaneBlock).join("") : "";
+  return `
+    <div class="insp-title">${escapeHtml(d.kind || "Resource")}/${escapeHtml(d.name || d.label)}</div>
+    <dl class="kv">
+      <dt>命名空间</dt><dd>${escapeHtml(d.namespace || "default")}</dd>
+      <dt>类型</dt><dd>声明式资源</dd>
+      <dt>kind</dt><dd>${escapeHtml(d.kind || "")}</dd>
+      <dt>作用服务</dt><dd>${svc ? escapeHtml(svc.namespace + "/" + svc.label) : "—"}</dd>
+    </dl>
+    <div class="sec-title">声明式配置</div>
+    ${manifests || "—"}
+    <div class="sec-title">对应服务的数据面规则</div>
+    ${dp || '<div class="empty" style="padding:0">该资源未关联到已对齐服务，或服务尚无数据面规则</div>'}
+  `;
+}
+
+function dataPlaneBlock(rule) {
+  const status = rule.alignment_status || "";
+  const lines = [];
+  if (rule.hosts) lines.push("hosts: " + (Array.isArray(rule.hosts) ? rule.hosts.join(", ") : rule.hosts));
+  (rule.routes || []).forEach((route) => {
+    const match = route.match || {};
+    const uri = (match.uri && (match.uri.prefix || match.uri.exact || match.uri.regex)) || match.prefix || "/";
+    const dests = (route.destinations || []).map((dest) => {
+      const host = dest.subset || dest.host || "";
+      return dest.weight != null ? host + " " + dest.weight + "%" : host;
+    }).join(" / ");
+    lines.push("route " + uri + " → " + dests);
+  });
+  if (rule.timeout) lines.push("timeout: " + rule.timeout);
+  if (rule.retry_policy) lines.push("retry: " + JSON.stringify(rule.retry_policy));
+  if (rule.algorithm) lines.push("lb: " + rule.algorithm);
+  if (rule.rules) lines.push("rate_limit: " + JSON.stringify(rule.rules));
+  if (rule.connection_pool) lines.push("connection_pool: " + JSON.stringify(rule.connection_pool));
+  if (rule.outlier_detection) lines.push("outlier: " + JSON.stringify(rule.outlier_detection));
+  if (rule.envoy_clusters) {
+    rule.envoy_clusters.forEach((c) => lines.push("cluster " + (c.name || "") + " lb=" + (c.lb_policy || "") + " timeout=" + (c.connect_timeout || "")));
+  }
+  if (rule.envoy_routes) {
+    rule.envoy_routes.forEach((r) => {
+      const match = (r.match && (r.match.prefix || JSON.stringify(r.match))) || "/";
+      lines.push("envoy " + match + " cluster=" + (r.cluster || "") + (r.weighted_clusters ? " weighted" : ""));
+    });
+  }
+  if (rule.destinations) {
+    lines.push("destinations: " + JSON.stringify(rule.destinations));
+  }
+  return `<div class="dp-block">
+    <div class="ttl">${escapeHtml(rule.function_type || "rule")} <span class="badge ${alignmentClass(status)}">${escapeHtml(status || "")}</span></div>
+    <pre>${escapeHtml(lines.join("\n") || JSON.stringify(rule, null, 2))}</pre>
+  </div>`;
 }
 
 async function generateTestMatrix() {

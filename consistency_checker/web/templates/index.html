@@ -11,8 +11,8 @@
 <body>
   <div class="app">
     <aside class="sidebar">
-      <div class="brand">Config<span>Pilot</span></div>
-      <div class="brand-sub">服务网格配置一致性检验</div>
+      <div class="brand">ConfigPilot</div>
+      <div class="brand-sub">Istio 配置一致性</div>
       <button class="nav-btn active" data-page="overview">总览</button>
       <button class="nav-btn" data-page="static">静态分析</button>
       <button class="nav-btn" data-page="dynamic">动态验证</button>
@@ -63,7 +63,7 @@
 
       <section id="page-static" class="page">
         <h1>静态分析</h1>
-        <p class="lead">将控制面 YAML 与数据面 Envoy dump 映射到同一套语义元组，做平面对齐，并检查 VS 缺 subset、路由优先级、Gateway 选择器等跨资源冲突。动态验证只认本次写出的对齐模型。</p>
+        <p class="lead">将控制面 YAML 与数据面 Envoy dump 映射到同一套语义元组。图上按命名空间查看服务与 Istio 资源，点节点看声明式配置和对应数据面规则。</p>
         <div class="panel">
           <label>命名空间</label>
           <input id="static-namespace" value="{{ namespace }}">
@@ -72,7 +72,30 @@
           </div>
           <div id="static-status" class="status"></div>
           <div id="static-results"></div>
-          <div id="graph-container"></div>
+        </div>
+        <div class="static-workspace" id="static-workspace">
+          <aside class="static-side">
+            <div class="search-wrap">
+              <input id="static-search" type="search" placeholder="搜索服务 / 资源…" autocomplete="off">
+            </div>
+            <label>命名空间</label>
+            <select id="static-ns-filter"><option value="all">全部</option></select>
+            <label>节点类型</label>
+            <select id="static-type-filter">
+              <option value="all">全部</option>
+              <option value="service">服务</option>
+              <option value="VirtualService">VirtualService</option>
+              <option value="DestinationRule">DestinationRule</option>
+              <option value="EnvoyFilter">EnvoyFilter</option>
+              <option value="Gateway">Gateway</option>
+            </select>
+            <label class="check"><input type="checkbox" id="static-cfg-only" checked> 只显示有声明式配置的节点</label>
+            <div class="legend" id="static-legend"></div>
+          </aside>
+          <div class="static-canvas" id="graph-container"></div>
+          <aside class="static-inspect" id="static-inspect">
+            <div class="empty">执行静态分析后，点击节点查看命名空间、声明式配置和数据面规则。</div>
+          </aside>
         </div>
       </section>
 

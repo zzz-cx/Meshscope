@@ -2,7 +2,7 @@ import os
 import sys
 import logging
 import json
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 
 # 添加项目根目录到 Python 路径
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -327,53 +327,385 @@ def parse_unified_from_dir(
 ALIGNED_STATUSES = ("matched", "partial_matched")
 
 
-def _simple_graph_from_pairs(pairs: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _strip_empty(obj: Any) -> Any:
+    if obj is None:
+        return None
+    if isinstance(obj, dict):
+        cleaned = {k: _strip_empty(v) for k, v in obj.items() if v not in (None, "", [], {})}
+        return {k: v for k, v in cleaned.items() if v not in (None, "", [], {})}
+    if isinstance(obj, list):
+        return [item for item in (_strip_empty(v) for v in obj) if item not in (None, "", [], {})]
+    return obj
+
+
+_META_DROP = {
+    "managedFields", "resourceVersion", "uid", "generation",
+    "creationTimestamp", "selfLink", "ownerReferences",
+}
+
+
+def _clean_manifest(raw: Any) -> Optional[Dict[str, Any]]:
+    if not isinstance(raw, dict) or not raw.get("kind"):
+        return None
+    meta_in = dict(raw.get("metadata") or {})
+    ann = dict(meta_in.get("annotations") or {})
+    ann.pop("kubectl.kubernetes.io/last-applied-configuration", None)
+    meta = {
+        k: meta_in[k]
+        for k in ("name", "namespace", "labels")
+        if meta_in.get(k)
+    }
+    if ann:
+        meta["annotations"] = ann
+    return {
+        "apiVersion": raw.get("apiVersion") or "",
+        "kind": raw["kind"],
+        "metadata": meta,
+        "spec": raw.get("spec") if isinstance(raw.get("spec"), dict) else {},
+    }
+
+
+def _iter_manifests(raw: Any) -> List[Dict[str, Any]]:
+    found: List[Dict[str, Any]] = []
+    if not isinstance(raw, dict):
+        return found
+    manifest = _clean_manifest(raw)
+    if manifest:
+        found.append(manifest)
+        return found
+    for value in raw.values():
+        if isinstance(value, dict):
+            found.extend(_iter_manifests(value))
+        elif isinstance(value, list):
+            for item in value:
+                if isinstance(item, dict):
+                    found.extend(_iter_manifests(item))
+    return found
+
+
+def _host_parts(host: Any, default_ns: str) -> Tuple[str, str]:
+    text = str(host or "").split(":")[0].strip()
+    if not text:
+        return default_ns, ""
+    text = text.replace(".svc.cluster.local", "")
+    parts = [p for p in text.split(".") if p]
+    name = parts[0] if parts else ""
+    ns = parts[1] if len(parts) > 1 else default_ns
+    return ns or "default", name
+
+
+def _svc_id(ns: str, name: str) -> str:
+    return f"{ns or 'default'}/{name}"
+
+
+def _res_id(kind: str, ns: str, name: str) -> str:
+    return f"{kind}/{ns or 'default'}/{name}"
+
+
+def _cluster_digest(item: Any) -> Optional[Dict[str, Any]]:
+    cluster = item
+    if isinstance(item, dict) and isinstance(item.get("cluster"), dict):
+        cluster = item["cluster"]
+    if not isinstance(cluster, dict):
+        return None
+    thresholds = ((cluster.get("circuit_breakers") or {}).get("thresholds") or [])
+    return _strip_empty({
+        "name": cluster.get("name") or cluster.get("alt_stat_name"),
+        "lb_policy": cluster.get("lb_policy"),
+        "connect_timeout": cluster.get("connect_timeout"),
+        "circuit_breakers": thresholds,
+    })
+
+
+def _summarize_data_plane(dp: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    if not isinstance(dp, dict):
+        return None
+    out: Dict[str, Any] = {}
+    for key in (
+        "function_type", "service_name", "namespace",
+        "hosts", "routes", "gateways", "algorithm", "subsets",
+        "connection_pool", "outlier_detection", "subset_policies",
+        "rules", "rate_limit_type", "rate_limit_service",
+        "retry_policy", "timeout", "idle_timeout", "destinations",
+    ):
+        val = dp.get(key)
+        if val not in (None, "", [], {}):
+            out[key] = _strip_empty(val)
+    raw = dp.get("raw_config") or {}
+    if isinstance(raw, dict):
+        if raw.get("clusters") and "connection_pool" not in out:
+            clusters = [_cluster_digest(c) for c in (raw.get("clusters") or [])]
+            out["envoy_clusters"] = [c for c in clusters if c][:8]
+        if raw.get("domains") and "hosts" not in out:
+            out["hosts"] = raw.get("domains")
+        routes = raw.get("routes")
+        if routes and "routes" not in out:
+            simplified = []
+            for route in routes[:8]:
+                if not isinstance(route, dict):
+                    continue
+                dest = route.get("route") or {}
+                simplified.append(_strip_empty({
+                    "match": route.get("match"),
+                    "cluster": dest.get("cluster"),
+                    "timeout": dest.get("timeout"),
+                    "retry_policy": dest.get("retry_policy"),
+                    "weighted_clusters": dest.get("weightedClusters") or dest.get("weighted_clusters"),
+                }))
+            if simplified:
+                out["envoy_routes"] = simplified
+    return out or None
+
+
+def _ensure_service(
+    nodes: Dict[str, Dict[str, Any]],
+    ns: str,
+    name: str,
+) -> Optional[Dict[str, Any]]:
+    if not name:
+        return None
+    sid = _svc_id(ns, name)
+    node = nodes.get(sid)
+    if node is None:
+        node = {
+            "id": sid,
+            "label": name,
+            "namespace": ns or "default",
+            "type": "service",
+            "subsets": [],
+            "functions": [],
+            "resources": [],
+            "declarative": [],
+            "data_plane_rules": [],
+            "alignment": "unknown",
+        }
+        nodes[sid] = node
+    return node
+
+
+def _add_function(node: Dict[str, Any], function_type: str, status: str) -> None:
+    for item in node["functions"]:
+        if item.get("function_type") == function_type:
+            item["alignment_status"] = status
+            return
+    node["functions"].append({
+        "function_type": function_type,
+        "alignment_status": status,
+    })
+
+
+def _service_alignment(functions: List[Dict[str, Any]]) -> str:
+    statuses = {str(f.get("alignment_status") or "") for f in functions}
+    statuses.discard("")
+    if not statuses:
+        return "unknown"
+    if statuses & {"mismatched", "inconsistent"}:
+        return "mismatched"
+    if "control_only" in statuses and "data_only" in statuses:
+        return "mismatched"
+    if "control_only" in statuses:
+        return "control_only"
+    if "data_only" in statuses:
+        return "data_only"
+    if "partial_matched" in statuses or "partial" in statuses:
+        return "partial_matched"
+    if statuses <= {"matched", "consistent"}:
+        return "matched"
+    return "unknown"
+
+
+def _add_manifest(nodes: Dict[str, Dict[str, Any]], edges: List[Dict[str, Any]], edge_id: List[int],
+                  seen_edges: set, manifest: Dict[str, Any], default_ns: str,
+                  owner_svc: Optional[str] = None) -> None:
+    kind = manifest.get("kind") or "Resource"
+    meta = manifest.get("metadata") or {}
+    name = meta.get("name") or kind.lower()
+    ns = meta.get("namespace") or default_ns or "default"
+    rid = _res_id(kind, ns, name)
+    if rid not in nodes:
+        nodes[rid] = {
+            "id": rid,
+            "label": f"{kind}/{name}",
+            "name": name,
+            "namespace": ns,
+            "type": "resource",
+            "kind": kind,
+            "declarative": [manifest],
+        }
+    else:
+        existing = nodes[rid].setdefault("declarative", [])
+        if manifest not in existing:
+            existing.append(manifest)
+
+    targets: List[str] = []
+    if owner_svc:
+        targets.append(owner_svc)
+    spec = manifest.get("spec") or {}
+    if kind == "VirtualService":
+        for host in spec.get("hosts") or []:
+            hns, hname = _host_parts(host, ns)
+            node = _ensure_service(nodes, hns, hname)
+            if node:
+                targets.append(node["id"])
+        for http in spec.get("http") or []:
+            for dest in (http.get("route") or []):
+                destination = (dest or {}).get("destination") or {}
+                hns, hname = _host_parts(destination.get("host"), ns)
+                node = _ensure_service(nodes, hns, hname)
+                if node:
+                    targets.append(node["id"])
+    elif kind == "DestinationRule":
+        hns, hname = _host_parts(spec.get("host"), ns)
+        node = _ensure_service(nodes, hns, hname)
+        if node:
+            targets.append(node["id"])
+    elif kind == "EnvoyFilter":
+        labels = ((spec.get("workloadSelector") or {}).get("labels") or {})
+        app = labels.get("app") or labels.get("istio")
+        if app:
+            node = _ensure_service(nodes, ns, app)
+            if node:
+                targets.append(node["id"])
+
+    elif kind == "Service":
+        node = _ensure_service(nodes, ns, name)
+        if node:
+            targets.append(node["id"])
+
+    seen = set()
+    for tid in targets:
+        if not tid or tid in seen:
+            continue
+        seen.add(tid)
+        svc = nodes.get(tid)
+        if svc and svc.get("type") == "service":
+            ref = {"kind": kind, "name": name, "namespace": ns, "id": rid}
+            if ref not in svc["resources"]:
+                svc["resources"].append(ref)
+            if manifest not in svc["declarative"]:
+                svc["declarative"].append(manifest)
+        ekey = (rid, tid, "declares")
+        if ekey in seen_edges:
+            continue
+        seen_edges.add(ekey)
+        edges.append({
+            "id": f"edge_{edge_id[0]:04d}",
+            "source": rid,
+            "target": tid,
+            "type": "declares",
+            "label": kind,
+        })
+        edge_id[0] += 1
+
+
+def _simple_graph_from_pairs(
+    pairs: List[Dict[str, Any]],
+    control_plane_configs: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """服务 + Istio 资源图：命名空间、声明式配置、对应数据面规则。"""
     nodes: Dict[str, Dict[str, Any]] = {}
-    edges = []
-    edge_id = 1
+    edges: List[Dict[str, Any]] = []
+    edge_id = [1]
+    seen_route = set()
+    seen_edges: set = set()
+
     for pair in pairs:
         svc = pair.get("service_name") or ""
         ns = pair.get("namespace") or "default"
-        if svc and svc not in nodes:
-            nodes[svc] = {
-                "id": svc,
-                "label": svc,
-                "namespace": ns,
-                "type": "service",
-                "subsets": [],
-            }
+        node = _ensure_service(nodes, ns, svc)
+        if not node:
+            continue
+        status = pair.get("alignment_status") or "unknown"
+        ftype = pair.get("function_type") or "unknown"
+        _add_function(node, ftype, status)
+
         for tup in (pair.get("control_tuples") or []) + (pair.get("data_tuples") or []):
             subsets = ((tup.get("scope") or {}).get("subsets") or [])
-            if svc in nodes:
-                merged = list(dict.fromkeys((nodes[svc].get("subsets") or []) + subsets))
-                nodes[svc]["subsets"] = merged
+            node["subsets"] = list(dict.fromkeys((node.get("subsets") or []) + subsets))
             dests = ((tup.get("constraint") or {}).get("destinations") or [])
             weights = ((tup.get("constraint") or {}).get("weights") or {})
             for dest in dests:
-                target = (dest.get("host") or dest.get("subset") or "").split(".")[0]
+                host = dest.get("host") or dest.get("subset") or ""
+                tns, target = _host_parts(host, ns)
+                if not target and dest.get("subset"):
+                    target = svc
+                    tns = ns
                 if not target:
                     continue
-                if target not in nodes:
-                    nodes[target] = {
-                        "id": target,
-                        "label": target,
-                        "namespace": ns,
-                        "type": "service",
-                        "subsets": [dest["subset"]] if dest.get("subset") else [],
-                    }
+                other = _ensure_service(nodes, tns, target)
+                if not other:
+                    continue
+                if dest.get("subset"):
+                    other["subsets"] = list(dict.fromkeys((other.get("subsets") or []) + [dest["subset"]]))
                 weight = dest.get("weight")
                 if weight is None and dest.get("subset") in weights:
                     weight = weights.get(dest.get("subset"))
+                key = (node["id"], other["id"], weight, ftype)
+                if key in seen_route:
+                    continue
+                seen_route.add(key)
                 edges.append({
-                    "id": f"edge_{edge_id:04d}",
-                    "source": svc or target,
-                    "target": target,
+                    "id": f"edge_{edge_id[0]:04d}",
+                    "source": node["id"],
+                    "target": other["id"],
                     "type": "route",
                     "weight": weight,
-                    "label": f"{weight}%" if weight is not None else tup.get("function_type", "route"),
+                    "function_type": ftype,
+                    "label": f"{weight}%" if weight is not None else ftype,
                 })
-                edge_id += 1
-    return {"nodes": list(nodes.values()), "edges": edges}
+                edge_id[0] += 1
+
+        cp = pair.get("control_plane")
+        if isinstance(cp, dict):
+            for manifest in _iter_manifests(cp.get("raw_config")):
+                    _add_manifest(nodes, edges, edge_id, seen_edges, manifest, ns, node["id"])
+
+        dp = _summarize_data_plane(pair.get("data_plane"))
+        if dp:
+            dp["alignment_status"] = status
+            node["data_plane_rules"].append(dp)
+
+    kind_map = {
+        "virtual_services": "VirtualService",
+        "destination_rules": "DestinationRule",
+        "envoy_filters": "EnvoyFilter",
+        "gateways": "Gateway",
+        "services": "Service",
+    }
+    for key, kind in kind_map.items():
+        bucket = (control_plane_configs or {}).get(key) or {}
+        items: List[Any]
+        if isinstance(bucket, dict):
+            items = bucket.get("items") if isinstance(bucket.get("items"), list) else list(bucket.values())
+        elif isinstance(bucket, list):
+            items = bucket
+        else:
+            items = []
+        for raw in items:
+            if not isinstance(raw, dict):
+                continue
+            payload = dict(raw)
+            payload.setdefault("kind", kind)
+            for manifest in _iter_manifests(payload):
+                _add_manifest(
+                    nodes, edges, edge_id, seen_edges, manifest,
+                    manifest.get("metadata", {}).get("namespace") or "default",
+                )
+
+    for node in nodes.values():
+        if node.get("type") == "service":
+            node["alignment"] = _service_alignment(node.get("functions") or [])
+
+    namespaces = sorted({n.get("namespace") or "default" for n in nodes.values()})
+    return {
+        "nodes": list(nodes.values()),
+        "edges": edges,
+        "metadata": {
+            "namespaces": namespaces,
+            "service_count": sum(1 for n in nodes.values() if n.get("type") == "service"),
+            "resource_count": sum(1 for n in nodes.values() if n.get("type") == "resource"),
+        },
+    }
 
 
 def _expected_tuples_from_pairs(pairs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -441,7 +773,7 @@ def parse_static_semantic(
 
     conflicts = analyze_cross_resource_conflicts(control_plane_configs)
     expected_tuples = _expected_tuples_from_pairs(pairs)
-    graph_data = _simple_graph_from_pairs(pairs)
+    graph_data = _simple_graph_from_pairs(pairs, control_plane_configs)
     tau = _get_tau()
     summary = system_ir.get_summary()
     summary["tau"] = tau
