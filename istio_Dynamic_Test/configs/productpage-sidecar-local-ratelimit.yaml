@@ -1,0 +1,31 @@
+# productpage 入站本地限流（与 paymentservice 示例同模式，理想情况下超限为 429）。
+# 注意：若同名服务的 DestinationRule 将 connectionPool 压得过小并开启 outlierDetection，
+# 突发下连接池/熔断常先于本限流生效，观测多为 503(UO) 而非 429。单独验限流时请放宽 DR 或换目标服务。
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: productpage-local-ratelimit
+  namespace: default
+spec:
+  workloadSelector:
+    labels:
+      app: productpage
+  configPatches:
+    - applyTo: HTTP_FILTER
+      match:
+        context: SIDECAR_INBOUND
+        listener:
+          filterChain:
+            filter:
+              name: envoy.filters.network.http_connection_manager
+      patch:
+        operation: INSERT_BEFORE
+        value:
+          name: envoy.filters.http.local_ratelimit
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.filters.http.local_ratelimit.v3.LocalRateLimit
+            stat_prefix: productpage_http_local_rl
+            token_bucket:
+              max_tokens: 6
+              tokens_per_fill: 6
+              fill_interval: 1s

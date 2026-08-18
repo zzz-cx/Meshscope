@@ -3,14 +3,12 @@ import sys
 import logging
 import json
 from typing import Dict, Any, List, Optional
-import warnings
 
 # 添加项目根目录到 Python 路径
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # 统一解析器和模型（推荐使用）
 from istio_config_parser.parsers.unified_parser import UnifiedParser
-from istio_config_parser.parsers.model_exporter import ModelExporter
 from istio_config_parser.models.ir_models import SystemIR
 from istio_config_parser.utils.file_utils import load_yaml_file, load_json_file
 
@@ -41,6 +39,79 @@ def _resolve_config_dir(path: str) -> str:
     if path.startswith('istio_config_parser' + os.sep) or path.startswith('istio_config_parser/'):
         return os.path.join(_PROJECT_ROOT, path)
     return os.path.join(_PKG_DIR, path)
+
+
+def _get_tau() -> float:
+    try:
+        from consistency_checker.config import get_config
+        return float(get_config().traffic_split_tolerance)
+    except Exception:
+        return 0.1
+
+
+def aligned_semantic_path(output_dir: Optional[str] = None) -> str:
+    if output_dir:
+        base = output_dir if os.path.isabs(output_dir) else os.path.join(_PROJECT_ROOT, output_dir)
+        return os.path.join(base, "aligned_semantic.json")
+    try:
+        from consistency_checker.config import get_config
+        return os.path.join(get_config().consistency_output_dir, "aligned_semantic.json")
+    except Exception:
+        return os.path.join(_PROJECT_ROOT, "results", "consistency", "aligned_semantic.json")
+
+
+class AlignedModelMissingError(FileNotFoundError):
+    """动态期望依赖静态对齐产物，尚未生成 aligned_semantic.json。"""
+
+
+def load_aligned_semantic(path: Optional[str] = None) -> Dict[str, Any]:
+    target = path or aligned_semantic_path()
+    if not os.path.isfile(target):
+        raise AlignedModelMissingError(
+            f"未找到对齐后的语义模型: {target}。请先执行静态分析"
+            "（python -m configpilot static 或 POST /api/static/analyze）。"
+        )
+    with open(target, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def dump_aligned_semantic(artifact: Dict[str, Any], path: Optional[str] = None) -> str:
+    target = path or aligned_semantic_path()
+    os.makedirs(os.path.dirname(target), exist_ok=True)
+    with open(target, "w", encoding="utf-8") as f:
+        json.dump(artifact, f, indent=2, ensure_ascii=False, default=str)
+    logger.info(f"已写入对齐语义模型: {target}")
+    return target
+
+
+def _load_control_plane_configs(cp_dir: str, namespace: Optional[str] = None) -> Dict[str, Any]:
+    return {
+        "services": _load_config_files(cp_dir, "services", namespace),
+        "virtual_services": _load_config_files(cp_dir, "virtualservices", namespace),
+        "destination_rules": _load_config_files(cp_dir, "destinationrules", namespace),
+        "envoy_filters": _load_config_files(cp_dir, "envoyfilters", namespace),
+        "gateways": _load_config_files(cp_dir, "gateways", namespace),
+    }
+
+
+_DP_FILES = (
+    ("routes", "routes.json", "路由配置"),
+    ("clusters", "clusters.json", "集群配置"),
+    ("listeners", "listeners.json", "监听器配置"),
+)
+
+
+def _load_data_plane_configs(dp_dir: str, verbose: bool = False) -> Dict[str, Any]:
+    configs: Dict[str, Any] = {}
+    for key, filename, label in _DP_FILES:
+        path = os.path.join(dp_dir, filename)
+        if os.path.exists(path):
+            configs[key] = load_json_file(path)
+            if verbose:
+                logger.info(f"已加载{label}: {path}")
+        elif verbose:
+            logger.warning(f"未找到{label}文件: {path}")
+    return configs
 
 
 def _load_config_files(config_dir: str, resource_type: str, namespace: Optional[str] = None) -> Dict[str, Any]:
@@ -107,26 +178,12 @@ def parse_to_legacy_format(
     if cache_key in _legacy_cache:
         return _legacy_cache[cache_key]
 
-    control_plane_configs = {
-        'services': _load_config_files(cp_dir, 'services', namespace),
-        'virtual_services': _load_config_files(cp_dir, 'virtualservices', namespace),
-        'destination_rules': _load_config_files(cp_dir, 'destinationrules', namespace),
-        'envoy_filters': _load_config_files(cp_dir, 'envoyfilters', namespace)
-    }
-    data_plane_configs = {}
-    routes_file = os.path.join(dp_dir, 'routes.json')
-    if os.path.exists(routes_file):
-        data_plane_configs['routes'] = load_json_file(routes_file)
-    if 'routes' not in data_plane_configs or data_plane_configs['routes'] is None:
-        data_plane_configs['routes'] = []
-    clusters_file = os.path.join(dp_dir, 'clusters.json')
-    if os.path.exists(clusters_file):
-        data_plane_configs['clusters'] = load_json_file(clusters_file)
-    listeners_file = os.path.join(dp_dir, 'listeners.json')
-    if os.path.exists(listeners_file):
-        data_plane_configs['listeners'] = load_json_file(listeners_file)
+    control_plane_configs = _load_control_plane_configs(cp_dir, namespace)
+    data_plane_configs = _load_data_plane_configs(dp_dir)
+    if not data_plane_configs.get("routes"):
+        data_plane_configs["routes"] = []
 
-    parser = UnifiedParser(enable_parallel=True, max_workers=None)
+    parser = UnifiedParser(enable_parallel=True, max_workers=None, tau=_get_tau())
     system_ir = parser.parse_align_and_build_ir(control_plane_configs, data_plane_configs)
     services = parse_services(control_plane_configs.get('services', {}))
     control_result, data_result = system_ir_to_legacy(system_ir, services)
@@ -187,7 +244,7 @@ def _merge_data_plane_configs(
         a = base.get(key)
         b = extra[key]
         if a is None:
-            a = [] if key != 'listeners' else []
+            a = []
         if b is None:
             b = []
         if not isinstance(a, list):
@@ -240,54 +297,15 @@ def parse_unified_from_dir(
 
     # 加载控制平面配置
     logger.info("加载控制平面配置...")
-    control_plane_configs = {
-        'services': _load_config_files(cp_dir, 'services', namespace),
-        'virtual_services': _load_config_files(cp_dir, 'virtualservices', namespace),
-        'destination_rules': _load_config_files(cp_dir, 'destinationrules', namespace),
-        'envoy_filters': _load_config_files(cp_dir, 'envoyfilters', namespace)
-    }
+    control_plane_configs = _load_control_plane_configs(cp_dir, namespace)
 
     # 加载数据平面配置
     logger.info("加载数据平面配置...")
-    data_plane_configs = {}
-    
-    # 加载routes.json
-    routes_file = os.path.join(dp_dir, 'routes.json')
-    if os.path.exists(routes_file):
-        data_plane_configs['routes'] = load_json_file(routes_file)
-        logger.info(f"已加载路由配置: {routes_file}")
-    else:
-        logger.warning(f"未找到路由配置文件: {routes_file}")
-    
-    # 加载clusters.json
-    clusters_file = os.path.join(dp_dir, 'clusters.json')
-    if os.path.exists(clusters_file):
-        data_plane_configs['clusters'] = load_json_file(clusters_file)
-        logger.info(f"已加载集群配置: {clusters_file}")
-    else:
-        logger.warning(f"未找到集群配置文件: {clusters_file}")
-    
-    # 加载listeners.json
-    listeners_file = os.path.join(dp_dir, 'listeners.json')
-    if os.path.exists(listeners_file):
-        data_plane_configs['listeners'] = load_json_file(listeners_file)
-        logger.info(f"已加载监听器配置: {listeners_file}")
-    else:
-        logger.warning(f"未找到监听器配置文件: {listeners_file}")
-    
-    # 加载 Ingress Gateway 配置（可选，用于 Gateway 绑定项校验）
+    data_plane_configs = _load_data_plane_configs(dp_dir, verbose=True)
+
     if ingress_plane_dir:
         ig_dir = _resolve_config_dir(ingress_plane_dir)
-        ig_routes = os.path.join(ig_dir, 'routes.json')
-        ig_clusters = os.path.join(ig_dir, 'clusters.json')
-        ig_listeners = os.path.join(ig_dir, 'listeners.json')
-        ingress_configs = {}
-        if os.path.exists(ig_routes):
-            ingress_configs['routes'] = load_json_file(ig_routes)
-        if os.path.exists(ig_clusters):
-            ingress_configs['clusters'] = load_json_file(ig_clusters)
-        if os.path.exists(ig_listeners):
-            ingress_configs['listeners'] = load_json_file(ig_listeners)
+        ingress_configs = _load_data_plane_configs(ig_dir)
         if ingress_configs:
             data_plane_configs = _merge_data_plane_configs(
                 data_plane_configs, ingress_configs, "ingress gateway"
@@ -295,15 +313,167 @@ def parse_unified_from_dir(
         else:
             logger.warning(f"Ingress 目录 {ig_dir} 下未找到 routes/clusters/listeners.json")
     
-    # 使用统一解析器
+    # 使用统一解析器（数值容差 tau 来自 configpilot.json）
     logger.info("开始解析和对齐配置...")
-    parser = UnifiedParser(enable_parallel=enable_parallel, max_workers=max_workers)
+    parser = UnifiedParser(enable_parallel=enable_parallel, max_workers=max_workers, tau=_get_tau())
     system_ir = parser.parse_align_and_build_ir(control_plane_configs, data_plane_configs)
     
     logger.info("解析完成")
     if return_control_plane_configs:
         return system_ir, control_plane_configs
     return system_ir
+
+
+ALIGNED_STATUSES = ("matched", "partial_matched")
+
+
+def _simple_graph_from_pairs(pairs: List[Dict[str, Any]]) -> Dict[str, Any]:
+    nodes: Dict[str, Dict[str, Any]] = {}
+    edges = []
+    edge_id = 1
+    for pair in pairs:
+        svc = pair.get("service_name") or ""
+        ns = pair.get("namespace") or "default"
+        if svc and svc not in nodes:
+            nodes[svc] = {
+                "id": svc,
+                "label": svc,
+                "namespace": ns,
+                "type": "service",
+                "subsets": [],
+            }
+        for tup in (pair.get("control_tuples") or []) + (pair.get("data_tuples") or []):
+            subsets = ((tup.get("scope") or {}).get("subsets") or [])
+            if svc in nodes:
+                merged = list(dict.fromkeys((nodes[svc].get("subsets") or []) + subsets))
+                nodes[svc]["subsets"] = merged
+            dests = ((tup.get("constraint") or {}).get("destinations") or [])
+            weights = ((tup.get("constraint") or {}).get("weights") or {})
+            for dest in dests:
+                target = (dest.get("host") or dest.get("subset") or "").split(".")[0]
+                if not target:
+                    continue
+                if target not in nodes:
+                    nodes[target] = {
+                        "id": target,
+                        "label": target,
+                        "namespace": ns,
+                        "type": "service",
+                        "subsets": [dest["subset"]] if dest.get("subset") else [],
+                    }
+                weight = dest.get("weight")
+                if weight is None and dest.get("subset") in weights:
+                    weight = weights.get(dest.get("subset"))
+                edges.append({
+                    "id": f"edge_{edge_id:04d}",
+                    "source": svc or target,
+                    "target": target,
+                    "type": "route",
+                    "weight": weight,
+                    "label": f"{weight}%" if weight is not None else tup.get("function_type", "route"),
+                })
+                edge_id += 1
+    return {"nodes": list(nodes.values()), "edges": edges}
+
+
+def _expected_tuples_from_pairs(pairs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    expected = []
+    for pair in pairs:
+        status = pair.get("alignment_status")
+        if status not in ALIGNED_STATUSES:
+            continue
+        tuples = pair.get("control_tuples") or pair.get("data_tuples") or []
+        for tup in tuples:
+            item = dict(tup)
+            item["alignment_status"] = status
+            item["service_name"] = pair.get("service_name")
+            item["namespace"] = pair.get("namespace")
+            item["differences"] = pair.get("differences") or []
+            expected.append(item)
+    return expected
+
+
+def parse_static_semantic(
+    control_plane_dir: str = "istio_config_parser/istio_monitor/istio_control_config",
+    data_plane_dir: str = "istio_config_parser/istio_monitor/istio_sidecar_config",
+    ingress_plane_dir: Optional[str] = None,
+    namespace: Optional[str] = None,
+    enable_parallel: bool = True,
+    max_workers: Optional[int] = None,
+    output_path: Optional[str] = None,
+) -> Dict[str, Any]:
+    """一次解析：对齐语义元组、跨资源冲突，并写出 aligned_semantic.json。
+
+    动态期望只能消费本产物中 alignment_status 为 matched / partial_matched 的元组。
+    """
+    from datetime import datetime
+    from istio_config_parser.parsers.conflict_analyzer import analyze_cross_resource_conflicts
+
+    parsed = parse_unified_from_dir(
+        control_plane_dir=control_plane_dir,
+        data_plane_dir=data_plane_dir,
+        ingress_plane_dir=ingress_plane_dir,
+        namespace=namespace,
+        enable_parallel=enable_parallel,
+        max_workers=max_workers,
+        return_control_plane_configs=True,
+    )
+    system_ir, control_plane_configs = parsed
+    services = parse_services(control_plane_configs.get("services", {}))
+    control_result, data_result = system_ir_to_legacy(system_ir, services)
+
+    pairs: List[Dict[str, Any]] = []
+    for svc in system_ir.get_all_services():
+        for func_ir in svc.functions.values():
+            pair = func_ir.aligned_pair
+            if pair is not None:
+                pairs.append(pair.to_dict())
+            else:
+                pairs.append({
+                    "function_type": func_ir.function_type.value if hasattr(func_ir.function_type, "value") else str(func_ir.function_type),
+                    "service_name": func_ir.service_name,
+                    "namespace": func_ir.namespace,
+                    "alignment_status": func_ir.consistency_status.value,
+                    "differences": [i.to_dict() for i in func_ir.issues],
+                    "control_tuples": (func_ir.config or {}).get("control_tuples") or [],
+                    "data_tuples": (func_ir.config or {}).get("data_tuples") or [],
+                })
+
+    conflicts = analyze_cross_resource_conflicts(control_plane_configs)
+    expected_tuples = _expected_tuples_from_pairs(pairs)
+    graph_data = _simple_graph_from_pairs(pairs)
+    tau = _get_tau()
+    summary = system_ir.get_summary()
+    summary["tau"] = tau
+    summary["conflict_count"] = len(conflicts)
+    summary["expected_tuple_count"] = len(expected_tuples)
+    summary["aligned_pair_count"] = sum(
+        1 for p in pairs if p.get("alignment_status") in ALIGNED_STATUSES
+    )
+
+    artifact = {
+        "generated_at": datetime.now().isoformat(),
+        "namespace": namespace,
+        "tau": tau,
+        "summary": summary,
+        "pairs": pairs,
+        "conflicts": conflicts,
+        "expected_tuples": expected_tuples,
+        "control_plane": control_result,
+        "data_plane": data_result,
+        "graph_data": graph_data,
+    }
+    artifact_path = dump_aligned_semantic(artifact, output_path)
+    return {
+        "artifact": artifact,
+        "artifact_path": artifact_path,
+        "system_ir": system_ir,
+        "control_plane": control_result,
+        "data_plane": data_result,
+        "conflicts": conflicts,
+        "graph_data": graph_data,
+        "summary": summary,
+    }
 
 
 def export_three_layer_graph(
@@ -340,11 +510,7 @@ def export_three_layer_graph(
     )
     
     cp_dir = _resolve_config_dir(control_plane_dir)
-    control_plane_configs = {
-        'virtual_services': _load_config_files(cp_dir, 'virtualservices', namespace),
-        'destination_rules': _load_config_files(cp_dir, 'destinationrules', namespace),
-        'envoy_filters': _load_config_files(cp_dir, 'envoyfilters', namespace)
-    }
+    control_plane_configs = _load_control_plane_configs(cp_dir, namespace)
     
     generator = ThreeLayerGraphGenerator(system_ir, control_plane_configs)
     generator.generate()
@@ -392,32 +558,15 @@ def parse_and_export_models(
 
     # 加载控制平面配置
     logger.info("加载控制平面配置...")
-    control_plane_configs = {
-        'services': _load_config_files(cp_dir, 'services', namespace),
-        'virtual_services': _load_config_files(cp_dir, 'virtualservices', namespace),
-        'destination_rules': _load_config_files(cp_dir, 'destinationrules', namespace),
-        'envoy_filters': _load_config_files(cp_dir, 'envoyfilters', namespace)
-    }
+    control_plane_configs = _load_control_plane_configs(cp_dir, namespace)
     
     # 加载数据平面配置
     logger.info("加载数据平面配置...")
-    data_plane_configs = {}
-    
-    routes_file = os.path.join(dp_dir, 'routes.json')
-    if os.path.exists(routes_file):
-        data_plane_configs['routes'] = load_json_file(routes_file)
-    
-    clusters_file = os.path.join(dp_dir, 'clusters.json')
-    if os.path.exists(clusters_file):
-        data_plane_configs['clusters'] = load_json_file(clusters_file)
-    
-    listeners_file = os.path.join(dp_dir, 'listeners.json')
-    if os.path.exists(listeners_file):
-        data_plane_configs['listeners'] = load_json_file(listeners_file)
+    data_plane_configs = _load_data_plane_configs(dp_dir)
     
     # 使用统一解析器
     logger.info("开始解析配置...")
-    parser = UnifiedParser(enable_parallel=enable_parallel, max_workers=max_workers)
+    parser = UnifiedParser(enable_parallel=enable_parallel, max_workers=max_workers, tau=_get_tau())
     exported_files = parser.parse_and_export(
         control_plane_configs, 
         data_plane_configs, 
@@ -496,14 +645,14 @@ if __name__ == "__main__":
     parser_cli.add_argument('--details', action='store_true',
                            help='显示详细的服务和功能信息')
     parser_cli.add_argument('--control-plane-dir', type=str, 
-                           default='istio_config_parser/istio_monitor/istio_control_config',
+                           default=None,
                            help='控制平面配置目录（支持项目根相对路径）')
     parser_cli.add_argument('--data-plane-dir', type=str,
-                           default='istio_config_parser/istio_monitor/istio_sidecar_config',
+                           default=None,
                            help='数据平面配置目录（支持项目根相对路径）')
     parser_cli.add_argument('--ingress-plane-dir', type=str,
-                           default='istio_config_parser/istio_monitor/istio_ingress_config',
-                           help='Ingress Gateway 配置目录（默认启用，用于 frontend-ingress/bookinfo 等 Gateway 绑定项校验。目录不存在时自动跳过。使用 --no-ingress 可禁用）')
+                           default=None,
+                           help='Ingress Gateway 配置目录')
     parser_cli.add_argument('--no-ingress', action='store_true',
                            help='禁用 Ingress Gateway 配置校验（不加载 istio_ingress_config）')
     parser_cli.add_argument('--no-parallel', action='store_true',
@@ -511,6 +660,22 @@ if __name__ == "__main__":
     parser_cli.add_argument('--max-workers', type=int, default=None,
                            help='最大工作线程数（默认自动计算）')
     args = parser_cli.parse_args()
+    try:
+        from consistency_checker.config import fill_args_from_config
+        fill_args_from_config(args, {
+            "namespace": "namespace",
+            "control_plane_dir": "control_plane_config_dir",
+            "data_plane_dir": "data_plane_config_dir",
+            "ingress_plane_dir": "ingress_plane_config_dir",
+        })
+    except Exception:
+        pass
+    if not args.control_plane_dir:
+        args.control_plane_dir = 'istio_config_parser/istio_monitor/istio_control_config'
+    if not args.data_plane_dir:
+        args.data_plane_dir = 'istio_config_parser/istio_monitor/istio_sidecar_config'
+    if not args.ingress_plane_dir:
+        args.ingress_plane_dir = 'istio_config_parser/istio_monitor/istio_ingress_config'
 
     # --no-ingress 时禁用 ingress 配置
     ingress_plane_dir = None if args.no_ingress else args.ingress_plane_dir
@@ -562,7 +727,7 @@ if __name__ == "__main__":
             print("\n[模式] 解析并生成中间表示（IR）")
             print("-"*80)
             
-            system_ir = parse_unified_from_dir(
+            bundle = parse_static_semantic(
                 control_plane_dir=args.control_plane_dir,
                 data_plane_dir=args.data_plane_dir,
                 ingress_plane_dir=ingress_plane_dir,
@@ -570,6 +735,9 @@ if __name__ == "__main__":
                 enable_parallel=enable_parallel,
                 max_workers=max_workers
             )
+            system_ir = bundle["system_ir"]
+            print(f"\n[对齐模型] {bundle['artifact_path']}")
+            print(f"[跨资源冲突] {len(bundle.get('conflicts') or [])} 项")
             
             # 打印摘要（功能级：以控制平面为意图，仅检测控制平面配置是否成功映射到数据平面）
             if args.summary:

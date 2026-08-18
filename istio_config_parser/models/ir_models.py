@@ -334,9 +334,24 @@ class IRBuilder:
             aligned_pair=pair
         )
         
+        for diff in pair.differences or []:
+            kind = diff.get("kind") or ""
+            severity = "warning" if kind == "constraint" else ("info" if kind == "presence" else "error")
+            function_ir.add_issue(ConsistencyIssue(
+                field_path=str(diff.get("field") or kind or "alignment"),
+                control_plane_value=diff.get("control"),
+                data_plane_value=diff.get("data"),
+                severity=severity,
+                description=str(diff.get("description") or ""),
+            ))
+
         # 根据对齐状态设置一致性状态
         if pair.alignment_status == AlignmentStatus.MATCHED:
             function_ir.consistency_status = ConsistencyStatus.CONSISTENT
+        elif pair.alignment_status == AlignmentStatus.PARTIAL_MATCHED:
+            function_ir.consistency_status = ConsistencyStatus.PARTIAL_CONSISTENT
+        elif pair.alignment_status == AlignmentStatus.MISMATCHED:
+            function_ir.consistency_status = ConsistencyStatus.INCONSISTENT
         elif pair.alignment_status == AlignmentStatus.CONTROL_ONLY:
             # 检查是否为 Gateway 绑定的配置（frontend-ingress、bookinfo 等）
             # 此类配置应用在 istio-ingressgateway 上，当前 sidecar 数据平面无法校验
@@ -366,11 +381,13 @@ class IRBuilder:
         else:
             function_ir.consistency_status = ConsistencyStatus.UNKNOWN
         
-        # 提取统一配置
+        # 提取统一配置与语义元组
         if pair.control_plane_model:
             function_ir.config['control_plane'] = pair.control_plane_model.to_dict()
         if pair.data_plane_model:
             function_ir.config['data_plane'] = pair.data_plane_model.to_dict()
+        function_ir.config['control_tuples'] = pair.control_tuples
+        function_ir.config['data_tuples'] = pair.data_tuples
         
         return function_ir
 

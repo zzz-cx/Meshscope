@@ -276,12 +276,23 @@ def main():
     )
     parser.add_argument(
         "-o", "--output-dir",
-        default="istio_config_parser/istio_monitor/istio_control_config",
+        default=None,
         help="输出目录",
     )
     parser.add_argument("--k8s-host", help="Kubernetes API 地址（远程集群）")
     parser.add_argument("--k8s-token", help="认证 token")
     args = parser.parse_args()
+    try:
+        from consistency_checker.config import fill_args_from_config
+        fill_args_from_config(args, {
+            "output_dir": "control_plane_config_dir",
+            "k8s_host": "k8s_host",
+            "k8s_token": "k8s_token",
+        })
+    except Exception:
+        pass
+    if not args.output_dir:
+        args.output_dir = "istio_config_parser/istio_monitor/istio_control_config"
 
     output_dir = args.output_dir
     if not os.path.isabs(output_dir):

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ConfigPilot</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">Config<span>Pilot</span></div>
+      <div class="brand-sub">服务网格配置一致性检验</div>
+      <button class="nav-btn active" data-page="overview">总览</button>
+      <button class="nav-btn" data-page="static">静态分析</button>
+      <button class="nav-btn" data-page="dynamic">动态验证</button>
+      <button class="nav-btn" data-page="consistency">一致性</button>
+      <button class="nav-btn" data-page="graph">三层依赖图</button>
+      <div class="conn-box">
+        <div class="conn-head">
+          <span>连通状态</span>
+          <span class="conn-count" id="conn-count">检测中</span>
+        </div>
+        <div class="conn-list" id="conn-sidebar">
+          <div class="conn-item"><span class="lamp pending"></span><span class="conn-name">正在探测…</span></div>
+        </div>
+        <button class="conn-refresh" type="button" id="conn-refresh-btn">重新检测</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section id="page-overview" class="page active">
+        <h1>总览</h1>
+        <p class="lead">采集控制面与数据面配置，做静态语义分析、正交动态验证，并在三层图上定位不一致。</p>
+        <div class="cards">
+          <div class="card"><h3>报告数量</h3><div class="num" id="stat-reports">-</div></div>
+          <div class="card"><h3>最新一致性率</h3><div class="num" id="stat-rate">-</div></div>
+          <div class="card"><h3>最新状态</h3><div class="num" id="stat-status">-</div></div>
+          <div class="card"><h3>命名空间</h3><div class="num" id="stat-ns">{{ namespace }}</div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <h2>运行时配置</h2>
+            <div class="row" style="margin-top:0">
+              <button class="btn secondary" type="button" id="ep-fill-btn">按主机填充默认可观测地址</button>
+              <button class="btn" type="button" id="ep-save-btn">保存并检测</button>
+              <button class="btn secondary" type="button" id="conn-refresh-overview">重新检测</button>
+            </div>
+          </div>
+          <p class="lead" id="conn-summary" style="margin-top:10px">启动时读取 configpilot.json。下面改的是集群、可观测地址和一致性容差，保存后写回同一文件，不必重启。</p>
+          <div class="ep-grid" id="endpoint-fields"></div>
+          <div id="endpoint-status" class="status"></div>
+          <div class="conn-grid" id="conn-overview"></div>
+        </div>
+        <div class="panel">
+          <h2>启动方式</h2>
+          <p class="lead" style="margin-top:10px">命令行统一入口：python -m configpilot web --port 8080</p>
+          <p class="lead">完整流水线：python -m configpilot run --namespace {{ namespace }}</p>
+        </div>
+      </section>
+
+      <section id="page-static" class="page">
+        <h1>静态分析</h1>
+        <p class="lead">将控制面 YAML 与数据面 Envoy dump 映射到同一套语义元组，做平面对齐，并检查 VS 缺 subset、路由优先级、Gateway 选择器等跨资源冲突。动态验证只认本次写出的对齐模型。</p>
+        <div class="panel">
+          <label>命名空间</label>
+          <input id="static-namespace" value="{{ namespace }}">
+          <div class="row">
+            <button class="btn" onclick="runStaticAnalysis()">执行静态分析</button>
+          </div>
+          <div id="static-status" class="status"></div>
+          <div id="static-results"></div>
+          <div id="graph-container"></div>
+        </div>
+      </section>
+
+      <section id="page-dynamic" class="page">
+        <h1>动态验证</h1>
+        <p class="lead">请先完成静态对齐。期望行为只从 aligned_semantic.json 生成，不再回退解析 YAML。</p>
+        <div class="panel">
+          <label>命名空间</label>
+          <input id="dynamic-namespace" value="{{ namespace }}">
+          <label>Ingress URL</label>
+          <input id="ingress-url" value="{{ ingress_url }}" placeholder="http://host:port/productpage">
+          <div class="row">
+            <button class="btn" onclick="generateTestMatrix()">生成测试矩阵</button>
+            <button class="btn secondary" onclick="runDynamicTests()">执行动态测试</button>
+          </div>
+          <div id="dynamic-status" class="status"></div>
+          <div id="dynamic-results"></div>
+        </div>
+      </section>
+
+      <section id="page-consistency" class="page">
+        <h1>一致性验证</h1>
+        <p class="lead">checker 只消费静态对齐产物与动态结果，生成三层图定位资源和受影响服务。请先跑静态，再跑动态。</p>
+        <div class="panel">
+          <label>命名空间</label>
+          <input id="consistency-namespace" value="{{ namespace }}">
+          <div class="row">
+            <button class="btn" onclick="buildConsistencyGraph()">生成三层图</button>
+            <button class="btn secondary" onclick="runPipeline()">执行完整流水线</button>
+            <button class="btn secondary" onclick="loadReports()">刷新报告</button>
+          </div>
+          <div id="consistency-status" class="status"></div>
+          <div id="reports-container"></div>
+        </div>
+      </section>
+
+      <section id="page-graph" class="page">
+        <h1>三层配置依赖图</h1>
+        <p class="lead">全局层、服务层、配置层。可在图中查看不一致边及其影响范围。</p>
+        <iframe class="graph-frame" src="/three_layer_graph" title="三层配置依赖图"></iframe>
+      </section>
+    </main>
+  </div>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

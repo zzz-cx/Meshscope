@@ -6,7 +6,13 @@ Istio配置解析器包
 
 # 尝试导入新版本的功能
 try:
-    from .main_parser import parse_unified_from_dir, parse_and_export_models
+    from .main_parser import (
+        parse_unified_from_dir,
+        parse_and_export_models,
+        parse_static_semantic,
+        load_aligned_semantic,
+        AlignedModelMissingError,
+    )
     from .models.ir_models import SystemIR, SimpleIRConverter
     NEW_VERSION_AVAILABLE = True
 except ImportError:
@@ -24,6 +30,14 @@ __author__ = "Istio Config Parser Team"
 
 __all__ = []
 if NEW_VERSION_AVAILABLE:
-    __all__.extend(["parse_unified_from_dir", "parse_and_export_models", "SystemIR", "SimpleIRConverter"])
+    __all__.extend([
+        "parse_unified_from_dir",
+        "parse_and_export_models",
+        "parse_static_semantic",
+        "load_aligned_semantic",
+        "AlignedModelMissingError",
+        "SystemIR",
+        "SimpleIRConverter",
+    ])
 if LEGACY_API_AVAILABLE:
     __all__.extend(["parse_control_plane_from_dir", "parse_data_plane_from_dir", "parse_to_legacy_format"])

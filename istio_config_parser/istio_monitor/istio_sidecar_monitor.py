@@ -787,13 +787,13 @@ def main():
   --export-only     (可选) 仅导出当前配置后退出
         """
     )
-    parser.add_argument("--interval", type=int, default=1200, help="检查间隔（秒）")
-    parser.add_argument("--output-dir", default="istio_config_parser/istio_monitor/istio_sidecar_config", help="配置输出目录")
-    parser.add_argument("--namespace", default="default", help="要监控的命名空间，使用 'all' 监控所有命名空间")
-    parser.add_argument("--config-types", default="routes,clusters,listeners", help="要获取的配置类型，用逗号分隔（默认: routes,clusters,listeners）")
+    parser.add_argument("--interval", type=int, default=None, help="检查间隔（秒）")
+    parser.add_argument("--output-dir", default=None, help="配置输出目录")
+    parser.add_argument("--namespace", default=None, help="要监控的命名空间，使用 'all' 监控所有命名空间")
+    parser.add_argument("--config-types", default=None, help="要获取的配置类型，用逗号分隔")
     parser.add_argument("--vm-host", help="虚拟机主机")
-    parser.add_argument("--vm-port", type=int, default=22, help="虚拟机 SSH 端口")
-    parser.add_argument("--vm-user", default="root", help="虚拟机用户名")
+    parser.add_argument("--vm-port", type=int, default=None, help="虚拟机 SSH 端口")
+    parser.add_argument("--vm-user", default=None, help="虚拟机用户名")
     parser.add_argument("--vm-password", help="虚拟机密码")
     parser.add_argument("--vm-key-file", help="虚拟机 SSH 密钥文件")
     parser.add_argument("--k8s-host", help="Kubernetes API 服务器地址")
@@ -802,6 +802,34 @@ def main():
     parser.add_argument("--update-now", action="store_true", help="立即更新配置")
 
     args = parser.parse_args()
+    try:
+        from consistency_checker.config import fill_args_from_config
+        fill_args_from_config(args, {
+            "interval": "monitor_interval",
+            "output_dir": "data_plane_config_dir",
+            "namespace": "namespace",
+            "config_types": "monitor_config_types",
+            "vm_host": "ssh_host",
+            "vm_port": "ssh_port",
+            "vm_user": "ssh_user",
+            "vm_password": "ssh_password",
+            "k8s_host": "k8s_host",
+            "k8s_token": "k8s_token",
+        })
+    except Exception:
+        pass
+    if args.interval is None:
+        args.interval = 1200
+    if not args.output_dir:
+        args.output_dir = "istio_config_parser/istio_monitor/istio_sidecar_config"
+    if not args.namespace:
+        args.namespace = "default"
+    if not args.config_types:
+        args.config_types = "routes,clusters,listeners"
+    if args.vm_port is None:
+        args.vm_port = 22
+    if not args.vm_user:
+        args.vm_user = "root"
 
     # 检查是否在 K8s 环境中
     try:

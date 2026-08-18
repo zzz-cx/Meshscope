@@ -1,0 +1,73 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# 虚拟环境
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# 日志文件
+*.log
+*.log.*
+
+# 结果文件（运行时生成）
+results/
+*.json.bak
+*.yaml.bak
+
+# 临时文件
+*.tmp
+*.temp
+.cache/
+
+# Node.js（如果不需要）
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# 文档（可选，如果需要文档可以注释掉）
+# docs/
+# *.md
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# 其他
+.env
+.env.local
+*.bak
+*.backup
+

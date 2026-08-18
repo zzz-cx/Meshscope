@@ -50,16 +50,11 @@ pip install -r requirements.txt
 
 ### 2. 配置系统
 
-创建配置文件 `config.json`（可选）:
+所有可改项写在项目根目录 `configpilot.json`（集群地址、静态快照目录、动态路径、监控器参数、Web 端口）。页面上改探测地址也会写回这份文件。
 
-```json
-{
-  "namespace": "online-boutique",
-  "control_plane_config_dir": "istio_config_parser/istio_control_config",
-  "test_matrix_file": "istio_Dynamic_Test/configs/output_matrix.json",
-  "consistency_output_dir": "results/consistency",
-  "traffic_split_tolerance": 0.1
-}
+```bash
+python -m configpilot web
+python -m configpilot --config configpilot.json run
 ```
 
 ### 3. 运行验证

@@ -6,19 +6,19 @@ set -e
 # 显示帮助信息
 show_help() {
     cat << EOF
-MeshScope - Istio 配置验证系统
+ConfigPilot - Istio 配置一致性检验
 
-用法: docker run [OPTIONS] meshscope:latest <command> [ARGS...]
+用法: docker run [OPTIONS] configpilot:latest <command> [ARGS...]
 
-可用命令:
-  e2e                运行端到端验证
-  static             运行静态配置分析
-  consistency        运行一致性检查
-  dynamic            运行动态测试
-  web                启动 Web 服务
-  parser             运行配置解析器
+可用命令（与 python -m configpilot 相同）:
+  run | e2e          完整流水线
+  collect            采集集群配置
+  static             静态分析
+  dynamic            动态验证
+  check              一致性判定
+  web                启动 Web 界面
   shell              进入交互式 shell
-  help               显示此帮助信息
+  help               显示帮助
 
 示例:
   # 端到端验证
@@ -28,7 +28,7 @@ MeshScope - Istio 配置验证系统
   docker run -it --rm -v \$(pwd)/results:/app/results meshscope:latest static --namespace default
 
   # 一致性检查
-  docker run -it --rm -v \$(pwd)/results:/app/results meshscope:latest consistency --mode full --namespace default
+  docker run -it --rm -v \$(pwd)/results:/app/results meshscope:latest check --namespace default
 
   # Web 服务
   docker run -it --rm -p 8080:8080 -v \$(pwd)/results:/app/results meshscope:latest web --port 8080
@@ -40,25 +40,16 @@ EOF
 
 # 根据命令执行相应操作
 case "${1:-help}" in
-    e2e)
-        shift
-        exec python e2e_validator.py "$@"
+    run|e2e|collect|static|dynamic|check|web)
+        exec python -m configpilot "$@"
         ;;
-    static|parser)
+    parser)
         shift
-        exec python -m istio_config_parser.main_parser "$@"
+        exec python -m configpilot static "$@"
         ;;
     consistency)
         shift
-        exec python -m consistency_checker.main "$@"
-        ;;
-    dynamic)
-        shift
-        exec python -m istio_Dynamic_Test.cmd "$@"
-        ;;
-    web)
-        shift
-        exec python -m consistency_checker.main --mode web "$@"
+        exec python -m configpilot check "$@"
         ;;
     shell)
         exec /bin/bash

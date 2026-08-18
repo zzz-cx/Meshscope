@@ -27,6 +27,12 @@ from .alignment_models import (
     AlignmentResult
 )
 
+from .semantic_tuple import (
+    SemanticTuple,
+    compare_tuples,
+    function_model_to_tuples,
+)
+
 from .ir_models import (
     FunctionIR,
     ServiceIR,
@@ -56,6 +62,9 @@ __all__ = [
     'AlignedFunctionPair',
     'ModelAligner',
     'AlignmentResult',
+    'SemanticTuple',
+    'compare_tuples',
+    'function_model_to_tuples',
     
     # IR模型
     'FunctionIR',

@@ -311,13 +311,13 @@ def main():
     )
     parser.add_argument(
         "-o", "--output-dir",
-        default=DEFAULT_OUTPUT_DIR,
-        help=f"输出目录（默认: {DEFAULT_OUTPUT_DIR}）",
+        default=None,
+        help="输出目录",
     )
     parser.add_argument(
         "--method",
         choices=["kubectl-exec", "istioctl", "from-yaml"],
-        default="kubectl-exec",
+        default=None,
         help="获取方式: kubectl-exec, istioctl, 或 from-yaml",
     )
     parser.add_argument(
@@ -339,6 +339,18 @@ def main():
         help="proxy_config_all.yaml 路径（method=from-yaml 时）",
     )
     args = parser.parse_args()
+    try:
+        from consistency_checker.config import fill_args_from_config
+        fill_args_from_config(args, {
+            "output_dir": "ingress_plane_config_dir",
+            "method": "ingress_method",
+        })
+    except Exception:
+        pass
+    if not args.output_dir:
+        args.output_dir = DEFAULT_OUTPUT_DIR
+    if not args.method:
+        args.method = "kubectl-exec"
 
     # 相对路径转绝对路径
     output_dir = args.output_dir

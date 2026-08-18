@@ -4,10 +4,9 @@
 """
 import logging
 import concurrent.futures
-import threading
 import os
-from typing import Dict, List, Any, Optional, Callable, Tuple
-from istio_config_parser.parsers.base_parser import ParserRegistry, global_parser_registry
+from typing import Dict, List, Any, Optional, Tuple
+from istio_config_parser.parsers.base_parser import ParserRegistry
 from istio_config_parser.parsers.routing_parser import RoutingParser
 from istio_config_parser.parsers.circuit_breaker_parser import CircuitBreakerParser
 from istio_config_parser.parsers.ratelimit_parser import RateLimitParser
@@ -29,19 +28,26 @@ logger = logging.getLogger(__name__)
 class UnifiedParser:
     """统一解析器"""
     
-    def __init__(self, enable_parallel: bool = True, max_workers: Optional[int] = None):
+    def __init__(
+        self,
+        enable_parallel: bool = True,
+        max_workers: Optional[int] = None,
+        tau: float = 0.1,
+    ):
         """
         初始化统一解析器
         
         Args:
             enable_parallel: 是否启用并行处理
             max_workers: 最大工作线程数，None表示使用CPU核心数
+            tau: 数值约束相对容差，写入 ModelAligner
         """
         self.registry = ParserRegistry()
         self.enable_parallel = enable_parallel
         self.max_workers = max_workers or min(32, os.cpu_count() + 4 if os.cpu_count() else 8)
+        self.tau = tau
         self._register_default_parsers()
-        logger.info(f"统一解析器初始化完成，并行处理: {enable_parallel}, 最大工作线程: {self.max_workers}")
+        logger.info(f"统一解析器初始化完成，并行处理: {enable_parallel}, 最大工作线程: {self.max_workers}, tau={tau}")
     
     def _register_default_parsers(self):
         """注册默认解析器"""
@@ -438,9 +444,9 @@ class UnifiedParser:
             listeners_config=data_plane_configs.get('listeners')
         )
         
-        # 对齐模型
+        # 对齐模型（离散字段精确比较，数值约束允许 tau）
         logger.info("开始对齐配置...")
-        aligner = ModelAligner()
+        aligner = ModelAligner(tau=self.tau)
         aligned_pairs = aligner.align(cp_models, dp_models)
         
         logger.info(f"对齐完成，共 {len(aligned_pairs)} 对配置")

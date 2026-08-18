@@ -296,13 +296,13 @@ def main():
     )
     parser.add_argument(
         "-o", "--output-dir",
-        default="istio_config_parser/istio_monitor/istio_sidecar_config",
+        default=None,
         help="输出目录",
     )
     parser.add_argument(
         "--method",
         choices=["istioctl", "kubectl-exec", "from-yaml"],
-        default="istioctl",
+        default=None,
         help="获取方式: istioctl, kubectl-exec, 或 from-yaml(从 proxy_config_all.yaml 解析)",
     )
     parser.add_argument(
@@ -315,10 +315,25 @@ def main():
     )
     parser.add_argument(
         "-n", "--namespace",
-        default="default",
+        default=None,
         help="命名空间",
     )
     args = parser.parse_args()
+    try:
+        from consistency_checker.config import fill_args_from_config
+        fill_args_from_config(args, {
+            "output_dir": "data_plane_config_dir",
+            "method": "data_plane_method",
+            "namespace": "namespace",
+        })
+    except Exception:
+        pass
+    if not args.output_dir:
+        args.output_dir = "istio_config_parser/istio_monitor/istio_sidecar_config"
+    if not args.method:
+        args.method = "istioctl"
+    if not args.namespace:
+        args.namespace = "default"
 
     # 相对路径转绝对路径（相对于项目根目录）
     output_dir = args.output_dir

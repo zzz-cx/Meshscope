@@ -103,17 +103,12 @@ def main():
         description="Istio一致性验证和可视化系统",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-示例用法:
-  # 运行完整流水线
-  python -m consistency_checker.main --mode full --namespace online-boutique
-  
-  # 仅运行静态分析
-  python -m consistency_checker.main --mode static --namespace online-boutique
-  
-  # 仅运行一致性检查
-  python -m consistency_checker.main --mode consistency --namespace online-boutique
-  
-  # 启动Web可视化界面
+推荐使用统一入口:
+  python -m configpilot run --namespace default
+  python -m configpilot web --port 8080
+
+本模块仍可单独调用:
+  python -m consistency_checker.main --mode full --namespace default
   python -m consistency_checker.main --mode web --port 8080
         """
     )
@@ -135,7 +130,7 @@ def main():
     parser.add_argument(
         "--config",
         type=str,
-        help="配置文件路径 (JSON格式)"
+        help="统一配置文件路径（默认项目根目录 configpilot.json）"
     )
     
     parser.add_argument(

@@ -653,11 +653,11 @@ def main():
     parser.add_argument("--matrix", help="旧版测试矩阵文件路径 (output_matrix.json)")
     parser.add_argument("--ingress-url", default="", help="集群入口 URL")
     parser.add_argument("--service-deps", help="服务依赖 JSON 路径")
-    parser.add_argument("--namespace", default="default", help="K8s 命名空间")
+    parser.add_argument("--namespace", default=None, help="K8s 命名空间")
     parser.add_argument(
         "--control-plane-config",
-        default="istio_config_parser/istio_monitor/istio_control_config",
-        help="控制面配置目录，动态验证前会从此目录同步最新 VS/DR 到 istio_config（默认: istio_config_parser/istio_monitor/istio_control_config）",
+        default=None,
+        help="控制面配置目录，动态验证前会从此目录同步最新 VS/DR 到 istio_config",
     )
     parser.add_argument(
         "--from-control-plane",
@@ -668,9 +668,34 @@ def main():
     parser.add_argument("--ssh-host", help="SSH 主机")
     parser.add_argument("--ssh-user", help="SSH 用户名")
     parser.add_argument("--ssh-password", help="SSH 密码")
-    parser.add_argument("--ssh-port", type=int, default=22, help="SSH 端口")
+    parser.add_argument("--ssh-port", type=int, default=None, help="SSH 端口")
     parser.add_argument("--single-case", help="只运行指定用例 (如 case_005)")
     args = parser.parse_args()
+    try:
+        from consistency_checker.config import fill_args_from_config, get_config
+        fill_args_from_config(args, {
+            "ingress_url": "ingress_url",
+            "prometheus_url": "prometheus_url",
+            "ssh_host": "ssh_host",
+            "ssh_user": "ssh_user",
+            "ssh_password": "ssh_password",
+            "ssh_port": "ssh_port",
+            "namespace": "namespace",
+            "control_plane_config": "control_plane_config_dir",
+            "service_deps": "service_dependencies_file",
+        })
+        if not args.ingress_url:
+            args.ingress_url = get_config().get_ingress_url() or ""
+        if not args.input and not args.matrix and not args.from_control_plane:
+            args.input = get_config().istio_config_file
+    except Exception:
+        pass
+    if not args.namespace:
+        args.namespace = "default"
+    if not args.control_plane_config:
+        args.control_plane_config = "istio_config_parser/istio_monitor/istio_control_config"
+    if args.ssh_port is None:
+        args.ssh_port = 22
 
     # SSH 配置
     ssh_config = {}
@@ -698,43 +723,10 @@ def main():
             control_plane_config_path=args.control_plane_config,
         )
     elif args.from_control_plane:
-        # 直接从控制面快照目录生成用例：写入一个临时 json 作为 ConfigGenerator 的承载文件
-        from istio_Dynamic_Test.internal.testcase.generators.config_generator import ConfigGenerator
-        temp_dir = os.path.join(_PROJECT_ROOT, "evaluation", "e2e", "temp")
-        os.makedirs(temp_dir, exist_ok=True)
-        temp_cfg = os.path.join(temp_dir, f"istio_config_synced_{args.namespace}.json")
-        # 先写一个最小骨架，sync 时会保留 enabled_policies/其他元数据
-        if not os.path.exists(temp_cfg):
-            with open(temp_cfg, "w", encoding="utf-8") as f:
-                json.dump(
-                    {
-                        "description": "自动从 control plane 同步生成（用于动态验证当前集群配置）",
-                        "enabled_policies": {
-                            "routing": True,
-                            "retry": True,
-                            "timeout": True,
-                            "fault_injection": True,
-                            "traffic_split": True,
-                            "circuit_breaker": True,
-                            "connection_pool": True,
-                            "connection_pool_outlier": True,
-                            "rate_limit": True,
-                            "orthogonal_minimize": True,
-                        },
-                        "envoyFilters": [],
-                        "virtualServices": [],
-                        "destinationRules": [],
-                    },
-                    f,
-                    indent=2,
-                    ensure_ascii=False,
-                )
-        generator = ConfigGenerator(
-            temp_cfg,
-            service_deps_path=args.service_deps,
+        from istio_Dynamic_Test.internal.testcase.generators.semantic_generator import SemanticGenerator
+        generator = SemanticGenerator(
             ingress_url=args.ingress_url,
             namespace=args.namespace,
-            control_plane_config_path=args.control_plane_config,
         )
 
     ssh = SSHClient(**(ssh_config or {}))

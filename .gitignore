@@ -3,3 +3,4 @@
 __pycache__/
 *.pyc
 .understand-anything/
+web_endpoints.json

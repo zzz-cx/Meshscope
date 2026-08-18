@@ -1,0 +1,59 @@
+{
+  "namespace": "default",
+  "log_level": "INFO",
+  "cluster": {
+    "ssh_host": "192.168.92.131",
+    "ssh_port": 22,
+    "ssh_user": "root",
+    "ssh_password": null,
+    "k8s_host": "192.168.92.131",
+    "k8s_port": 6443,
+    "k8s_token": null
+  },
+  "observability": {
+    "prometheus_url": "http://192.168.92.131:31012",
+    "jaeger_url": "http://192.168.92.131:16686",
+    "zipkin_url": "",
+    "kiali_url": "http://192.168.92.131:20001",
+    "grafana_url": "http://192.168.92.131:3000",
+    "ingress_url": "http://192.168.92.131:30476/productpage",
+    "ingress_port": 30476
+  },
+  "static": {
+    "control_plane_config_dir": "istio_config_parser/istio_monitor/istio_control_config",
+    "data_plane_config_dir": "istio_config_parser/istio_monitor/istio_sidecar_config",
+    "ingress_plane_config_dir": "istio_config_parser/istio_monitor/istio_ingress_config"
+  },
+  "dynamic": {
+    "istio_config_file": "istio_Dynamic_Test/configs/istio_config.json",
+    "service_dependencies_file": "istio_Dynamic_Test/service_dependencies.json",
+    "test_matrix_file": "istio_Dynamic_Test/configs/output_matrix.json",
+    "envoy_logs_dir": "istio_Dynamic_Test/results/envoy_logs",
+    "http_results_dir": "istio_Dynamic_Test/results/http_results",
+    "verification_dir": "istio_Dynamic_Test/results/verification",
+    "enabled_policies": {
+      "routing": true,
+      "retry": true,
+      "circuit_breaker": true,
+      "rate_limit": true,
+      "fault_injection": true,
+      "orthogonal_minimize": true
+    }
+  },
+  "monitor": {
+    "interval": 1200,
+    "config_types": "routes,clusters,listeners",
+    "data_plane_method": "istioctl",
+    "ingress_method": "kubectl-exec"
+  },
+  "consistency": {
+    "output_dir": "results/consistency",
+    "visualization_output_dir": "results/visualization",
+    "traffic_split_tolerance": 0.1,
+    "statistical_confidence": 0.95
+  },
+  "web": {
+    "port": 8080,
+    "enable_interactive_graph": true
+  }
+}

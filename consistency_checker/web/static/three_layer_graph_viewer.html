@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>三层空间配置依赖图</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.26.0/cytoscape.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a2e; color: #eee; height: 100vh; overflow: hidden; }
+        .container { display: flex; height: 100vh; }
+        .sidebar {
+            width: 280px; background: #16213e; padding: 20px; overflow-y: auto;
+            border-right: 1px solid #0f3460;
+        }
+        .main { flex: 1; display: flex; flex-direction: column; }
+        .toolbar {
+            background: #16213e; padding: 12px 20px; display: flex; align-items: center; gap: 12px;
+            border-bottom: 1px solid #0f3460;
+        }
+        #cy { flex: 1; background: #0f0f1a; }
+        h1 { font-size: 18px; margin-bottom: 20px; color: #e94560; }
+        .stat { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #0f3460; font-size: 13px; }
+        .filter-group { margin: 15px 0; }
+        .filter-group label { display: block; font-size: 11px; color: #8892b0; margin-bottom: 5px; text-transform: uppercase; }
+        select { width: 100%; padding: 8px; background: #0f3460; border: 1px solid #1a1a2e; color: #eee; border-radius: 4px; }
+        .btn { padding: 8px 16px; background: #e94560; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; }
+        .btn:hover { background: #ff6b6b; }
+        .btn-secondary { background: #0f3460; }
+        .btn-secondary:hover { background: #1a1a2e; }
+        .legend { margin-top: 15px; }
+        .legend-item { display: flex; align-items: center; gap: 8px; margin: 8px 0; font-size: 12px; }
+        .legend-dot { width: 14px; height: 14px; border-radius: 3px; }
+        .layer1 { background: #4a90d9; }
+        .layer2 { background: #50c878; }
+        .layer3 { background: #f39c12; }
+        .control { border-left: 3px solid #4a90d9; padding-left: 8px; }
+        .data { border-left: 3px solid #e74c3c; padding-left: 8px; }
+        .file-input { margin: 10px 0; }
+        .file-input input { font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h1>三层空间配置依赖图</h1>
+            <div class="file-input">
+                <label>加载 JSON 文件</label>
+                <input type="file" id="file-input" accept=".json" style="margin-top:5px;">
+            </div>
+            <div class="stat"><span>节点数</span><span id="node-count">0</span></div>
+            <div class="stat"><span>边数</span><span id="edge-count">0</span></div>
+            <div class="filter-group">
+                <label>显示层级</label>
+                <select id="layer-filter">
+                    <option value="all">全部</option>
+                    <option value="layer1">第一层（控制面/数据面/一致性检查器）</option>
+                    <option value="layer2">第二层（服务关系）</option>
+                    <option value="layer3">第三层（配置资源）</option>
+                    <option value="cross_layer">跨层边</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>平面类型</label>
+                <select id="plane-filter">
+                    <option value="all">全部</option>
+                    <option value="control_plane">控制面</option>
+                    <option value="data_plane">数据面</option>
+                </select>
+            </div>
+            <button class="btn" onclick="fitGraph()">适应视图</button>
+            <button class="btn btn-secondary" onclick="resetView()">重置</button>
+            <div class="legend">
+                <h3 style="font-size:12px;color:#8892b0;margin-top:20px;">图例</h3>
+                <div class="legend-item"><div class="legend-dot layer1"></div>第一层</div>
+                <div class="legend-item"><div class="legend-dot layer2"></div>第二层</div>
+                <div class="legend-item"><div class="legend-dot layer3"></div>第三层</div>
+            </div>
+        </div>
+        <div class="main">
+            <div class="toolbar">
+                <span id="data-source">请加载 JSON 文件或通过 API 传入数据</span>
+                <button class="btn" onclick="exportPNG()">导出 PNG</button>
+            </div>
+            <div id="cy"></div>
+        </div>
+    </div>
+
+    <script>
+        let cy;
+        let graphData = null;
+
+        document.getElementById('file-input').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(ev) {
+                    try {
+                        graphData = JSON.parse(ev.target.result);
+                        initGraph();
+                        document.getElementById('data-source').textContent = '已加载: ' + file.name;
+                    } catch (err) {
+                        alert('JSON 解析失败: ' + err.message);
+                    }
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        async function loadFromUrl() {
+            const params = new URLSearchParams(location.search);
+            const reportId = params.get('report_id');
+            const url = params.get('url');
+            let fetchUrl = url;
+            if (reportId && !url) fetchUrl = '/api/three_layer_graph/' + reportId;
+            if (!fetchUrl) fetchUrl = 'output_three_layer_graph.json';
+            try {
+                const res = await fetch(fetchUrl);
+                if (res.ok) {
+                    graphData = await res.json();
+                    initGraph();
+                    document.getElementById('data-source').textContent = '已加载: ' + (reportId || fetchUrl);
+                }
+            } catch (e) {
+                console.warn('自动加载失败:', e);
+            }
+        }
+        loadFromUrl();
+
+        window.addEventListener('resize', function() { if (cy) cy.fit(50); });
+
+        function initGraph() {
+            if (!graphData || !graphData.nodes || !graphData.edges) {
+                alert('数据格式错误，需要 nodes 和 edges 数组');
+                return;
+            }
+
+            const elements = [];
+            const nodeMap = {};
+            const serviceBoxes = new Map();
+
+            function getPlaneParentId(n) {
+                if (['control_plane', 'data_plane', 'consistency_checker'].includes(n.id)) return null;
+                const plane = n.plane_type || '';
+                if (plane === 'control_plane' || n.id.startsWith('cp_') || n.id === 'istio-gateway') return 'control_plane';
+                if (plane === 'data_plane' || n.id.startsWith('dp_')) return 'data_plane';
+                return null;
+            }
+            function getParentId(n) {
+                const planeParent = getPlaneParentId(n);
+                if (!planeParent) return null;
+                const svc = n.service_name || '';
+                if (!svc) return planeParent;
+                return 'box_' + planeParent + '_' + svc;
+            }
+
+            graphData.nodes.forEach(n => {
+                nodeMap[n.id] = n;
+                const parentId = getParentId(n);
+                if (parentId && parentId.startsWith('box_')) {
+                    const planeParent = parentId.includes('control') ? 'control_plane' : 'data_plane';
+                    serviceBoxes.set(parentId, planeParent);
+                }
+            });
+
+            serviceBoxes.forEach((planeParent, svcBoxId) => {
+                const svcName = svcBoxId.replace('box_control_plane_', '').replace('box_data_plane_', '') || svcBoxId;
+                elements.push({
+                    data: { id: svcBoxId, label: svcName, parent: planeParent, isParent: true, layer: 'box' },
+                    classes: 'parent-box service-box'
+                });
+            });
+
+            graphData.nodes.forEach(n => {
+                const parentId = getParentId(n);
+                const isPlaneBox = ['control_plane', 'data_plane', 'consistency_checker'].includes(n.id);
+                elements.push({
+                    data: {
+                        id: n.id,
+                        label: n.label || n.id,
+                        layer: n.layer || 'layer2',
+                        plane_type: n.plane_type || '',
+                        node_type: n.node_type || '',
+                        resource_type: n.resource_type || '',
+                        shape: n.shape || 'ellipse',
+                        parent: parentId || undefined,
+                        isParent: isPlaneBox
+                    },
+                    classes: [n.layer, n.plane_type || 'unknown', isPlaneBox ? 'parent-box plane-box' : ''].filter(Boolean).join(' ')
+                });
+            });
+
+            graphData.edges.forEach((e, i) => {
+                if (nodeMap[e.source] && nodeMap[e.target]) {
+                    elements.push({
+                        data: {
+                            id: e.id || 'edge-' + i,
+                            source: e.source,
+                            target: e.target,
+                            label: e.label || '',
+                            layer: e.layer || 'layer2',
+                            relation_type: e.relation_type || '',
+                            match_type: e.match_type || '',
+                            weight: e.weight
+                        },
+                        classes: e.layer || 'layer2'
+                    });
+                }
+            });
+
+            const container = document.getElementById('cy');
+            if (cy) cy.destroy();
+            cy = cytoscape({
+                container: container,
+                elements: elements,
+                minZoom: 0.15,
+                maxZoom: 5,
+                wheelSensitivity: 0.3,
+                style: [
+                    { selector: '.parent-box', style: {
+                        'background-color': 'rgba(30,40,60,0.4)', 'border-width': 2, 'border-color': '#4a5568',
+                        'border-style': 'solid', 'padding': 30, 'shape': 'roundrectangle',
+                        'label': 'data(label)', 'font-size': '14px', 'color': '#cbd5e0', 'text-valign': 'bottom',
+                        'text-halign': 'center', 'text-margin-y': 12, 'font-weight': 'bold',
+                        'compound-sizing-wrt-labels': 'exclude'
+                    }},
+                    { selector: 'node#control_plane', style: {
+                        'background-color': 'rgba(74,144,217,0.1)', 'border-color': '#4a90d9', 'border-width': 3,
+                        'padding': 40, 'font-size': '16px', 'color': '#7fb3e0'
+                    }},
+                    { selector: 'node#data_plane', style: {
+                        'background-color': 'rgba(231,76,60,0.1)', 'border-color': '#e74c3c', 'border-width': 3,
+                        'padding': 40, 'font-size': '16px', 'color': '#ef9a9a'
+                    }},
+                    { selector: 'node#consistency_checker', style: {
+                        'background-color': 'rgba(155,89,182,0.15)', 'border-color': '#9b59b6', 'border-width': 3,
+                        'padding': 15, 'font-size': '12px', 'color': '#bb86fc',
+                        'width': 130, 'height': 50, 'text-valign': 'center'
+                    }},
+                    { selector: '.service-box', style: {
+                        'border-color': '#5a6a7a', 'border-style': 'dashed', 'padding': 20,
+                        'font-size': '12px', 'color': '#8892b0', 'text-valign': 'top', 'text-margin-y': -14,
+                        'background-color': 'rgba(40,50,70,0.3)'
+                    }},
+                    { selector: 'node[layer="layer1"]', style: {
+                        'background-color': '#4a90d9', 'width': 60, 'height': 32, 'shape': 'rectangle',
+                        'label': 'data(label)', 'font-size': '9px', 'color': '#fff',
+                        'text-valign': 'center', 'text-halign': 'center'
+                    }},
+                    { selector: 'node[layer="layer2"]', style: {
+                        'background-color': '#50c878', 'width': 50, 'height': 50, 'shape': 'ellipse',
+                        'label': 'data(label)', 'font-size': '9px', 'color': '#fff',
+                        'text-valign': 'center', 'text-halign': 'center', 'text-max-width': '65px',
+                        'text-wrap': 'ellipsis'
+                    }},
+                    { selector: 'node[node_type="gateway"]', style: {
+                        'background-color': '#4a90d9', 'shape': 'diamond', 'width': 55, 'height': 55
+                    }},
+                    { selector: 'node[node_type="service"]', style: {
+                        'background-color': '#50c878', 'shape': 'hexagon', 'width': 52, 'height': 52
+                    }},
+                    { selector: 'node[node_type="envoy"]', style: {
+                        'background-color': '#e67e22', 'shape': 'rectangle', 'width': 60, 'height': 32
+                    }},
+                    { selector: 'node[node_type="pod"]', style: {
+                        'background-color': '#3498db', 'shape': 'ellipse', 'width': 48, 'height': 48
+                    }},
+                    { selector: 'node[layer="layer3"]', style: {
+                        'background-color': '#f39c12', 'width': 40, 'height': 28, 'shape': 'rectangle',
+                        'label': 'data(label)', 'font-size': '8px', 'color': '#fff',
+                        'text-valign': 'center', 'text-halign': 'center', 'text-max-width': '55px',
+                        'text-wrap': 'ellipsis'
+                    }},
+                    { selector: 'node[resource_type="VirtualService"]', style: { 'background-color': '#2ecc71', 'shape': 'diamond' }},
+                    { selector: 'node[resource_type="DestinationRule"]', style: { 'background-color': '#e67e22', 'shape': 'hexagon' }},
+                    { selector: 'node[resource_type="EnvoyFilter"]', style: { 'background-color': '#e74c3c', 'shape': 'rectangle' }},
+                    { selector: 'node[resource_type="ServiceEntry"]', style: { 'background-color': '#9b59b6', 'shape': 'rectangle' }},
+                    { selector: 'node[plane_type="data_plane"]:childless', style: { 'border-color': '#e74c3c', 'border-width': 2 }},
+                    { selector: 'node[plane_type="control_plane"]:childless', style: { 'border-color': '#4a90d9', 'border-width': 2 }},
+                    { selector: 'edge', style: {
+                        'curve-style': 'bezier', 'target-arrow-shape': 'triangle', 'arrow-scale': 0.8,
+                        'width': 1.5, 'line-color': '#555', 'target-arrow-color': '#555'
+                    }},
+                    { selector: 'edge[layer="layer1"]', style: {
+                        'line-color': '#4a90d9', 'line-style': 'dashed', 'width': 2,
+                        'target-arrow-color': '#4a90d9'
+                    }},
+                    { selector: 'edge[layer="layer2"]', style: {
+                        'line-color': '#50c878', 'width': 2, 'target-arrow-color': '#50c878',
+                        'label': 'data(label)', 'font-size': '8px', 'color': '#50c878',
+                        'text-background-color': '#0f0f1a', 'text-background-opacity': 0.8, 'text-background-padding': '2px'
+                    }},
+                    { selector: 'edge[layer="layer3"]', style: {
+                        'line-color': '#f39c12', 'width': 1.5, 'target-arrow-color': '#f39c12'
+                    }},
+                    { selector: 'edge[layer="cross_layer"]', style: {
+                        'line-color': '#9b59b6', 'width': 2, 'line-style': 'dotted',
+                        'target-arrow-color': '#9b59b6',
+                        'label': 'data(label)', 'font-size': '8px', 'color': '#bb86fc',
+                        'text-background-color': '#0f0f1a', 'text-background-opacity': 0.8, 'text-background-padding': '2px'
+                    }},
+                    { selector: 'node:selected', style: { 'border-width': 4, 'border-color': '#ffd700', 'overlay-opacity': 0.15 }},
+                    { selector: 'edge:selected', style: { 'line-color': '#ffd700', 'target-arrow-color': '#ffd700', 'width': 3 }}
+                ],
+            });
+
+            cy.nodes('.parent-box').ungrabify();
+
+            const layoutOpts = {
+                name: 'cose',
+                animate: false,
+                nodeRepulsion: function(node) { return node.isParent() ? 20000 : 6000; },
+                idealEdgeLength: function(edge) {
+                    if (edge.data('layer') === 'cross_layer') return 250;
+                    return 80;
+                },
+                edgeElasticity: 100,
+                nestingFactor: 5,
+                gravity: 0.3,
+                numIter: 1500,
+                padding: 50,
+                nodeDimensionsIncludeLabels: true,
+                componentSpacing: 120
+            };
+
+            const layout = cy.layout(layoutOpts);
+            layout.run();
+            layout.on('layoutstop', function() {
+                separatePlanes();
+                cy.animate({ fit: { padding: 50 } }, { duration: 400 });
+            });
+
+            // 限制子节点拖动范围，防止父框无限增大
+            cy.on('drag', 'node', function(evt) {
+                const node = evt.target;
+                if (node.isParent()) return;
+                const parent = node.parent();
+                if (parent.length === 0) return;
+
+                const siblings = parent.children().filter(n => n.id() !== node.id() && !n.isParent());
+                if (siblings.length === 0) return;
+
+                const sibBB = siblings.boundingBox();
+                const maxDist = 180;
+                const cx = (sibBB.x1 + sibBB.x2) / 2;
+                const cy_ = (sibBB.y1 + sibBB.y2) / 2;
+                const halfW = sibBB.w / 2 + maxDist;
+                const halfH = sibBB.h / 2 + maxDist;
+
+                const pos = node.position();
+                let clamped = false;
+                if (pos.x < cx - halfW) { pos.x = cx - halfW; clamped = true; }
+                if (pos.x > cx + halfW) { pos.x = cx + halfW; clamped = true; }
+                if (pos.y < cy_ - halfH) { pos.y = cy_ - halfH; clamped = true; }
+                if (pos.y > cy_ + halfH) { pos.y = cy_ + halfH; clamped = true; }
+                if (clamped) node.position(pos);
+            });
+
+            cy.on('tap', 'node', function(evt) {
+                const n = evt.target.data();
+                if (n.isParent) return;
+                alert('节点: ' + n.label + '\n层级: ' + n.layer + '\n类型: ' + (n.node_type || n.resource_type || '-'));
+            });
+
+            document.getElementById('layer-filter').onchange = applyFilters;
+            document.getElementById('plane-filter').onchange = applyFilters;
+            updateStats();
+        }
+
+        function separatePlanes() {
+            if (!cy) return;
+            const cpNode = cy.getElementById('control_plane');
+            const dpNode = cy.getElementById('data_plane');
+            const ccNode = cy.getElementById('consistency_checker');
+
+            const cpLeaves = cpNode.descendants().filter(n => !n.isParent());
+            const dpLeaves = dpNode.descendants().filter(n => !n.isParent());
+            if (cpLeaves.length === 0 && dpLeaves.length === 0) return;
+
+            const cpBB = cpLeaves.length > 0 ? cpLeaves.boundingBox() : { x1: 0, x2: 0, y1: 0, y2: 0, w: 0 };
+            const dpBB = dpLeaves.length > 0 ? dpLeaves.boundingBox() : { x1: 0, x2: 0, y1: 0, y2: 0, w: 0 };
+            const gap = 280;
+
+            const cpCX = (cpBB.x1 + cpBB.x2) / 2;
+            const dpCX = (dpBB.x1 + dpBB.x2) / 2;
+            const cpTargetCX = -(cpBB.w / 2 + gap / 2);
+            const dpTargetCX = (dpBB.w / 2 + gap / 2);
+
+            if (cpLeaves.length > 0) cpLeaves.shift({ x: cpTargetCX - cpCX, y: 0 });
+            if (dpLeaves.length > 0) dpLeaves.shift({ x: dpTargetCX - dpCX, y: 0 });
+
+            if (ccNode.length) {
+                const ccChildren = ccNode.descendants().filter(n => !n.isParent());
+                if (ccChildren.length > 0) {
+                    const ccBB = ccChildren.boundingBox();
+                    ccChildren.shift({ x: -(ccBB.x1 + ccBB.x2) / 2, y: 0 });
+                } else {
+                    ccNode.position({ x: 0, y: 0 });
+                }
+            }
+        }
+
+        function applyFilters() {
+            if (!cy) return;
+            const layer = document.getElementById('layer-filter').value;
+            const plane = document.getElementById('plane-filter').value;
+            cy.nodes().forEach(node => {
+                const d = node.data();
+                const isParent = d.isParent || d.layer === 'box';
+                let show;
+                if (isParent) {
+                    const descendants = cy.nodes().filter(n => n.ancestors().contains(node));
+                    show = descendants.some(n => {
+                        const nd = n.data();
+                        if (nd.isParent || nd.layer === 'box') return false;
+                        return (layer === 'all' || nd.layer === layer) && (plane === 'all' || !nd.plane_type || nd.plane_type === plane);
+                    });
+                } else {
+                    show = (layer === 'all' || d.layer === layer) && (plane === 'all' || !d.plane_type || d.plane_type === plane);
+                }
+                node.style('display', show ? 'element' : 'none');
+            });
+            cy.edges().forEach(edge => {
+                const d = edge.data();
+                const layerMatch = layer === 'all' || d.layer === layer;
+                const src = cy.getElementById(d.source);
+                const tgt = cy.getElementById(d.target);
+                edge.style('display', (layerMatch && src.visible() && tgt.visible()) ? 'element' : 'none');
+            });
+        }
+
+        function updateStats() {
+            if (!graphData) return;
+            document.getElementById('node-count').textContent = graphData.nodes.length;
+            document.getElementById('edge-count').textContent = graphData.edges.length;
+        }
+
+        function fitGraph() { if (cy) cy.fit(50); }
+        function resetView() {
+            document.getElementById('layer-filter').value = 'all';
+            document.getElementById('plane-filter').value = 'all';
+            if (cy) {
+                cy.nodes().style('display', 'element');
+                cy.edges().style('display', 'element');
+                cy.fit(50);
+            }
+        }
+        function exportPNG() {
+            if (!cy) return;
+            const link = document.createElement('a');
+            link.href = cy.png({ full: true, scale: 2, bg: '#0f0f1a' });
+            link.download = 'three_layer_graph.png';
+            link.click();
+        }
+    </script>
+</body>
+</html>

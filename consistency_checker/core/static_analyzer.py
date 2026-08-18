@@ -1,357 +1,251 @@
 """
 静态分析器
 
-负责解析和分析控制平面和数据平面配置，提取策略定义和服务关系
+消费 parser 产出的 aligned_semantic.json：策略、服务图、跨资源冲突。
+不再自行解析 YAML，也不再做平面一致性 / VS subset 检查。
 """
 
-import os
-import sys
 import logging
-from typing import Dict, List, Optional, Any
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-# 添加项目根目录到路径
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-
-from istio_config_parser.main_parser import (
-    parse_control_plane_from_dir,
-    parse_data_plane_from_dir
-)
 from consistency_checker.models.data_models import (
-    StaticPolicy,
+    ConfigEdge,
+    ConsistencyStatus,
     PolicyType,
     ServiceNode,
-    ConfigEdge,
-    ConsistencyStatus
+    StaticPolicy,
 )
 from consistency_checker.config import get_config
 
 logger = logging.getLogger(__name__)
 
+_FUNCTION_TO_POLICY = {
+    "routing": PolicyType.ROUTING,
+    "traffic_shifting": PolicyType.TRAFFIC_SPLIT,
+    "traffic_split": PolicyType.TRAFFIC_SPLIT,
+    "retry": PolicyType.RETRY,
+    "timeout": PolicyType.TIMEOUT,
+    "circuit_breaker": PolicyType.CIRCUIT_BREAKER,
+    "rate_limit": PolicyType.RATE_LIMIT,
+    "fault_injection": PolicyType.FAULT_INJECTION,
+}
+
 
 class StaticAnalyzer:
-    """静态配置分析器"""
-    
+    """静态配置分析器：只消费 parser 对齐产物。"""
+
     def __init__(self, config_dir: Optional[str] = None, namespace: Optional[str] = None):
-        """
-        初始化静态分析器
-        
-        Args:
-            config_dir: 控制平面配置目录路径
-            namespace: Kubernetes命名空间
-        """
         self.config = get_config()
         self.control_plane_config_dir = config_dir or self.config.control_plane_config_dir
         self.data_plane_config_dir = self.config.data_plane_config_dir
         self.namespace = namespace or self.config.namespace
-        
+
         self.control_plane_data = None
         self.data_plane_data = None
         self.static_policies: List[StaticPolicy] = []
         self.service_nodes: List[ServiceNode] = []
         self.config_edges: List[ConfigEdge] = []
-        
+        self.artifact: Dict[str, Any] = {}
+
+    @classmethod
+    def from_artifact(cls, artifact: Dict[str, Any], namespace: Optional[str] = None) -> "StaticAnalyzer":
+        analyzer = cls(namespace=namespace or artifact.get("namespace"))
+        analyzer._consume_artifact(artifact)
+        return analyzer
+
     def analyze(self) -> Dict[str, Any]:
-        """
-        执行静态分析
-        
-        Returns:
-            包含策略、节点和边的分析结果
-        """
-        logger.info(f"Starting static analysis: control_plane_dir={self.control_plane_config_dir}, data_plane_dir={self.data_plane_config_dir}, namespace={self.namespace}")
-        
-        # 1. 解析控制平面配置
-        self.control_plane_data = parse_control_plane_from_dir(
-            self.control_plane_config_dir,
-            self.namespace
+        """加载对齐模型；若尚未生成则调用 parser 写一份。"""
+        from istio_config_parser.main_parser import (
+            AlignedModelMissingError,
+            load_aligned_semantic,
+            parse_static_semantic,
         )
-        logger.info(f"[OK] Control plane config parsed")
-        
-        # 2. 解析数据平面配置
-        self.data_plane_data = parse_data_plane_from_dir(self.data_plane_config_dir)
-        logger.info(f"[OK] Data plane config parsed")
-        
-        # 3. 提取静态策略
-        self._extract_static_policies()
-        logger.info(f"[OK] Extracted static policies: {len(self.static_policies)}")
-        
-        # 4. 构建服务图
-        self._build_service_graph()
-        logger.info(f"[OK] Built service graph: {len(self.service_nodes)} nodes, {len(self.config_edges)} edges")
-        
-        # 5. 检测控制平面和数据平面一致性
-        consistency_issues = self._check_plane_consistency()
-        logger.info(f"[OK] Plane consistency check: found {len(consistency_issues)} issues")
-        
+
+        try:
+            artifact = load_aligned_semantic()
+            logger.info("Loaded aligned semantic model")
+        except AlignedModelMissingError:
+            logger.info("Aligned model missing; running parser static semantic pipeline")
+            bundle = parse_static_semantic(
+                control_plane_dir=self.control_plane_config_dir,
+                data_plane_dir=self.data_plane_config_dir,
+                namespace=self.namespace if self.namespace != "default" else None,
+            )
+            artifact = bundle["artifact"]
+
+        return self._consume_artifact(artifact)
+
+    def _consume_artifact(self, artifact: Dict[str, Any]) -> Dict[str, Any]:
+        self.artifact = artifact or {}
+        self.control_plane_data = self.artifact.get("control_plane") or {}
+        self.data_plane_data = self.artifact.get("data_plane") or {}
+        self.static_policies = []
+        self.service_nodes = []
+        self.config_edges = []
+
+        self._extract_policies_from_tuples()
+        self._build_service_graph_from_tuples()
+
+        alignment_issues = []
+        for pair in self.artifact.get("pairs") or []:
+            status = pair.get("alignment_status")
+            if status == "matched":
+                continue
+            for diff in pair.get("differences") or []:
+                alignment_issues.append({
+                    "type": "alignment_" + str(diff.get("kind") or status or "mismatch"),
+                    "severity": "high" if diff.get("kind") == "discrete" else "medium",
+                    "service": pair.get("service_name"),
+                    "function_type": pair.get("function_type"),
+                    "alignment_status": status,
+                    "description": diff.get("description") or f"{pair.get('service_name')} {status}",
+                    "control": diff.get("control"),
+                    "data": diff.get("data"),
+                })
+
+        conflicts = list(self.artifact.get("conflicts") or [])
+        issues = conflicts + alignment_issues
+
         return {
             "control_plane": self.control_plane_data,
             "data_plane": self.data_plane_data,
             "static_policies": self.static_policies,
             "service_nodes": self.service_nodes,
             "config_edges": self.config_edges,
-            "plane_consistency_issues": consistency_issues,
+            "plane_consistency_issues": issues,
+            "conflicts": conflicts,
+            "artifact": self.artifact,
             "summary": {
                 "total_services": len(self.service_nodes),
                 "total_policies": len(self.static_policies),
                 "total_edges": len(self.config_edges),
-                "has_inconsistencies": len(consistency_issues) > 0
-            }
+                "has_inconsistencies": len(issues) > 0,
+                "conflict_count": len(conflicts),
+                "tau": self.artifact.get("tau"),
+            },
         }
-    
-    def _extract_static_policies(self):
-        """从控制平面配置提取静态策略"""
-        policy_id_counter = 1
-        
-        for service_name, relations in self.control_plane_data.get('serviceRelations', {}).items():
-            # 提取VirtualService路由策略
-            for vs in relations.get('incomingVirtualServices', []):
-                for idx, rule in enumerate(vs.get('rules', [])):
-                    policy = StaticPolicy(
-                        policy_id=f"policy_{policy_id_counter:04d}",
-                        policy_type=PolicyType.ROUTING,
-                        source_service="*",  # VirtualService通常接受来自任意源的流量
-                        target_service=service_name,
-                        namespace=vs.get('namespace', self.namespace),
-                        config_name=vs.get('name', 'unknown'),
-                        config_type="VirtualService",
-                        rules=rule,
-                        match_conditions=rule.get('match', {}),
-                        created_at=datetime.now()
-                    )
-                    self.static_policies.append(policy)
-                    policy_id_counter += 1
-            
-            # 提取流量分配策略
-            weights = relations.get('weights', {})
-            if weights:
+
+    def _extract_policies_from_tuples(self):
+        counter = 1
+        seen = set()
+        for pair in self.artifact.get("pairs") or []:
+            ftype = pair.get("function_type") or ""
+            policy_type = _FUNCTION_TO_POLICY.get(ftype)
+            if policy_type is None:
+                continue
+            tuples = pair.get("control_tuples") or []
+            if not tuples:
+                continue
+            for tup in tuples:
+                key = tup.get("tuple_id") or f"{pair.get('service_name')}.{ftype}.{counter}"
+                if key in seen:
+                    continue
+                seen.add(key)
+                scope = tup.get("scope") or {}
                 policy = StaticPolicy(
-                    policy_id=f"policy_{policy_id_counter:04d}",
-                    policy_type=PolicyType.TRAFFIC_SPLIT,
+                    policy_id=f"policy_{counter:04d}",
+                    policy_type=policy_type,
                     source_service="*",
-                    target_service=service_name,
-                    namespace=self.namespace,
-                    config_name=f"{service_name}-traffic-split",
-                    config_type="DestinationRule",
-                    rules={"weights": weights},
-                    applies_to=list(weights.keys()),
-                    created_at=datetime.now()
+                    target_service=pair.get("service_name") or scope.get("service") or "",
+                    namespace=pair.get("namespace") or scope.get("namespace") or self.namespace,
+                    config_name=key,
+                    config_type="SemanticTuple",
+                    rules={
+                        "predicate": tup.get("predicate") or {},
+                        "action": tup.get("action") or {},
+                        "constraint": tup.get("constraint") or {},
+                        "alignment_status": pair.get("alignment_status"),
+                    },
+                    match_conditions=tup.get("predicate") or {},
+                    applies_to=list(scope.get("subsets") or []),
+                    created_at=datetime.now(),
                 )
                 self.static_policies.append(policy)
-                policy_id_counter += 1
-            
-            # 提取熔断策略
-            circuit_breaker = relations.get('circuitBreaker', {})
-            if circuit_breaker:
-                # 全局熔断策略
-                if circuit_breaker.get('global_'):
-                    policy = StaticPolicy(
-                        policy_id=f"policy_{policy_id_counter:04d}",
-                        policy_type=PolicyType.CIRCUIT_BREAKER,
-                        source_service="*",
-                        target_service=service_name,
-                        namespace=self.namespace,
-                        config_name=f"{service_name}-circuit-breaker-global",
-                        config_type="DestinationRule",
-                        rules=circuit_breaker['global_'],
-                        created_at=datetime.now()
-                    )
-                    self.static_policies.append(policy)
-                    policy_id_counter += 1
-                
-                # 子集熔断策略
-                for subset_name, subset_policy in circuit_breaker.get('subsets', {}).items():
-                    if subset_policy:
-                        policy = StaticPolicy(
-                            policy_id=f"policy_{policy_id_counter:04d}",
-                            policy_type=PolicyType.CIRCUIT_BREAKER,
-                            source_service="*",
-                            target_service=service_name,
-                            namespace=self.namespace,
-                            config_name=f"{service_name}-circuit-breaker-{subset_name}",
-                            config_type="DestinationRule",
-                            rules=subset_policy,
-                            applies_to=[subset_name],
-                            created_at=datetime.now()
-                        )
-                        self.static_policies.append(policy)
-                        policy_id_counter += 1
-            
-            # 提取限流策略
-            rate_limits = relations.get('rateLimit', [])
-            for limit in rate_limits:
-                policy = StaticPolicy(
-                    policy_id=f"policy_{policy_id_counter:04d}",
-                    policy_type=PolicyType.RATE_LIMIT,
-                    source_service="*",
-                    target_service=service_name,
-                    namespace=self.namespace,
-                    config_name=f"{service_name}-rate-limit",
-                    config_type="EnvoyFilter",
-                    rules=limit,
-                    created_at=datetime.now()
-                )
-                self.static_policies.append(policy)
-                policy_id_counter += 1
-    
-    def _build_service_graph(self):
-        """构建服务拓扑图"""
-        service_map = {}
-        edge_id_counter = 1
-        
-        # 创建服务节点
-        for service_name, relations in self.control_plane_data.get('serviceRelations', {}).items():
-            subsets = [s['name'] for s in relations.get('subsets', [])]
-            
+                counter += 1
+
+    def _build_service_graph_from_tuples(self):
+        graph = self.artifact.get("graph_data") or {}
+        service_map: Dict[str, ServiceNode] = {}
+        relations = (self.control_plane_data or {}).get("serviceRelations") or {}
+
+        for svc_name, rels in relations.items():
+            subsets = [s["name"] for s in rels.get("subsets", []) if isinstance(s, dict) and s.get("name")]
             node = ServiceNode(
-                service_name=service_name,
+                service_name=svc_name,
                 namespace=self.namespace,
                 node_type="service",
                 subsets=subsets,
-                has_virtualservice=len(relations.get('incomingVirtualServices', [])) > 0,
+                has_virtualservice=len(rels.get("incomingVirtualServices", [])) > 0,
                 has_destinationrule=len(subsets) > 0,
-                has_policies=[p.policy_id for p in self.static_policies if p.target_service == service_name],
-                consistency_status=ConsistencyStatus.UNKNOWN
+                has_policies=[p.policy_id for p in self.static_policies if p.target_service == svc_name],
+                consistency_status=ConsistencyStatus.UNKNOWN,
             )
             self.service_nodes.append(node)
-            service_map[service_name] = node
-        
-        # 创建配置边
-        for service_name, relations in self.control_plane_data.get('serviceRelations', {}).items():
-            # 从VirtualService提取路由边
-            for vs in relations.get('incomingVirtualServices', []):
-                for rule in vs.get('rules', []):
-                    for route in rule.get('route', []):
-                        target = route.get('destination', {}).get('host', '')
-                        if target and target in service_map:
-                            edge = ConfigEdge(
-                                edge_id=f"edge_{edge_id_counter:04d}",
+            service_map[svc_name] = node
+
+        for raw in graph.get("nodes") or []:
+            name = raw.get("id") or raw.get("label")
+            if not name or name in service_map:
+                continue
+            node = ServiceNode(
+                service_name=name,
+                namespace=raw.get("namespace") or self.namespace,
+                node_type=raw.get("type") or "service",
+                subsets=list(raw.get("subsets") or []),
+                has_policies=[p.policy_id for p in self.static_policies if p.target_service == name],
+                consistency_status=ConsistencyStatus.UNKNOWN,
+            )
+            self.service_nodes.append(node)
+            service_map[name] = node
+
+        edge_counter = 1
+        for raw in graph.get("edges") or []:
+            source = raw.get("source")
+            target = raw.get("target")
+            if not source or not target:
+                continue
+            self.config_edges.append(ConfigEdge(
+                edge_id=raw.get("id") or f"edge_{edge_counter:04d}",
+                source=source,
+                target=target,
+                edge_type=raw.get("type") or "route",
+                weight=raw.get("weight"),
+                policies=[
+                    p.policy_id for p in self.static_policies
+                    if p.target_service in (source, target)
+                ],
+                consistency_status=ConsistencyStatus.UNKNOWN,
+                label=raw.get("label") or "",
+            ))
+            edge_counter += 1
+
+        if not self.config_edges:
+            for service_name, relations in ((self.control_plane_data or {}).get("serviceRelations") or {}).items():
+                for vs in relations.get("incomingVirtualServices", []):
+                    for rule in vs.get("rules", []):
+                        for route in rule.get("route", []):
+                            dest = (route.get("destination") or {}).get("host", "")
+                            target = dest.split(".")[0] if dest else ""
+                            if not target:
+                                continue
+                            self.config_edges.append(ConfigEdge(
+                                edge_id=f"edge_{edge_counter:04d}",
                                 source=service_name,
                                 target=target,
                                 edge_type="route",
-                                weight=route.get('weight'),
-                                policies=[p.policy_id for p in self.static_policies 
-                                         if p.source_service == service_name and p.target_service == target],
+                                weight=route.get("weight"),
+                                policies=[],
                                 consistency_status=ConsistencyStatus.UNKNOWN,
-                                label=f"{route.get('weight', 100)}%"
-                            )
-                            self.config_edges.append(edge)
-                            edge_id_counter += 1
-            
-            # 从Gateway信息提取入口边
-            for gateway in relations.get('gateways', []):
-                edge = ConfigEdge(
-                    edge_id=f"edge_{edge_id_counter:04d}",
-                    source="istio-gateway",
-                    target=service_name,
-                    edge_type="gateway",
-                    policies=[],
-                    consistency_status=ConsistencyStatus.UNKNOWN,
-                    label=gateway.get('name', 'gateway')
-                )
-                self.config_edges.append(edge)
-                edge_id_counter += 1
-    
-    def _check_plane_consistency(self) -> List[Dict[str, Any]]:
-        """检查控制平面和数据平面的一致性"""
-        issues = []
-        
-        # 对比服务定义
-        control_services = set(self.control_plane_data.get('serviceRelations', {}).keys())
-        data_services = set(self.data_plane_data.get('serviceRelations', {}).keys())
-        
-        # 检查缺失的服务
-        missing_in_data = control_services - data_services
-        if missing_in_data:
-            issues.append({
-                "type": "missing_in_data_plane",
-                "severity": "high",
-                "services": list(missing_in_data),
-                "description": f"控制平面定义的服务在数据平面中缺失: {missing_in_data}"
-            })
-        
-        extra_in_data = data_services - control_services
-        if extra_in_data:
-            issues.append({
-                "type": "extra_in_data_plane",
-                "severity": "medium",
-                "services": list(extra_in_data),
-                "description": f"数据平面存在控制平面未定义的服务: {extra_in_data}"
-            })
-        
-        # 对比路由配置
-        for service in control_services & data_services:
-            control_routes = self.control_plane_data['serviceRelations'][service]
-            data_routes = self.data_plane_data['serviceRelations'].get(service, {})
-            
-            # 对比权重配置
-            control_weights = control_routes.get('weights', {})
-            data_weights = data_routes.get('weights', {})
-            
-            if control_weights != data_weights:
-                issues.append({
-                    "type": "weight_mismatch",
-                    "severity": "high",
-                    "service": service,
-                    "control_plane": control_weights,
-                    "data_plane": data_weights,
-                    "description": f"服务 {service} 的流量权重配置不一致"
-                })
-        
-        # VS→DR subset 交叉校验
-        issues.extend(self._check_vs_dr_subset_consistency())
-        
-        return issues
+                                label=f"{route.get('weight', 100)}%",
+                            ))
+                            edge_counter += 1
 
-    def _check_vs_dr_subset_consistency(self) -> List[Dict[str, Any]]:
-        """检查 VirtualService 引用的 subset 是否在 DestinationRule 中定义"""
-        issues = []
-
-        service_relations = self.control_plane_data.get('serviceRelations', {})
-        dr_subsets_by_service: Dict[str, set] = {}
-        for svc, rels in service_relations.items():
-            dr_subsets_by_service[svc] = {s['name'] for s in rels.get('subsets', [])}
-
-        for svc, rels in service_relations.items():
-            for vs in rels.get('incomingVirtualServices', []):
-                vs_name = vs.get('name', 'unknown')
-                for rule in vs.get('rules', []):
-                    for route in rule.get('route', []):
-                        dest = route.get('destination', {})
-                        target_host = dest.get('host', '')
-                        subset = dest.get('subset')
-                        if not subset:
-                            continue
-
-                        target_svc = target_host.split('.')[0] if '.' in target_host else target_host
-                        available = dr_subsets_by_service.get(target_svc, set())
-                        if not available:
-                            available = dr_subsets_by_service.get(target_host, set())
-
-                        if subset not in available:
-                            issues.append({
-                                "type": "missing_subset",
-                                "severity": "high",
-                                "service": target_svc,
-                                "virtualservice": vs_name,
-                                "missing_subset": subset,
-                                "available_subsets": list(available),
-                                "description": (
-                                    f"VirtualService '{vs_name}' 引用了 subset '{subset}'，"
-                                    f"但 DestinationRule 中只定义了 {list(available) or '(无)'}"
-                                )
-                            })
-
-        return issues
-    
     def get_policy_by_id(self, policy_id: str) -> Optional[StaticPolicy]:
-        """根据ID获取策略"""
         for policy in self.static_policies:
             if policy.policy_id == policy_id:
                 return policy
         return None
-    
+
     def get_policies_by_service(self, service_name: str) -> List[StaticPolicy]:
-        """获取服务相关的所有策略"""
         return [p for p in self.static_policies if p.target_service == service_name]
-
-

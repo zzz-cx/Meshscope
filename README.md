@@ -67,20 +67,21 @@ HTTP/gRPC 流量 + Envoy/Prometheus 观测 + 策略校验
 pip install -r requirements.txt
 ```
 
-### 方式 1：端到端验证（推荐）
+### 方式 1：统一入口（推荐）
 
 ```bash
-python e2e_validator.py \
-  --vm-host 192.168.92.100 \
-  --vm-user root \
-  --vm-password <password> \
-  --namespace default \
-  --ingress-url http://192.168.92.100:30476/productpage
+# 完整流水线
+python -m configpilot run --namespace default
+
+# Web 可视化（浏览器访问 http://localhost:8080）
+python -m configpilot web --port 8080
+
+# 分步
+python -m configpilot collect --vm-host 192.168.92.100 --vm-user root --vm-password <password>
+python -m configpilot static --namespace default --export
+python -m configpilot dynamic -- --from-control-plane --ingress-url http://192.168.92.100:30476/productpage
+python -m configpilot check --namespace default
 ```
-
-自动完成：配置采集 → 静态解析 → 正交用例 → 动态流量与日志采集 → 验证 → 报告。
-
-说明见 [docs/E2E_VALIDATOR_README.md](docs/E2E_VALIDATOR_README.md)。
 
 ### 方式 2：Docker 部署
 
