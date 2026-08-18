@@ -6,57 +6,289 @@
     <title>三层空间配置依赖图</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.26.0/cytoscape.min.js"></script>
     <style>
+        :root {
+            --bg: #070b14;
+            --panel: rgba(14, 22, 38, 0.92);
+            --panel-2: #152036;
+            --line: rgba(90, 120, 170, 0.22);
+            --text: #eef3fb;
+            --muted: #8b9bb4;
+            --accent: #5aa7ff;
+            --ok: #3dd68c;
+            --warn: #f0b429;
+            --bad: #f07178;
+            --gold: #e0b57a;
+            --layer1: #6aa8ea;
+            --layer2: #5dcea0;
+            --layer3: #f0b14a;
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a2e; color: #eee; height: 100vh; overflow: hidden; }
-        .container { display: flex; height: 100vh; }
-        .sidebar {
-            width: 280px; background: #16213e; padding: 20px; overflow-y: auto;
-            border-right: 1px solid #0f3460;
+        html, body { height: 100%; }
+        body {
+            font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background:
+                radial-gradient(1200px 700px at 18% -10%, rgba(61,139,253,0.16), transparent 55%),
+                radial-gradient(900px 600px at 110% 110%, rgba(240,113,120,0.1), transparent 50%),
+                var(--bg);
+            color: var(--text); overflow: hidden;
         }
-        .main { flex: 1; display: flex; flex-direction: column; }
+        .app { display: flex; height: 100vh; }
+        .left, .right {
+            background: var(--panel);
+            backdrop-filter: blur(14px);
+            display: flex; flex-direction: column;
+            min-height: 0;
+        }
+        .left {
+            width: 252px; border-right: 1px solid var(--line);
+            padding: 18px 16px; overflow-y: auto; flex-shrink: 0;
+        }
+        .right {
+            width: 340px; border-left: 1px solid var(--line);
+            flex-shrink: 0;
+        }
+        .center { flex: 1; display: flex; flex-direction: column; min-width: 0; }
         .toolbar {
-            background: #16213e; padding: 12px 20px; display: flex; align-items: center; gap: 12px;
-            border-bottom: 1px solid #0f3460;
+            background: rgba(14, 22, 38, 0.8);
+            padding: 8px 16px;
+            display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+            border-bottom: 1px solid var(--line); min-height: 48px;
         }
-        #cy { flex: 1; background: #0f0f1a; }
-        h1 { font-size: 18px; margin-bottom: 20px; color: #e94560; }
-        .stat { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #0f3460; font-size: 13px; }
-        .filter-group { margin: 15px 0; }
-        .filter-group label { display: block; font-size: 11px; color: #8892b0; margin-bottom: 5px; text-transform: uppercase; }
-        select { width: 100%; padding: 8px; background: #0f3460; border: 1px solid #1a1a2e; color: #eee; border-radius: 4px; }
-        .btn { padding: 8px 16px; background: #e94560; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; }
-        .btn:hover { background: #ff6b6b; }
-        .btn-secondary { background: #0f3460; }
-        .btn-secondary:hover { background: #1a1a2e; }
-        .legend { margin-top: 15px; }
-        .legend-item { display: flex; align-items: center; gap: 8px; margin: 8px 0; font-size: 12px; }
-        .legend-dot { width: 14px; height: 14px; border-radius: 3px; }
-        .layer1 { background: #4a90d9; }
-        .layer2 { background: #50c878; }
-        .layer3 { background: #f39c12; }
-        .control { border-left: 3px solid #4a90d9; padding-left: 8px; }
-        .data { border-left: 3px solid #e74c3c; padding-left: 8px; }
-        .file-input { margin: 10px 0; }
-        .file-input input { font-size: 12px; }
+        .toolbar .hint { color: var(--muted); font-size: 12px; flex: 1; min-width: 120px; letter-spacing: 0.01em; }
+        #cy {
+            flex: 1; position: relative;
+            background-color: #070b14;
+            background-image:
+                radial-gradient(ellipse 70% 55% at 50% 42%, rgba(61,139,253,0.07), transparent 62%),
+                linear-gradient(rgba(90,120,170,0.07) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(90,120,170,0.07) 1px, transparent 1px);
+            background-size: 100% 100%, 32px 32px, 32px 32px;
+        }
+        h1 { font-size: 15px; font-weight: 700; margin-bottom: 6px; letter-spacing: 0.04em; }
+        .sub { font-size: 12px; color: var(--muted); margin-bottom: 16px; line-height: 1.55; }
+        .sub kbd {
+            background: var(--panel-2); border: 1px solid var(--line);
+            border-radius: 4px; padding: 0 5px; font-size: 10px; color: var(--text);
+        }
+        .search-wrap { position: relative; margin-bottom: 12px; }
+        .search-wrap input {
+            width: 100%; background: var(--panel-2); color: var(--text);
+            border: 1px solid var(--line); border-radius: 8px;
+            padding: 8px 10px 8px 30px; font-size: 13px; outline: none;
+        }
+        .search-wrap input:focus { border-color: var(--accent); }
+        .search-icon {
+            position: absolute; left: 9px; top: 9px; color: var(--muted); font-size: 12px;
+            pointer-events: none;
+        }
+        .search-drop {
+            display: none; position: absolute; left: 0; right: 0; top: 100%;
+            z-index: 20; background: #0e1626; border: 1px solid var(--line);
+            border-radius: 8px; margin-top: 4px; max-height: 260px; overflow-y: auto;
+        }
+        .search-drop.open { display: block; }
+        .search-item {
+            width: 100%; text-align: left; background: transparent; border: 0;
+            color: var(--text); padding: 8px 10px; cursor: pointer;
+            display: flex; align-items: center; gap: 8px; font-size: 12px;
+        }
+        .search-item:hover, .search-item.active { background: var(--panel-2); }
+        .search-item .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .stat { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 12px; }
+        .stat span:last-child { color: var(--accent); font-variant-numeric: tabular-nums; }
+        .filter-group { margin: 12px 0 0; }
+        .filter-group label {
+            display: block; font-size: 10px; color: var(--muted);
+            margin-bottom: 5px; letter-spacing: 0.08em; text-transform: uppercase;
+        }
+        select, .file-input input {
+            width: 100%; padding: 7px 8px; background: var(--panel-2);
+            border: 1px solid var(--line); color: var(--text); border-radius: 6px; font-size: 12px;
+        }
+        .check {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 12px; color: var(--muted); margin-top: 10px; cursor: pointer;
+        }
+        .check input { width: auto; accent-color: var(--accent); }
+        .btn {
+            padding: 8px 12px; background: var(--accent); color: #071018; border: 0;
+            border-radius: 8px; cursor: pointer; font-size: 12px; white-space: nowrap;
+            font-weight: 600; transition: transform .15s ease, filter .15s ease, border-color .15s ease, background .15s ease;
+        }
+        .btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
+        .btn:active { transform: translateY(0); }
+        .btn:disabled { opacity: 0.45; cursor: default; transform: none; }
+        .btn.secondary { background: #24344f; color: var(--text); }
+        .btn.ghost { background: transparent; border: 1px solid var(--line); color: var(--muted); }
+        .btn.ghost.on { border-color: var(--gold); color: var(--gold); background: rgba(224,181,122,0.12); }
+        .btn.danger { background: #3a1820; color: var(--bad); }
+        .left .btn { width: 100%; margin-top: 8px; }
+        .legend { margin-top: 16px; }
+        .legend h3 { font-size: 10px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+        .legend-item { display: flex; align-items: center; gap: 8px; margin: 7px 0; font-size: 12px; color: var(--muted); }
+        .legend-dot {
+            width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+            box-shadow: 0 0 8px currentColor;
+        }
+        .crumb {
+            display: flex; gap: 4px; flex-wrap: wrap; align-items: center;
+            font-size: 11px; color: var(--muted); padding: 8px 14px;
+            border-bottom: 1px solid var(--line); min-height: 36px;
+        }
+        .crumb button {
+            background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 11px;
+            max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .crumb button:hover { color: var(--gold); }
+        .crumb .now { color: var(--text); }
+        .inspector { flex: 1; overflow-y: auto; padding: 16px 16px 24px; }
+        .inspector.flash { animation: insp-in .28s ease; }
+        @keyframes insp-in {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: none; }
+        }
+        .empty {
+            color: var(--muted); font-size: 13px; line-height: 1.6; padding: 24px 8px;
+        }
+        .empty kbd {
+            background: var(--panel-2); border: 1px solid var(--line);
+            border-radius: 4px; padding: 1px 5px; font-size: 11px; color: var(--text);
+        }
+        .badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+        .tag {
+            font-size: 10px; padding: 3px 8px; border-radius: 999px;
+            border: 1px solid var(--line); color: var(--muted); letter-spacing: 0.04em;
+        }
+        .tag.layer1 { color: var(--layer1); border-color: rgba(74,144,217,0.4); background: rgba(74,144,217,0.1); }
+        .tag.layer2 { color: var(--layer2); border-color: rgba(80,200,120,0.4); background: rgba(80,200,120,0.1); }
+        .tag.layer3 { color: var(--layer3); border-color: rgba(243,156,18,0.4); background: rgba(243,156,18,0.1); }
+        .tag.control_plane { color: var(--layer1); border-color: rgba(74,144,217,0.35); }
+        .tag.data_plane { color: var(--bad); border-color: rgba(240,113,120,0.35); }
+        .tag.ok { color: var(--ok); border-color: rgba(61,214,140,0.35); background: rgba(61,214,140,0.08); }
+        .tag.bad { color: var(--bad); border-color: rgba(240,113,120,0.35); background: rgba(240,113,120,0.08); }
+        .tag.warn { color: var(--warn); border-color: rgba(240,180,41,0.35); }
+        .insp-title {
+            font-size: 18px; font-weight: 700; line-height: 1.3; margin: 6px 0 12px;
+            word-break: break-word;
+        }
+        .kv { display: grid; grid-template-columns: 72px 1fr; gap: 6px 10px; font-size: 12px; margin-bottom: 14px; }
+        .kv dt { color: var(--muted); }
+        .kv dd { word-break: break-all; }
+        .sec-title {
+            font-size: 10px; color: var(--muted); letter-spacing: 0.08em;
+            text-transform: uppercase; margin: 16px 0 8px;
+        }
+        .conn {
+            display: block; width: 100%; text-align: left;
+            background: var(--panel-2); border: 1px solid transparent;
+            color: var(--text); border-radius: 8px; padding: 8px 10px;
+            margin-bottom: 6px; cursor: pointer; font-size: 12px;
+        }
+        .conn { transition: border-color .15s ease, background .15s ease, transform .15s ease; }
+        .conn:hover { border-color: rgba(90,167,255,0.5); background: #1a2a44; transform: translateX(2px); }
+        .conn .dir { color: var(--accent); margin-right: 6px; }
+        .conn .meta { color: var(--muted); font-size: 11px; margin-top: 2px; }
+        .insp-actions { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 4px; }
+        .insp-actions .btn { width: auto; margin: 0; }
+        #tooltip {
+            display: none; position: fixed; z-index: 40; pointer-events: none;
+            background: rgba(10,16,28,0.92); border: 1px solid rgba(90,167,255,0.28);
+            border-radius: 10px; padding: 9px 11px; font-size: 12px; max-width: 280px;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.45);
+            backdrop-filter: blur(10px);
+            animation: tip-in .14s ease;
+        }
+        @keyframes tip-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+        #tooltip .t-name { font-weight: 600; margin-bottom: 2px; }
+        #tooltip .t-meta { color: var(--muted); font-size: 11px; }
+        .help {
+            display: none; position: fixed; inset: 0; z-index: 50;
+            background: rgba(8,12,20,0.72); align-items: center; justify-content: center;
+        }
+        .help.open { display: flex; animation: tip-in .18s ease; }
+        .help-card {
+            background: #10192b; border: 1px solid var(--line); border-radius: 14px;
+            padding: 22px 24px; width: min(420px, 92vw);
+            box-shadow: 0 24px 60px rgba(0,0,0,0.45);
+        }
+        .help-card h2 { font-size: 16px; margin-bottom: 12px; }
+        .help-row { display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; color: var(--muted); }
+        .help-row span:last-child { color: var(--text); }
+        .path-banner {
+            display: none; align-items: center; gap: 8px;
+            background: rgba(61,139,253,0.12); border-bottom: 1px solid var(--line);
+            padding: 8px 14px; font-size: 12px; color: var(--accent);
+        }
+        .path-banner.on { display: flex; animation: insp-in .2s ease; }
+        .search-wrap input, select { transition: border-color .15s ease, box-shadow .15s ease; }
+        .search-wrap input:focus, select:focus {
+            border-color: rgba(90,167,255,0.7);
+            box-shadow: 0 0 0 3px rgba(90,167,255,0.12);
+        }
+        .issue-banner {
+            display: none; align-items: center; gap: 10px; flex-wrap: wrap;
+            background: rgba(240,113,120,0.12); border-bottom: 1px solid rgba(240,113,120,0.28);
+            padding: 8px 14px; font-size: 12px; color: var(--bad);
+        }
+        .issue-banner.on { display: flex; }
+        .issue-banner strong { color: #ffb4b8; }
+        .issue-list { margin-top: 14px; }
+        .issue-list h3 { font-size: 10px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+        .issue-card {
+            display: block; width: 100%; text-align: left; cursor: pointer;
+            background: rgba(240,113,120,0.08); border: 1px solid rgba(240,113,120,0.22);
+            border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; color: var(--text);
+            transition: border-color .15s ease, transform .15s ease;
+        }
+        .issue-card:hover { border-color: rgba(240,113,120,0.55); transform: translateX(2px); }
+        .issue-card .sev { font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--bad); margin-bottom: 3px; }
+        .issue-card .sev.medium { color: var(--warn); }
+        .issue-card .ttl { font-size: 12px; font-weight: 600; }
+        .issue-card .desc { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.45; }
+        .cy-wrap { flex: 1; position: relative; min-height: 0; }
+        #cy { position: absolute; inset: 0; flex: none; }
+        #issue-pins { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+        .issue-pin {
+            pointer-events: auto; position: absolute; width: 18px; height: 18px;
+            margin-left: -9px; margin-top: -28px; border-radius: 50%;
+            background: #f07178; color: #1a0a0c; font-size: 12px; font-weight: 800;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 0 0 3px rgba(240,113,120,0.25), 0 6px 16px rgba(0,0,0,0.4);
+            cursor: pointer; animation: pin-pulse 1.6s ease-in-out infinite;
+        }
+        .issue-pin.medium { background: #f0b429; color: #1a1406; box-shadow: 0 0 0 3px rgba(240,180,41,0.25), 0 6px 16px rgba(0,0,0,0.4); }
+        @keyframes pin-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.12); }
+        }
+        .insp-issues { margin: 0 0 12px; }
+        .insp-issue {
+            background: rgba(240,113,120,0.1); border-left: 3px solid var(--bad);
+            border-radius: 6px; padding: 8px 10px; margin-bottom: 6px; font-size: 12px;
+        }
+        .insp-issue.warn { border-left-color: var(--warn); background: rgba(240,180,41,0.1); }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="sidebar">
-            <h1>三层空间配置依赖图</h1>
-            <div class="file-input">
-                <label>加载 JSON 文件</label>
-                <input type="file" id="file-input" accept=".json" style="margin-top:5px;">
+    <div class="app">
+        <aside class="left">
+            <h1>三层配置依赖图</h1>
+            <p class="sub">搜索定位节点，点击查看邻域与关联服务。按 <kbd style="color:var(--text)">?</kbd> 看快捷键。</p>
+            <div class="search-wrap" id="search-wrap">
+                <span class="search-icon">⌕</span>
+                <input id="search-input" type="search" placeholder="搜索节点 / 服务 / 资源…" autocomplete="off">
+                <div id="search-drop" class="search-drop"></div>
             </div>
-            <div class="stat"><span>节点数</span><span id="node-count">0</span></div>
-            <div class="stat"><span>边数</span><span id="edge-count">0</span></div>
+            <div class="stat"><span>节点</span><span id="node-count">0</span></div>
+            <div class="stat"><span>边</span><span id="edge-count">0</span></div>
+            <div class="stat"><span>不一致</span><span id="bad-count">0</span></div>
             <div class="filter-group">
                 <label>显示层级</label>
                 <select id="layer-filter">
                     <option value="all">全部</option>
-                    <option value="layer1">第一层（控制面/数据面/一致性检查器）</option>
-                    <option value="layer2">第二层（服务关系）</option>
-                    <option value="layer3">第三层（配置资源）</option>
+                    <option value="layer1">第一层 · 控制面 / 数据面</option>
+                    <option value="layer2">第二层 · 服务关系</option>
+                    <option value="layer3">第三层 · 配置资源</option>
                     <option value="cross_layer">跨层边</option>
                 </select>
             </div>
@@ -68,70 +300,163 @@
                     <option value="data_plane">数据面</option>
                 </select>
             </div>
-            <button class="btn" onclick="fitGraph()">适应视图</button>
-            <button class="btn btn-secondary" onclick="resetView()">重置</button>
+            <label class="check"><input type="checkbox" id="config-only" checked> 只显示有配置资源的节点</label>
+            <label class="check"><input type="checkbox" id="inconsistent-only"> 仅看不一致边及其端点</label>
+            <div class="issue-list" id="issue-list"></div>
+            <button class="btn" type="button" onclick="fitGraph()">适应视图</button>
+            <button class="btn secondary" type="button" onclick="relayoutGraph()">重新布局</button>
+            <button class="btn secondary" type="button" onclick="resetView()">重置筛选</button>
+            <button class="btn ghost" type="button" id="path-btn" onclick="togglePathMode()">路径查找</button>
+            <div class="file-input filter-group">
+                <label>加载 JSON</label>
+                <input type="file" id="file-input" accept=".json">
+            </div>
             <div class="legend">
-                <h3 style="font-size:12px;color:#8892b0;margin-top:20px;">图例</h3>
-                <div class="legend-item"><div class="legend-dot layer1"></div>第一层</div>
-                <div class="legend-item"><div class="legend-dot layer2"></div>第二层</div>
-                <div class="legend-item"><div class="legend-dot layer3"></div>第三层</div>
+                <h3>图例</h3>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--layer1);color:var(--layer1)"></div>第一层 全局</div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--layer2);color:var(--layer2)"></div>第二层 服务</div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--layer3);color:var(--layer3)"></div>第三层 配置</div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--bad);color:var(--bad)"></div>不一致匹配</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#8b9bb4;color:#8b9bb4;border-radius:0;height:3px;width:16px;box-shadow:none"></div>Exp 控制面期望权重</div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--bad);color:var(--bad);border-radius:0;height:3px;width:16px;box-shadow:none"></div>Obs 数据面实测权重</div>
+            </div>
+        </aside>
+        <div class="center">
+            <div class="toolbar">
+                <span class="hint" id="data-source">正在加载图数据…</span>
+                <button class="btn ghost" type="button" onclick="toggleHelp()">快捷键</button>
+                <button class="btn secondary" type="button" onclick="exportPNG()">导出 PNG</button>
+            </div>
+            <div class="path-banner" id="path-banner">路径模式：再点一个节点作为终点</div>
+            <div class="issue-banner" id="issue-banner"></div>
+            <div class="cy-wrap">
+                <div id="cy"></div>
+                <div id="issue-pins"></div>
             </div>
         </div>
-        <div class="main">
-            <div class="toolbar">
-                <span id="data-source">请加载 JSON 文件或通过 API 传入数据</span>
-                <button class="btn" onclick="exportPNG()">导出 PNG</button>
-            </div>
-            <div id="cy"></div>
+        <aside class="right">
+            <div class="crumb" id="crumb">未选中节点</div>
+            <div class="inspector" id="inspector"></div>
+        </aside>
+    </div>
+    <div id="tooltip"></div>
+    <div class="help" id="help" onclick="if(event.target===this)toggleHelp()">
+        <div class="help-card">
+            <h2>快捷键</h2>
+            <div class="help-row"><span>搜索</span><span>/ 或 Ctrl+K</span></div>
+            <div class="help-row"><span>适应视图</span><span>F</span></div>
+            <div class="help-row"><span>清除选中 / 路径</span><span>Esc</span></div>
+            <div class="help-row"><span>聚焦邻域</span><span>双击节点</span></div>
+            <div class="help-row"><span>路径查找</span><span>P，再点两个节点</span></div>
+            <div class="help-row"><span>本面板</span><span>? 或 H</span></div>
+            <div style="margin-top:14px;text-align:right"><button class="btn secondary" type="button" onclick="toggleHelp()">关闭</button></div>
         </div>
     </div>
 
     <script>
-        let cy;
+        let cy = null;
         let graphData = null;
+        let selectedId = null;
+        let focusMode = false;
+        let pathMode = false;
+        let pathStart = null;
+        let historyIds = [];
+        let searchHits = [];
+        let searchIndex = 0;
 
-        document.getElementById('file-input').addEventListener('change', function(e) {
+        const LAYER_NAME = {
+            layer1: "第一层 · 全局",
+            layer2: "第二层 · 服务",
+            layer3: "第三层 · 配置",
+            cross_layer: "跨层",
+            box: "分组"
+        };
+        const PLANE_NAME = {
+            control_plane: "控制面",
+            data_plane: "数据面",
+            consistency_checker: "一致性检查"
+        };
+        const RES_NAME = { VS: "VirtualService", DR: "DestinationRule", EF: "EnvoyFilter", RLS: "RateLimitService", SE: "ServiceEntry" };
+        const REL_NAME = {
+            route: "路由", rate_limit: "限流", traffic_split: "流量分配",
+            circuit_breaker: "熔断", gateway: "网关", references: "引用"
+        };
+        const MATCH_NAME = { consistent: "一致", inconsistent: "不一致", partial: "部分一致", unknown: "未知" };
+
+        function $(id) { return document.getElementById(id); }
+        function escapeHtml(s) {
+            return String(s == null ? "" : s)
+                .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+        }
+        function isBox(n) {
+            const d = n.data ? n.data() : n;
+            return !!(d.isParent || d.layer === "box");
+        }
+        function typeLabel(d) {
+            return RES_NAME[d.resource_type] || d.resource_type || d.node_type || d.layer || "-";
+        }
+
+        document.getElementById("file-input").addEventListener("change", function (e) {
             const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(ev) {
-                    try {
-                        graphData = JSON.parse(ev.target.result);
-                        initGraph();
-                        document.getElementById('data-source').textContent = '已加载: ' + file.name;
-                    } catch (err) {
-                        alert('JSON 解析失败: ' + err.message);
-                    }
-                };
-                reader.readAsText(file);
-            }
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function (ev) {
+                try {
+                    graphData = JSON.parse(ev.target.result);
+                    initGraph();
+                    $("data-source").textContent = "已加载: " + file.name;
+                } catch (err) {
+                    $("data-source").textContent = "JSON 解析失败: " + err.message;
+                }
+            };
+            reader.readAsText(file);
         });
 
         async function loadFromUrl() {
             const params = new URLSearchParams(location.search);
-            const reportId = params.get('report_id');
-            const url = params.get('url');
-            let fetchUrl = url;
-            if (reportId && !url) fetchUrl = '/api/three_layer_graph/' + reportId;
-            if (!fetchUrl) fetchUrl = 'output_three_layer_graph.json';
-            try {
-                const res = await fetch(fetchUrl);
-                if (res.ok) {
-                    graphData = await res.json();
+            const reportId = params.get("report_id") || params.get("report");
+            const url = params.get("url");
+            const candidates = [];
+            if (url) candidates.push(url);
+            if (reportId) candidates.push("/api/three_layer_graph/" + encodeURIComponent(reportId));
+            candidates.push("/api/three_layer_graph/latest");
+            candidates.push("/static/output_three_layer_graph.json");
+
+            for (const fetchUrl of candidates) {
+                try {
+                    const res = await fetch(fetchUrl);
+                    if (!res.ok) continue;
+                    const data = await res.json();
+                    if (data.error || !data.nodes) continue;
+                    graphData = data;
                     initGraph();
-                    document.getElementById('data-source').textContent = '已加载: ' + (reportId || fetchUrl);
+                    $("data-source").textContent = "已加载: " + (reportId || fetchUrl);
+                    return;
+                } catch (e) {
+                    console.warn("加载失败", fetchUrl, e);
                 }
-            } catch (e) {
-                console.warn('自动加载失败:', e);
             }
+            $("data-source").textContent = "未找到图数据。请先生成三层图，或在左侧加载 JSON。";
+            renderInspector(null);
         }
         loadFromUrl();
 
-        window.addEventListener('resize', function() { if (cy) cy.fit(50); });
+        window.addEventListener("resize", function () {
+            if (!cy) return;
+            cy.resize();
+            cy.fit(50);
+        });
+        window.addEventListener("message", function (e) {
+            const msg = e.data || {};
+            if (msg.type === "configpilot-reload") loadFromUrl();
+            if (msg.type === "configpilot-locate" && msg.nodeId) locateNode(msg.nodeId, { focus: true });
+            if (msg.type === "configpilot-relayout") relayoutGraph();
+        });
 
         function initGraph() {
             if (!graphData || !graphData.nodes || !graphData.edges) {
-                alert('数据格式错误，需要 nodes 和 edges 数组');
+                $("data-source").textContent = "数据格式错误，需要 nodes 和 edges 数组";
                 return;
             }
 
@@ -140,318 +465,1116 @@
             const serviceBoxes = new Map();
 
             function getPlaneParentId(n) {
-                if (['control_plane', 'data_plane', 'consistency_checker'].includes(n.id)) return null;
-                const plane = n.plane_type || '';
-                if (plane === 'control_plane' || n.id.startsWith('cp_') || n.id === 'istio-gateway') return 'control_plane';
-                if (plane === 'data_plane' || n.id.startsWith('dp_')) return 'data_plane';
+                if (["control_plane", "data_plane", "consistency_checker"].includes(n.id)) return null;
+                const plane = n.plane_type || "";
+                if (plane === "control_plane" || n.id.startsWith("cp_") || n.id === "istio-gateway") return "control_plane";
+                if (plane === "data_plane" || n.id.startsWith("dp_")) return "data_plane";
                 return null;
             }
             function getParentId(n) {
                 const planeParent = getPlaneParentId(n);
                 if (!planeParent) return null;
-                const svc = n.service_name || '';
+                const svc = n.service_name || "";
                 if (!svc) return planeParent;
-                return 'box_' + planeParent + '_' + svc;
+                return "box_" + planeParent + "_" + svc;
             }
 
             graphData.nodes.forEach(n => {
                 nodeMap[n.id] = n;
                 const parentId = getParentId(n);
-                if (parentId && parentId.startsWith('box_')) {
-                    const planeParent = parentId.includes('control') ? 'control_plane' : 'data_plane';
+                if (parentId && parentId.startsWith("box_")) {
+                    const planeParent = parentId.includes("control") ? "control_plane" : "data_plane";
                     serviceBoxes.set(parentId, planeParent);
                 }
             });
+            (graphData.issues || []).forEach(function (issue) {
+                (issue.node_ids || []).forEach(function (nid) {
+                    const n = nodeMap[nid];
+                    if (!n) return;
+                    n.has_issue = true;
+                    n.issues = n.issues || [];
+                    if (!n.issues.some(function (x) { return x.id === issue.id; })) {
+                        n.issues.push({
+                            id: issue.id, type: issue.type, severity: issue.severity,
+                            title: issue.title, description: issue.description
+                        });
+                    }
+                });
+            });
 
             serviceBoxes.forEach((planeParent, svcBoxId) => {
-                const svcName = svcBoxId.replace('box_control_plane_', '').replace('box_data_plane_', '') || svcBoxId;
+                const svcName = svcBoxId.replace("box_control_plane_", "").replace("box_data_plane_", "") || svcBoxId;
+                const hot = graphData.nodes.some(function (n) { return n.has_issue && n.service_name === svcName; });
                 elements.push({
-                    data: { id: svcBoxId, label: svcName, parent: planeParent, isParent: true, layer: 'box' },
-                    classes: 'parent-box service-box'
+                    data: { id: svcBoxId, label: svcName, parent: planeParent, isParent: true, layer: "box", service_name: svcName },
+                    classes: "parent-box service-box" + (hot ? " issue-box" : "")
                 });
             });
 
             graphData.nodes.forEach(n => {
                 const parentId = getParentId(n);
-                const isPlaneBox = ['control_plane', 'data_plane', 'consistency_checker'].includes(n.id);
+                const isPlaneBox = ["control_plane", "data_plane", "consistency_checker"].includes(n.id);
                 elements.push({
                     data: {
                         id: n.id,
                         label: n.label || n.id,
-                        layer: n.layer || 'layer2',
-                        plane_type: n.plane_type || '',
-                        node_type: n.node_type || '',
-                        resource_type: n.resource_type || '',
-                        shape: n.shape || 'ellipse',
+                        layer: n.layer || "layer2",
+                        plane_type: n.plane_type || "",
+                        node_type: n.node_type || "",
+                        resource_type: n.resource_type || "",
+                        service_name: n.service_name || "",
+                        namespace: n.namespace || "",
+                        config_name: n.config_name || "",
+                        shape: n.shape || "ellipse",
                         parent: parentId || undefined,
-                        isParent: isPlaneBox
+                        isParent: isPlaneBox,
+                        has_issue: !!n.has_issue,
+                        issues: n.issues || []
                     },
-                    classes: [n.layer, n.plane_type || 'unknown', isPlaneBox ? 'parent-box plane-box' : ''].filter(Boolean).join(' ')
+                    classes: [n.layer, n.plane_type || "unknown", isPlaneBox ? "parent-box plane-box" : "", n.has_issue ? "has-issue" : ""].filter(Boolean).join(" ")
                 });
             });
 
             graphData.edges.forEach((e, i) => {
                 if (nodeMap[e.source] && nodeMap[e.target]) {
+                    const match = e.match_type || "";
                     elements.push({
                         data: {
-                            id: e.id || 'edge-' + i,
+                            id: e.id || "edge-" + i,
                             source: e.source,
                             target: e.target,
-                            label: e.label || '',
-                            layer: e.layer || 'layer2',
-                            relation_type: e.relation_type || '',
-                            match_type: e.match_type || '',
-                            weight: e.weight
+                            label: e.label || "",
+                            layer: e.layer || "layer2",
+                            relation_type: e.relation_type || "",
+                            match_type: match,
+                            weight: e.weight,
+                            role: e.role || ""
                         },
-                        classes: e.layer || 'layer2'
+                        classes: [e.layer || "layer2", match, e.role || ""].filter(Boolean).join(" ")
                     });
                 }
             });
 
-            const container = document.getElementById('cy');
-            if (cy) cy.destroy();
+            const container = document.getElementById("cy");
+            if (cy) {
+                cy.elements().stop(true);
+                cy.destroy();
+            }
             cy = cytoscape({
                 container: container,
                 elements: elements,
-                minZoom: 0.15,
+                minZoom: 0.12,
                 maxZoom: 5,
                 wheelSensitivity: 0.3,
                 style: [
-                    { selector: '.parent-box', style: {
-                        'background-color': 'rgba(30,40,60,0.4)', 'border-width': 2, 'border-color': '#4a5568',
-                        'border-style': 'solid', 'padding': 30, 'shape': 'roundrectangle',
-                        'label': 'data(label)', 'font-size': '14px', 'color': '#cbd5e0', 'text-valign': 'bottom',
-                        'text-halign': 'center', 'text-margin-y': 12, 'font-weight': 'bold',
-                        'compound-sizing-wrt-labels': 'exclude'
+                    { selector: "node", style: {
+                        "font-family": "Segoe UI, PingFang SC, Microsoft YaHei, sans-serif",
+                        "font-weight": 600,
+                        "text-outline-width": 3,
+                        "text-outline-color": "#070b14",
+                        "text-outline-opacity": 0.85,
+                        "overlay-padding": 4,
+                        "overlay-opacity": 0,
+                        "transition-property": "opacity",
+                        "transition-duration": "180ms"
                     }},
-                    { selector: 'node#control_plane', style: {
-                        'background-color': 'rgba(74,144,217,0.1)', 'border-color': '#4a90d9', 'border-width': 3,
-                        'padding': 40, 'font-size': '16px', 'color': '#7fb3e0'
+                    { selector: ".parent-box", style: {
+                        "background-color": "rgba(18,28,48,0.55)", "border-width": 1.5, "border-color": "rgba(120,150,190,0.28)",
+                        "border-style": "solid", "padding": 36, "shape": "roundrectangle",
+                        "label": "data(label)", "font-size": "13px", "color": "#c5d4ea", "text-valign": "bottom",
+                        "text-halign": "center", "text-margin-y": 10, "font-weight": 700,
+                        "compound-sizing-wrt-labels": "exclude", "text-outline-width": 0
                     }},
-                    { selector: 'node#data_plane', style: {
-                        'background-color': 'rgba(231,76,60,0.1)', 'border-color': '#e74c3c', 'border-width': 3,
-                        'padding': 40, 'font-size': '16px', 'color': '#ef9a9a'
+                    { selector: "node#control_plane", style: {
+                        "background-color": "rgba(74,144,217,0.08)", "border-color": "rgba(106,168,234,0.7)", "border-width": 2,
+                        "padding": 46, "font-size": "15px", "color": "#9cc7f5", "border-style": "solid"
                     }},
-                    { selector: 'node#consistency_checker', style: {
-                        'background-color': 'rgba(155,89,182,0.15)', 'border-color': '#9b59b6', 'border-width': 3,
-                        'padding': 15, 'font-size': '12px', 'color': '#bb86fc',
-                        'width': 130, 'height': 50, 'text-valign': 'center'
+                    { selector: "node#data_plane", style: {
+                        "background-color": "rgba(240,113,120,0.07)", "border-color": "rgba(240,113,120,0.65)", "border-width": 2,
+                        "padding": 46, "font-size": "15px", "color": "#f3b4b8", "border-style": "solid"
                     }},
-                    { selector: '.service-box', style: {
-                        'border-color': '#5a6a7a', 'border-style': 'dashed', 'padding': 20,
-                        'font-size': '12px', 'color': '#8892b0', 'text-valign': 'top', 'text-margin-y': -14,
-                        'background-color': 'rgba(40,50,70,0.3)'
+                    { selector: "node#consistency_checker", style: {
+                        "background-color": "rgba(155,89,182,0.18)", "border-color": "#c084fc", "border-width": 2,
+                        "padding": 12, "font-size": "11px", "color": "#e9d5ff",
+                        "width": 150, "height": 44, "text-valign": "center", "shape": "roundrectangle",
+                        "text-outline-width": 0
+                    }},
+                    { selector: ".service-box", style: {
+                        "border-color": "rgba(140,160,190,0.32)", "border-style": "dashed", "padding": 22,
+                        "font-size": "11px", "color": "#9aabc4", "text-valign": "top", "text-margin-y": -12,
+                        "background-color": "rgba(28,40,62,0.35)"
+                    }},
+                    { selector: ".issue-box", style: {
+                        "border-color": "#f07178", "border-style": "dashed", "border-width": 2,
+                        "background-color": "rgba(240,113,120,0.08)"
                     }},
                     { selector: 'node[layer="layer1"]', style: {
-                        'background-color': '#4a90d9', 'width': 60, 'height': 32, 'shape': 'rectangle',
-                        'label': 'data(label)', 'font-size': '9px', 'color': '#fff',
-                        'text-valign': 'center', 'text-halign': 'center'
+                        "background-color": "#4f8fd4", "width": 72, "height": 34, "shape": "roundrectangle",
+                        "label": "data(label)", "font-size": "10px", "color": "#fff",
+                        "text-valign": "center", "text-halign": "center"
                     }},
                     { selector: 'node[layer="layer2"]', style: {
-                        'background-color': '#50c878', 'width': 50, 'height': 50, 'shape': 'ellipse',
-                        'label': 'data(label)', 'font-size': '9px', 'color': '#fff',
-                        'text-valign': 'center', 'text-halign': 'center', 'text-max-width': '65px',
-                        'text-wrap': 'ellipsis'
+                        "background-color": "#3ecf93", "width": 56, "height": 56, "shape": "ellipse",
+                        "label": "data(label)", "font-size": "9px", "color": "#fff",
+                        "text-valign": "center", "text-halign": "center", "text-max-width": "70px",
+                        "text-wrap": "ellipsis"
                     }},
                     { selector: 'node[node_type="gateway"]', style: {
-                        'background-color': '#4a90d9', 'shape': 'diamond', 'width': 55, 'height': 55
+                        "background-color": "#5b9be8", "shape": "diamond", "width": 58, "height": 58
                     }},
                     { selector: 'node[node_type="service"]', style: {
-                        'background-color': '#50c878', 'shape': 'hexagon', 'width': 52, 'height': 52
+                        "background-color": "#3ecf93", "shape": "hexagon", "width": 58, "height": 58
                     }},
                     { selector: 'node[node_type="envoy"]', style: {
-                        'background-color': '#e67e22', 'shape': 'rectangle', 'width': 60, 'height': 32
+                        "background-color": "#e8893a", "shape": "roundrectangle", "width": 68, "height": 34
                     }},
                     { selector: 'node[node_type="pod"]', style: {
-                        'background-color': '#3498db', 'shape': 'ellipse', 'width': 48, 'height': 48
+                        "background-color": "#4ea3e0", "shape": "ellipse", "width": 50, "height": 50
                     }},
                     { selector: 'node[layer="layer3"]', style: {
-                        'background-color': '#f39c12', 'width': 40, 'height': 28, 'shape': 'rectangle',
-                        'label': 'data(label)', 'font-size': '8px', 'color': '#fff',
-                        'text-valign': 'center', 'text-halign': 'center', 'text-max-width': '55px',
-                        'text-wrap': 'ellipsis'
+                        "background-color": "#e6a23c", "width": 46, "height": 30, "shape": "roundrectangle",
+                        "label": "data(label)", "font-size": "8px", "color": "#fff",
+                        "text-valign": "center", "text-halign": "center", "text-max-width": "58px",
+                        "text-wrap": "ellipsis"
                     }},
-                    { selector: 'node[resource_type="VirtualService"]', style: { 'background-color': '#2ecc71', 'shape': 'diamond' }},
-                    { selector: 'node[resource_type="DestinationRule"]', style: { 'background-color': '#e67e22', 'shape': 'hexagon' }},
-                    { selector: 'node[resource_type="EnvoyFilter"]', style: { 'background-color': '#e74c3c', 'shape': 'rectangle' }},
-                    { selector: 'node[resource_type="ServiceEntry"]', style: { 'background-color': '#9b59b6', 'shape': 'rectangle' }},
-                    { selector: 'node[plane_type="data_plane"]:childless', style: { 'border-color': '#e74c3c', 'border-width': 2 }},
-                    { selector: 'node[plane_type="control_plane"]:childless', style: { 'border-color': '#4a90d9', 'border-width': 2 }},
-                    { selector: 'edge', style: {
-                        'curve-style': 'bezier', 'target-arrow-shape': 'triangle', 'arrow-scale': 0.8,
-                        'width': 1.5, 'line-color': '#555', 'target-arrow-color': '#555'
+                    { selector: 'node[resource_type="VS"]', style: { "background-color": "#3dce7a", "shape": "diamond", "width": 46, "height": 46 }},
+                    { selector: 'node[resource_type="DR"]', style: { "background-color": "#e8893a", "shape": "hexagon", "width": 46, "height": 46 }},
+                    { selector: 'node[resource_type="EF"]', style: { "background-color": "#e35d67", "shape": "roundrectangle" }},
+                    { selector: 'node[resource_type="SE"]', style: { "background-color": "#9b6dd7", "shape": "roundrectangle" }},
+                    { selector: 'node[resource_type="RLS"]', style: { "background-color": "#2ec4b6", "shape": "roundrectangle" }},
+                    { selector: 'node[plane_type="data_plane"]:childless', style: { "border-color": "#f07178", "border-width": 2 }},
+                    { selector: 'node[plane_type="control_plane"]:childless', style: { "border-color": "#6aa8ea", "border-width": 2 }},
+                    { selector: "edge", style: {
+                        "curve-style": "unbundled-bezier",
+                        "control-point-distances": 18,
+                        "control-point-weights": 0.5,
+                        "target-arrow-shape": "triangle", "arrow-scale": 0.75,
+                        "width": 1.4, "line-color": "#4a5d78", "target-arrow-color": "#4a5d78",
+                        "opacity": 0.72, "line-cap": "round"
                     }},
                     { selector: 'edge[layer="layer1"]', style: {
-                        'line-color': '#4a90d9', 'line-style': 'dashed', 'width': 2,
-                        'target-arrow-color': '#4a90d9'
+                        "curve-style": "bezier",
+                        "line-color": "#6aa8ea", "line-style": "dashed", "width": 2,
+                        "target-arrow-color": "#6aa8ea", "opacity": 0.85
                     }},
                     { selector: 'edge[layer="layer2"]', style: {
-                        'line-color': '#50c878', 'width': 2, 'target-arrow-color': '#50c878',
-                        'label': 'data(label)', 'font-size': '8px', 'color': '#50c878',
-                        'text-background-color': '#0f0f1a', 'text-background-opacity': 0.8, 'text-background-padding': '2px'
+                        "line-color": "#4ecf96", "width": 2, "target-arrow-color": "#4ecf96",
+                        "label": "data(label)", "font-size": "8px", "color": "#8ee0b8",
+                        "text-background-color": "#070b14", "text-background-opacity": 0.75, "text-background-padding": "2px",
+                        "text-background-shape": "roundrectangle", "opacity": 0.88
                     }},
                     { selector: 'edge[layer="layer3"]', style: {
-                        'line-color': '#f39c12', 'width': 1.5, 'target-arrow-color': '#f39c12'
+                        "line-color": "#e6a23c", "width": 1.6, "target-arrow-color": "#e6a23c", "opacity": 0.8
                     }},
                     { selector: 'edge[layer="cross_layer"]', style: {
-                        'line-color': '#9b59b6', 'width': 2, 'line-style': 'dotted',
-                        'target-arrow-color': '#9b59b6',
-                        'label': 'data(label)', 'font-size': '8px', 'color': '#bb86fc',
-                        'text-background-color': '#0f0f1a', 'text-background-opacity': 0.8, 'text-background-padding': '2px'
+                        "curve-style": "unbundled-bezier", "control-point-distances": 36,
+                        "line-color": "#b57be8", "width": 1.8, "line-style": "dotted",
+                        "target-arrow-color": "#b57be8",
+                        "label": "data(label)", "font-size": "8px", "color": "#d4b4f8",
+                        "text-background-color": "#070b14", "text-background-opacity": 0.75, "text-background-padding": "2px",
+                        "opacity": 0.8
                     }},
-                    { selector: 'node:selected', style: { 'border-width': 4, 'border-color': '#ffd700', 'overlay-opacity': 0.15 }},
-                    { selector: 'edge:selected', style: { 'line-color': '#ffd700', 'target-arrow-color': '#ffd700', 'width': 3 }}
-                ],
+                    { selector: 'edge[match_type="consistent"]', style: {
+                        "line-color": "#3dd68c", "target-arrow-color": "#3dd68c", "width": 2.4, "opacity": 0.95
+                    }},
+                    { selector: 'edge[match_type="partial"]', style: {
+                        "line-color": "#f0b429", "target-arrow-color": "#f0b429", "width": 2.4, "line-style": "dashed", "opacity": 0.95
+                    }},
+                    { selector: 'edge[match_type="inconsistent"]', style: {
+                        "line-color": "#f07178", "target-arrow-color": "#f07178", "width": 3, "opacity": 1
+                    }},
+                    { selector: 'edge[role="expected"]', style: {
+                        "curve-style": "unbundled-bezier", "control-point-distances": 32,
+                        "line-style": "dashed", "line-color": "#8b9bb4", "target-arrow-color": "#8b9bb4",
+                        "width": 2, "opacity": 0.95,
+                        "label": "data(label)", "font-size": "9px", "color": "#c5d0e0", "font-weight": 600,
+                        "text-background-color": "#070b14", "text-background-opacity": 0.82, "text-background-padding": "3px"
+                    }},
+                    { selector: 'edge[role="observed"]', style: {
+                        "curve-style": "unbundled-bezier", "control-point-distances": -32,
+                        "line-style": "solid", "line-color": "#f07178", "target-arrow-color": "#f07178",
+                        "width": 3.2, "opacity": 1,
+                        "label": "data(label)", "font-size": "10px", "color": "#ffb4b8", "font-weight": 700,
+                        "text-background-color": "#070b14", "text-background-opacity": 0.88, "text-background-padding": "3px"
+                    }},
+                    { selector: "node.hover", style: {
+                        "overlay-opacity": 0.16, "overlay-color": "#8ec5ff", "overlay-padding": 7, "z-index": 10
+                    }},
+                    { selector: "node:selected", style: {
+                        "border-width": 3, "border-color": "#e0b57a",
+                        "overlay-opacity": 0.2, "overlay-color": "#e0b57a", "overlay-padding": 8, "z-index": 20
+                    }},
+                    { selector: "edge:selected", style: { "line-color": "#e0b57a", "target-arrow-color": "#e0b57a", "width": 3, "opacity": 1 }},
+                    { selector: ".faded", style: { "opacity": 0.1 }},
+                    { selector: ".highlighted", style: { "opacity": 1 }},
+                    { selector: ".path-hl", style: {
+                        "line-color": "#5aa7ff", "target-arrow-color": "#5aa7ff", "width": 3.5, "opacity": 1,
+                        "line-style": "solid"
+                    }},
+                    { selector: "node.path-hl", style: { "border-width": 3, "border-color": "#5aa7ff", "opacity": 1, "overlay-opacity": 0.18, "overlay-color": "#5aa7ff" }},
+                    { selector: "node.has-issue", style: {
+                        "border-color": "#f07178", "border-width": 3,
+                        "overlay-color": "#f07178", "overlay-opacity": 0.14, "overlay-padding": 6,
+                        "z-index": 15
+                    }},
+                    { selector: ".search-hit", style: { "border-width": 3, "border-color": "#5aa7ff", "overlay-opacity": 0.14, "overlay-color": "#5aa7ff" }}
+                ]
             });
 
-            cy.nodes('.parent-box').ungrabify();
+            cy.nodes(".parent-box").ungrabify();
 
-            const layoutOpts = {
-                name: 'cose',
-                animate: false,
-                nodeRepulsion: function(node) { return node.isParent() ? 20000 : 6000; },
-                idealEdgeLength: function(edge) {
-                    if (edge.data('layer') === 'cross_layer') return 250;
-                    return 80;
-                },
-                edgeElasticity: 100,
-                nestingFactor: 5,
-                gravity: 0.3,
-                numIter: 1500,
-                padding: 50,
-                nodeDimensionsIncludeLabels: true,
-                componentSpacing: 120
-            };
-
-            const layout = cy.layout(layoutOpts);
-            layout.run();
-            layout.on('layoutstop', function() {
-                separatePlanes();
-                cy.animate({ fit: { padding: 50 } }, { duration: 400 });
-            });
-
-            // 限制子节点拖动范围，防止父框无限增大
-            cy.on('drag', 'node', function(evt) {
-                const node = evt.target;
-                if (node.isParent()) return;
-                const parent = node.parent();
-                if (parent.length === 0) return;
-
-                const siblings = parent.children().filter(n => n.id() !== node.id() && !n.isParent());
-                if (siblings.length === 0) return;
-
-                const sibBB = siblings.boundingBox();
-                const maxDist = 180;
-                const cx = (sibBB.x1 + sibBB.x2) / 2;
-                const cy_ = (sibBB.y1 + sibBB.y2) / 2;
-                const halfW = sibBB.w / 2 + maxDist;
-                const halfH = sibBB.h / 2 + maxDist;
-
-                const pos = node.position();
-                let clamped = false;
-                if (pos.x < cx - halfW) { pos.x = cx - halfW; clamped = true; }
-                if (pos.x > cx + halfW) { pos.x = cx + halfW; clamped = true; }
-                if (pos.y < cy_ - halfH) { pos.y = cy_ - halfH; clamped = true; }
-                if (pos.y > cy_ + halfH) { pos.y = cy_ + halfH; clamped = true; }
-                if (clamped) node.position(pos);
-            });
-
-            cy.on('tap', 'node', function(evt) {
-                const n = evt.target.data();
-                if (n.isParent) return;
-                alert('节点: ' + n.label + '\n层级: ' + n.layer + '\n类型: ' + (n.node_type || n.resource_type || '-'));
-            });
-
-            document.getElementById('layer-filter').onchange = applyFilters;
-            document.getElementById('plane-filter').onchange = applyFilters;
+            bindCyEvents();
+            $("layer-filter").onchange = onFilterChange;
+            $("plane-filter").onchange = onFilterChange;
+            $("inconsistent-only").onchange = onFilterChange;
+            $("config-only").onchange = onFilterChange;
+            clearSelection();
             updateStats();
+            renderIssueList();
+            renderInspector(null);
+            observeCanvasSize();
+            applyFilters();
+            relayoutGraph();
         }
 
-        function separatePlanes() {
+        let canvasObserver = null;
+        let layoutPending = false;
+
+        function observeCanvasSize() {
+            const el = document.getElementById("cy");
+            if (!el || typeof ResizeObserver === "undefined") return;
+            if (canvasObserver) canvasObserver.disconnect();
+            canvasObserver = new ResizeObserver(function () {
+                if (!cy) return;
+                cy.resize();
+                if (el.clientWidth > 40 && el.clientHeight > 40) {
+                    if (layoutPending) relayoutGraph();
+                }
+            });
+            canvasObserver.observe(el);
+        }
+
+        function bindCyEvents() {
+            cy.on("tap", "node", function (evt) {
+                const node = evt.target;
+                if (pathMode) {
+                    handlePathPick(node);
+                    return;
+                }
+                selectNode(node, { fromHistory: false });
+            });
+            cy.on("tap", "edge", function (evt) {
+                const edge = evt.target;
+                const src = edge.source();
+                selectNode(src, { fromHistory: false });
+                highlightPath(edge.connectedNodes().union(edge));
+            });
+            cy.on("tap", function (evt) {
+                if (evt.target === cy) clearSelection();
+            });
+            cy.on("dbltap", "node", function (evt) {
+                focusMode = true;
+                selectNode(evt.target, { fromHistory: false, isolate: true });
+            });
+            cy.on("mouseover", "node", function (evt) {
+                cy.nodes().removeClass("hover");
+                evt.target.addClass("hover");
+                showTooltip(evt);
+                if (!selectedId && !pathMode && !isBox(evt.target)) previewNeighborhood(evt.target);
+            });
+            cy.on("mousemove", "node", showTooltip);
+            cy.on("mouseout", "node", function (evt) {
+                evt.target.removeClass("hover");
+                hideTooltip();
+                if (!selectedId && !pathMode) clearHighlight();
+            });
+            cy.on("pan zoom", updateIssuePins);
+            cy.on("render", updateIssuePins);
+        }
+
+        function nodeList(coll) {
+            const out = [];
+            if (!coll) return out;
+            coll.forEach(function (n) { out.push(n); });
+            return out;
+        }
+
+        function bboxOf(nodes) {
+            if (!nodes.length) return { x1: 0, y1: 0, x2: 0, y2: 0, w: 0, h: 0 };
+            const bb = cy.collection(nodes).boundingBox({ includeLabels: false, includeOverlays: false });
+            return { x1: bb.x1, y1: bb.y1, x2: bb.x2, y2: bb.y2, w: bb.w, h: bb.h };
+        }
+
+        function shiftNodes(nodes, dx, dy) {
+            if (!nodes.length || (!dx && !dy)) return;
+            cy.collection(nodes).shift({ x: dx, y: dy });
+        }
+
+        function packLeaves(nodes, originX, originY) {
+            const layer2 = [];
+            const layer3 = [];
+            nodes.forEach(function (n) {
+                if (n.data("layer") === "layer3") layer3.push(n);
+                else layer2.push(n);
+            });
+            const byLabel = function (a, b) {
+                return String(a.data("label") || a.id()).localeCompare(String(b.data("label") || b.id()));
+            };
+            layer2.sort(byLabel);
+            layer3.sort(byLabel);
+
+            const CELL_W = 82;
+            const CELL_H = 64;
+
+            function grid(list, x0, y0, maxCols) {
+                if (!list.length) return { w: 0, h: 0, rows: 0 };
+                const cols = Math.min(Math.max(1, maxCols), list.length);
+                const rows = Math.ceil(list.length / cols);
+                list.forEach(function (node, i) {
+                    const c = i % cols;
+                    const r = Math.floor(i / cols);
+                    node.position({ x: x0 + c * CELL_W, y: y0 + r * CELL_H });
+                });
+                return { w: (cols - 1) * CELL_W, h: (rows - 1) * CELL_H, rows: rows };
+            }
+
+            const r2 = grid(layer2, originX, originY, layer2.length <= 2 ? layer2.length : 3);
+            const y3 = originY + (layer2.length ? r2.h + CELL_H + 18 : 0);
+            const r3 = grid(layer3, originX, y3, layer3.length <= 3 ? Math.max(1, layer3.length) : 4);
+            const w = Math.max(r2.w, r3.w, 48);
+            const h = (layer3.length ? y3 + r3.h : originY + r2.h) - originY;
+            return { width: w, height: Math.max(h, 24) };
+        }
+
+        function collectPlaneGroups(planeId) {
+            const plane = cy.getElementById(planeId);
+            const groups = [];
+            if (!plane.length) return groups;
+
+            const direct = [];
+            plane.children().forEach(function (child) {
+                if (child.data("layer") === "box") {
+                    const leaves = nodeList(child.descendants().filter(function (n) {
+                        return !n.isParent() && n.style("display") !== "none";
+                    }));
+                    if (leaves.length) {
+                        groups.push({
+                            name: child.data("label") || child.id(),
+                            nodes: leaves
+                        });
+                    }
+                } else if (!child.isParent() && child.style("display") !== "none") {
+                    direct.push(child);
+                }
+            });
+            if (direct.length) {
+                groups.unshift({ name: "_", nodes: direct });
+            }
+            groups.sort(function (a, b) { return String(a.name).localeCompare(String(b.name)); });
+            return groups;
+        }
+
+        function layoutGroupGrid(groups, originX, originY) {
+            if (!groups.length) return [];
+            const placed = groups.map(function (g) {
+                packLeaves(g.nodes, 0, 0);
+                return { g: g, bb: bboxOf(g.nodes) };
+            });
+            const colsN = placed.length > 5 ? 2 : 1;
+            const colW = [0, 0];
+            placed.forEach(function (item, i) {
+                const c = i % colsN;
+                colW[c] = Math.max(colW[c], item.bb.w);
+            });
+            const GAP_X = 56;
+            const GAP_Y = 64;
+            let y = originY;
+            for (let i = 0; i < placed.length; i += colsN) {
+                const row = placed.slice(i, i + colsN);
+                const rowH = Math.max.apply(null, row.map(function (item) { return item.bb.h; }));
+                let x = originX;
+                row.forEach(function (item, c) {
+                    shiftNodes(item.g.nodes, x - item.bb.x1, y - item.bb.y1);
+                    x += colW[c] + GAP_X;
+                });
+                y += rowH + GAP_Y;
+            }
+            return groups.reduce(function (acc, g) { return acc.concat(g.nodes); }, []);
+        }
+
+        function layoutStructured() {
             if (!cy) return;
-            const cpNode = cy.getElementById('control_plane');
-            const dpNode = cy.getElementById('data_plane');
-            const ccNode = cy.getElementById('consistency_checker');
+            const el = document.getElementById("cy");
+            if (el && (el.clientWidth < 40 || el.clientHeight < 40)) {
+                layoutPending = true;
+                return;
+            }
+            layoutPending = false;
 
-            const cpLeaves = cpNode.descendants().filter(n => !n.isParent());
-            const dpLeaves = dpNode.descendants().filter(n => !n.isParent());
-            if (cpLeaves.length === 0 && dpLeaves.length === 0) return;
+            cy.batch(function () {
+                const cpLeaves = layoutGroupGrid(collectPlaneGroups("control_plane"), 0, 0);
+                const dpLeaves = layoutGroupGrid(collectPlaneGroups("data_plane"), 0, 0);
+                const cpBB = bboxOf(cpLeaves);
+                const dpBB = bboxOf(dpLeaves);
+                const GAP = 240;
+                if (cpLeaves.length) {
+                    shiftNodes(cpLeaves, -GAP / 2 - cpBB.x2, -(cpBB.y1 + cpBB.y2) / 2);
+                }
+                if (dpLeaves.length) {
+                    shiftNodes(dpLeaves, GAP / 2 - dpBB.x1, -(dpBB.y1 + dpBB.y2) / 2);
+                }
 
-            const cpBB = cpLeaves.length > 0 ? cpLeaves.boundingBox() : { x1: 0, x2: 0, y1: 0, y2: 0, w: 0 };
-            const dpBB = dpLeaves.length > 0 ? dpLeaves.boundingBox() : { x1: 0, x2: 0, y1: 0, y2: 0, w: 0 };
-            const gap = 280;
+                const cc = cy.getElementById("consistency_checker");
+                if (cc.length) {
+                    const ccKids = nodeList(cc.descendants().filter(function (n) { return !n.isParent(); }));
+                    if (ccKids.length) {
+                        packLeaves(ccKids, 0, 0);
+                        const bb = bboxOf(ccKids);
+                        const topY = Math.min(
+                            cpLeaves.length ? bboxOf(cpLeaves).y1 : 0,
+                            dpLeaves.length ? bboxOf(dpLeaves).y1 : 0
+                        );
+                        shiftNodes(ccKids, - (bb.x1 + bb.x2) / 2, topY - 90 - bb.y2);
+                    } else {
+                        const topY = Math.min(
+                            cpLeaves.length ? bboxOf(cpLeaves).y1 : 0,
+                            dpLeaves.length ? bboxOf(dpLeaves).y1 : 0
+                        );
+                        cc.position({ x: 0, y: topY - 70 });
+                    }
+                }
+            });
+        }
 
-            const cpCX = (cpBB.x1 + cpBB.x2) / 2;
-            const dpCX = (dpBB.x1 + dpBB.x2) / 2;
-            const cpTargetCX = -(cpBB.w / 2 + gap / 2);
-            const dpTargetCX = (dpBB.w / 2 + gap / 2);
+        function relayoutGraph(opts) {
+            opts = opts || {};
+            if (!cy) return;
+            cy.resize();
+            layoutStructured();
+            if (layoutPending) return;
+            cy.fit(56);
+            updateIssuePins();
+            if (opts.animate === false) return;
+            playBloom(captureLeafPositions());
+        }
 
-            if (cpLeaves.length > 0) cpLeaves.shift({ x: cpTargetCX - cpCX, y: 0 });
-            if (dpLeaves.length > 0) dpLeaves.shift({ x: dpTargetCX - dpCX, y: 0 });
+        function captureLeafPositions() {
+            const map = {};
+            cy.nodes().forEach(function (n) {
+                if (n.isParent() && n.id() !== "consistency_checker") return;
+                const p = n.position();
+                map[n.id()] = { x: p.x, y: p.y };
+            });
+            return map;
+        }
 
-            if (ccNode.length) {
-                const ccChildren = ccNode.descendants().filter(n => !n.isParent());
-                if (ccChildren.length > 0) {
-                    const ccBB = ccChildren.boundingBox();
-                    ccChildren.shift({ x: -(ccBB.x1 + ccBB.x2) / 2, y: 0 });
+        function playBloom(targets) {
+            cy.elements().stop(true);
+            const leaves = cy.nodes().filter(function (n) {
+                return !n.isParent() || n.id() === "consistency_checker";
+            });
+            cy.batch(function () {
+                leaves.forEach(function (n) { n.position({ x: 0, y: 0 }); });
+                cy.edges().style("opacity", 0);
+            });
+            leaves.forEach(function (node) {
+                const t = targets[node.id()];
+                if (!t) return;
+                node.animate({
+                    position: t,
+                    duration: 580,
+                    easing: "ease-out-cubic"
+                });
+            });
+            cy.edges().animate({
+                style: { opacity: 0.8 },
+                duration: 720,
+                easing: "ease-out-quad",
+                complete: function () {
+                    if (cy) cy.edges().removeStyle("opacity");
+                }
+            });
+        }
+
+        function pulseNode(node) {
+            if (!node || !node.length) return;
+            node.animation({
+                style: { "overlay-padding": 16, "overlay-opacity": 0.34 },
+                duration: 160,
+                easing: "ease-out-sine"
+            }).play().promise("complete").then(function () {
+                return node.animation({
+                    style: { "overlay-padding": 7, "overlay-opacity": 0.18 },
+                    duration: 260,
+                    easing: "ease-in-out-sine"
+                }).play().promise("complete");
+            }).then(function () {
+                node.removeStyle("overlay-padding");
+                node.removeStyle("overlay-opacity");
+            }).catch(function () {});
+        }
+
+        function neighborhoodOf(node) {
+            const ego = node.closedNeighborhood();
+            return ego.union(node.ancestors()).union(node.descendants());
+        }
+
+        function previewNeighborhood(node) {
+            const ego = neighborhoodOf(node);
+            cy.batch(function () {
+                cy.elements().removeClass("faded highlighted");
+                cy.elements().not(ego).addClass("faded");
+                ego.addClass("highlighted");
+            });
+        }
+
+        function highlightNeighborhood(node, isolate) {
+            const ego = neighborhoodOf(node);
+            cy.batch(function () {
+                cy.elements().removeClass("faded highlighted path-hl");
+                if (isolate) {
+                    cy.elements().style("display", "element");
+                    applyFilters();
+                    cy.elements().not(ego).forEach(function (el) {
+                        if (!el.isNode() || !el.isParent()) el.style("display", "none");
+                    });
+                    ego.style("display", "element");
                 } else {
-                    ccNode.position({ x: 0, y: 0 });
+                    cy.elements().not(ego).addClass("faded");
+                    ego.addClass("highlighted");
+                }
+            });
+        }
+
+        function highlightPath(eles) {
+            cy.batch(function () {
+                cy.elements().removeClass("faded highlighted path-hl");
+                cy.elements().not(eles).addClass("faded");
+                eles.addClass("highlighted path-hl");
+            });
+        }
+
+        function clearHighlight() {
+            if (!cy) return;
+            cy.elements().removeClass("faded highlighted path-hl search-hit");
+        }
+
+        function selectNode(node, opts) {
+            opts = opts || {};
+            if (!node || !node.length) return;
+            selectedId = node.id();
+            cy.$(":selected").unselect();
+            node.select();
+            if (!opts.fromHistory) pushHistory(selectedId);
+            highlightNeighborhood(node, opts.isolate || focusMode);
+            renderInspector(node);
+            renderCrumb();
+            pulseNode(node);
+        }
+
+        function locateNode(id, opts) {
+            if (!cy) return;
+            const node = cy.getElementById(id);
+            if (!node.length) return;
+            focusMode = !!(opts && opts.focus);
+            selectNode(node, { fromHistory: !!(opts && opts.fromHistory), isolate: focusMode });
+            cy.animate({ fit: { eles: neighborhoodOf(node), padding: 80 } }, { duration: 420, easing: "ease-out-cubic" });
+        }
+
+        function clearSelection() {
+            selectedId = null;
+            focusMode = false;
+            pathStart = null;
+            if (cy) {
+                cy.$(":selected").unselect();
+                clearHighlight();
+                applyFilters();
+            }
+            renderInspector(null);
+            renderCrumb();
+        }
+
+        function pushHistory(id) {
+            if (historyIds[historyIds.length - 1] === id) return;
+            historyIds.push(id);
+            if (historyIds.length > 8) historyIds = historyIds.slice(-8);
+        }
+
+        function renderCrumb() {
+            const el = $("crumb");
+            if (!historyIds.length || !cy) {
+                el.textContent = "未选中节点";
+                return;
+            }
+            const items = historyIds.slice(-4).map(function (id, i, arr) {
+                const n = cy.getElementById(id);
+                const name = n.length ? (n.data("label") || id) : id;
+                const cls = i === arr.length - 1 ? "now" : "";
+                return '<button type="button" class="' + cls + '" data-id="' + escapeHtml(id) + '">' + escapeHtml(name) + "</button>";
+            });
+            el.innerHTML = items.join('<span style="color:#243044">›</span>');
+            el.querySelectorAll("button").forEach(function (btn) {
+                btn.onclick = function () { locateNode(btn.getAttribute("data-id"), { fromHistory: true }); };
+            });
+        }
+
+        function connectionsOf(node) {
+            const edges = node.connectedEdges();
+            const list = [];
+            edges.forEach(function (edge) {
+                const outgoing = edge.source().id() === node.id();
+                const other = outgoing ? edge.target() : edge.source();
+                if (isBox(other) && other.id() !== "consistency_checker") return;
+                list.push({
+                    edge: edge,
+                    outgoing: outgoing,
+                    other: other,
+                    relation: edge.data("relation_type") || edge.data("match_type") || edge.data("layer"),
+                    label: edge.data("label") || "",
+                    match: edge.data("match_type") || "",
+                    layer: edge.data("layer") || ""
+                });
+            });
+            return list;
+        }
+
+        function renderInspector(node) {
+            const box = $("inspector");
+            box.classList.remove("flash");
+            void box.offsetWidth;
+            box.classList.add("flash");
+            if (!node || !node.length) {
+                box.innerHTML = '<div class="empty">点击图中的节点查看详情。<br><br>支持：邻域高亮、关联跳转、路径查找。<br><br>快捷键 <kbd>/</kbd> 搜索，<kbd>F</kbd> 适应视图，<kbd>Esc</kbd> 清除。</div>';
+                return;
+            }
+            const d = node.data();
+            const conns = connectionsOf(node);
+            const services = [];
+            const configs = [];
+            conns.forEach(function (c) {
+                const od = c.other.data();
+                if (od.layer === "layer2" || od.node_type === "service") services.push(c);
+                if (od.layer === "layer3" || od.resource_type) configs.push(c);
+            });
+            const badges = [
+                '<span class="tag ' + escapeHtml(d.layer || "") + '">' + escapeHtml(LAYER_NAME[d.layer] || d.layer || "节点") + "</span>"
+            ];
+            if (d.plane_type) badges.push('<span class="tag ' + escapeHtml(d.plane_type) + '">' + escapeHtml(PLANE_NAME[d.plane_type] || d.plane_type) + "</span>");
+            if (d.node_type) badges.push('<span class="tag">' + escapeHtml(d.node_type) + "</span>");
+            if (d.resource_type) badges.push('<span class="tag">' + escapeHtml(RES_NAME[d.resource_type] || d.resource_type) + "</span>");
+
+            let html = '<div class="badges">' + badges.join("") + "</div>";
+            html += '<div class="insp-title">' + escapeHtml(d.label || d.id) + "</div>";
+            html += '<div class="insp-actions">';
+            html += '<button class="btn ghost' + (focusMode ? " on" : "") + '" type="button" id="btn-focus">' + (focusMode ? "取消聚焦" : "聚焦邻域") + "</button>";
+            html += '<button class="btn ghost" type="button" id="btn-fit-n">定位到图</button>';
+            html += "</div>";
+            html += "<dl class='kv'>";
+            html += "<dt>ID</dt><dd>" + escapeHtml(d.id) + "</dd>";
+            if (d.service_name) html += "<dt>服务</dt><dd>" + escapeHtml(d.service_name) + "</dd>";
+            if (d.namespace) html += "<dt>命名空间</dt><dd>" + escapeHtml(d.namespace) + "</dd>";
+            if (d.config_name) html += "<dt>配置名</dt><dd>" + escapeHtml(d.config_name) + "</dd>";
+            html += "<dt>类型</dt><dd>" + escapeHtml(typeLabel(d)) + "</dd>";
+            html += "<dt>连接</dt><dd>" + conns.length + "</dd>";
+            html += "</dl>";
+
+            const nodeIssues = d.issues || [];
+            if (d.has_issue && nodeIssues.length) {
+                html += '<div class="insp-issues">';
+                nodeIssues.forEach(function (iss) {
+                    html += '<div class="insp-issue' + (iss.severity === "medium" ? " warn" : "") + '">';
+                    html += "<strong>" + escapeHtml(iss.title || iss.type || "不一致") + "</strong>";
+                    if (iss.description) html += "<div style='margin-top:4px;color:var(--muted);font-size:11px;line-height:1.45'>" + escapeHtml(iss.description) + "</div>";
+                    const full = ((graphData && graphData.issues) || []).filter(function (x) { return x.id === iss.id; })[0] || iss;
+                    if (full.expected || full.observed) {
+                        html += "<div style='margin-top:6px;font-size:11px'>";
+                        if (full.expected) html += "<div style='color:#c5d0e0'>Exp " + escapeHtml(formatWeightMap(full.expected)) + "</div>";
+                        if (full.observed) html += "<div style='color:#ffb4b8'>Obs " + escapeHtml(formatWeightMap(full.observed)) + "</div>";
+                        html += "</div>";
+                    }
+                    html += "</div>";
+                });
+                html += "</div>";
+            }
+
+            if (node.isParent()) {
+                const kids = node.children().filter(function (n) {
+                    return n.data("layer") !== "box";
+                });
+                if (kids.length) {
+                    html += '<div class="sec-title">包含 (' + kids.length + ")</div>";
+                    kids.forEach(function (child) {
+                        const cd = child.data();
+                        html += '<button class="conn" type="button" data-id="' + escapeHtml(cd.id) + '">';
+                        html += '<span class="dir">' + escapeHtml(cd.resource_type || cd.node_type || cd.layer || "") + "</span>";
+                        html += escapeHtml(cd.label || cd.id);
+                        html += "</button>";
+                    });
                 }
             }
+
+            function connBlock(title, items) {
+                if (!items.length) return "";
+                let s = '<div class="sec-title">' + title + " (" + items.length + ")</div>";
+                items.forEach(function (c) {
+                    const name = c.other.data("label") || c.other.id();
+                    const rel = REL_NAME[c.relation] || MATCH_NAME[c.relation] || c.relation;
+                    const arrow = c.outgoing ? "→" : "←";
+                    const matchTag = c.match ? '<span class="tag ' + (c.match === "inconsistent" ? "bad" : c.match === "consistent" ? "ok" : "warn") + '">' + escapeHtml(MATCH_NAME[c.match] || c.match) + "</span>" : "";
+                    s += '<button class="conn" type="button" data-id="' + escapeHtml(c.other.id()) + '">';
+                    s += '<span class="dir">' + arrow + " " + escapeHtml(rel) + "</span>";
+                    s += escapeHtml(name);
+                    if (c.label) s += '<div class="meta">' + escapeHtml(c.label) + " " + matchTag + "</div>";
+                    else if (matchTag) s += '<div class="meta">' + matchTag + "</div>";
+                    s += "</button>";
+                });
+                return s;
+            }
+            html += connBlock("关联服务", services);
+            html += connBlock("关联配置", configs);
+            const others = conns.filter(function (c) {
+                return services.indexOf(c) < 0 && configs.indexOf(c) < 0;
+            });
+            html += connBlock("其他连接", others);
+            box.innerHTML = html;
+            const focusBtn = $("btn-focus");
+            if (focusBtn) {
+                focusBtn.onclick = function () {
+                    focusMode = !focusMode;
+                    if (!focusMode) applyFilters();
+                    selectNode(node, { fromHistory: true, isolate: focusMode });
+                    if (focusMode) cy.animate({ fit: { eles: neighborhoodOf(node), padding: 80 } }, { duration: 300 });
+                };
+            }
+            const fitBtn = $("btn-fit-n");
+            if (fitBtn) fitBtn.onclick = function () {
+                cy.animate({ fit: { eles: neighborhoodOf(node), padding: 80 } }, { duration: 300 });
+            };
+            box.querySelectorAll(".conn").forEach(function (btn) {
+                btn.onclick = function () { locateNode(btn.getAttribute("data-id")); };
+            });
+        }
+
+        function showTooltip(evt) {
+            const node = evt.target;
+            if (!node || !node.isNode || !node.isNode()) return;
+            const d = node.data();
+            const tip = $("tooltip");
+            let meta = (LAYER_NAME[d.layer] || "") + " · " + typeLabel(d) + (d.service_name ? " · " + d.service_name : "");
+            if (d.has_issue) {
+                const first = (d.issues || [])[0];
+                meta += " · 不一致" + (first && first.title ? "：" + first.title : "");
+            }
+            tip.innerHTML = '<div class="t-name">' + escapeHtml(d.label || d.id) + (d.has_issue ? " ⚠" : "") + "</div>" +
+                '<div class="t-meta">' + escapeHtml(meta) + "</div>";
+            tip.style.display = "block";
+            const rp = evt.renderedPosition || { x: 0, y: 0 };
+            const rect = $("cy").getBoundingClientRect();
+            tip.style.left = (rect.left + rp.x + 14) + "px";
+            tip.style.top = (rect.top + rp.y + 14) + "px";
+        }
+        function hideTooltip() { $("tooltip").style.display = "none"; }
+
+        function scoreNode(n, q) {
+            const d = n.data();
+            const id = (d.id || "").toLowerCase();
+            const label = (d.label || "").toLowerCase();
+            const svc = (d.service_name || "").toLowerCase();
+            const type = (d.resource_type || d.node_type || "").toLowerCase();
+            if (label === q) return 0;
+            if (label.startsWith(q)) return 1;
+            if (svc === q) return 2;
+            if (id.includes(q)) return 3;
+            if (label.includes(q)) return 4;
+            if (svc.includes(q)) return 5;
+            if (type.includes(q)) return 6;
+            return 99;
+        }
+
+        function runSearch(q) {
+            q = (q || "").trim().toLowerCase();
+            const drop = $("search-drop");
+            if (!cy || !q) {
+                drop.classList.remove("open");
+                drop.innerHTML = "";
+                searchHits = [];
+                if (cy) cy.nodes().removeClass("search-hit");
+                return;
+            }
+            const hits = cy.nodes().filter(function (n) {
+                if (isBox(n) && n.id() !== "consistency_checker") return false;
+                return scoreNode(n, q) < 99;
+            }).sort(function (a, b) { return scoreNode(a, q) - scoreNode(b, q); });
+            searchHits = [];
+            hits.forEach(function (n) { searchHits.push(n); });
+            cy.nodes().removeClass("search-hit");
+            searchHits.slice(0, 20).forEach(function (n) { n.addClass("search-hit"); });
+            const top = searchHits.slice(0, 8);
+            drop.innerHTML = top.map(function (n, i) {
+                const d = n.data();
+                return '<button class="search-item' + (i === 0 ? " active" : "") + '" type="button" data-id="' + escapeHtml(d.id) + '">' +
+                    '<span class="tag ' + escapeHtml(d.layer || "") + '">' + escapeHtml(d.resource_type || d.node_type || d.layer || "") + "</span>" +
+                    '<span class="name">' + escapeHtml(d.label || d.id) + "</span></button>";
+            }).join("") || '<div class="search-item">无匹配</div>';
+            drop.classList.add("open");
+            drop.querySelectorAll(".search-item[data-id]").forEach(function (btn) {
+                btn.onclick = function () {
+                    locateNode(btn.getAttribute("data-id"), { focus: true });
+                    drop.classList.remove("open");
+                    $("search-input").blur();
+                };
+            });
+        }
+
+        $("search-input").addEventListener("input", function (e) { runSearch(e.target.value); });
+        $("search-input").addEventListener("keydown", function (e) {
+            if (e.key === "Enter" && searchHits[0]) {
+                e.preventDefault();
+                locateNode(searchHits[0].id(), { focus: true });
+                $("search-drop").classList.remove("open");
+            }
+            if (e.key === "Escape") {
+                $("search-drop").classList.remove("open");
+                e.target.blur();
+            }
+        });
+        document.addEventListener("mousedown", function (e) {
+            const wrap = $("search-wrap");
+            if (wrap && !wrap.contains(e.target)) $("search-drop").classList.remove("open");
+        });
+
+        function togglePathMode() {
+            pathMode = !pathMode;
+            pathStart = null;
+            $("path-btn").classList.toggle("on", pathMode);
+            $("path-banner").classList.toggle("on", pathMode);
+            $("path-banner").textContent = "路径模式：先点起点节点";
+            if (!pathMode) {
+                cy && cy.elements().removeClass("path-hl");
+                if (selectedId) locateNode(selectedId, { fromHistory: true });
+                else clearHighlight();
+            }
+        }
+        function handlePathPick(node) {
+            if (isBox(node) && node.id() !== "consistency_checker") {
+                const kids = node.descendants().filter(function (n) { return !n.isParent(); });
+                if (kids.length) node = kids[0];
+            }
+            if (!pathStart) {
+                pathStart = node;
+                $("path-banner").textContent = "已选起点 " + (node.data("label") || node.id()) + "，再点终点";
+                selectNode(node, { fromHistory: false });
+                return;
+            }
+            const dijkstra = cy.elements().dijkstra({ root: pathStart, directed: false });
+            const path = dijkstra.pathTo(node);
+            pathMode = false;
+            $("path-btn").classList.remove("on");
+            $("path-banner").classList.remove("on");
+            if (!path || path.length < 2) {
+                $("data-source").textContent = "未找到路径：" + (pathStart.data("label") || pathStart.id()) + " → " + (node.data("label") || node.id());
+                pathStart = null;
+                return;
+            }
+            highlightPath(path);
+            selectNode(node, { fromHistory: false });
+            cy.animate({ fit: { eles: path, padding: 70 } }, { duration: 460, easing: "ease-out-cubic" });
+            $("data-source").textContent = "路径 " + path.nodes().length + " 个节点 / " + path.edges().length + " 条边";
+            pathStart = null;
+        }
+
+        function formatWeightMap(m) {
+            if (!m) return "";
+            return Object.keys(m).map(function (k) { return k + "=" + m[k] + "%"; }).join(" / ");
+        }
+
+        function onFilterChange() {
+            applyFilters();
+            relayoutGraph({ animate: false });
+            updateIssuePins();
+        }
+
+        function configServiceSet() {
+            const set = {};
+            if (!cy) return set;
+            cy.nodes().forEach(function (n) {
+                if (n.data("layer") !== "layer3") return;
+                if (n.data("plane_type") && n.data("plane_type") !== "control_plane") return;
+                if (n.data("service_name")) set[n.data("service_name")] = true;
+            });
+            return set;
         }
 
         function applyFilters() {
             if (!cy) return;
-            const layer = document.getElementById('layer-filter').value;
-            const plane = document.getElementById('plane-filter').value;
-            cy.nodes().forEach(node => {
-                const d = node.data();
-                const isParent = d.isParent || d.layer === 'box';
-                let show;
-                if (isParent) {
-                    const descendants = cy.nodes().filter(n => n.ancestors().contains(node));
-                    show = descendants.some(n => {
-                        const nd = n.data();
-                        if (nd.isParent || nd.layer === 'box') return false;
-                        return (layer === 'all' || nd.layer === layer) && (plane === 'all' || !nd.plane_type || nd.plane_type === plane);
-                    });
-                } else {
-                    show = (layer === 'all' || d.layer === layer) && (plane === 'all' || !d.plane_type || d.plane_type === plane);
+            const layer = $("layer-filter").value;
+            const plane = $("plane-filter").value;
+            const onlyBad = $("inconsistent-only").checked;
+            const configOnly = $("config-only") && $("config-only").checked;
+            const cfg = configServiceSet();
+            const badEdges = cy.edges().filter(function (e) { return e.data("match_type") === "inconsistent"; });
+            const badNodes = badEdges.connectedNodes().union(cy.nodes(".has-issue"));
+
+            function leafOk(nd, node) {
+                if (nd.isParent || nd.layer === "box") return false;
+                if (layer !== "all" && nd.layer !== layer) return false;
+                if (plane !== "all" && nd.plane_type && nd.plane_type !== plane) return false;
+                if (onlyBad && !badNodes.contains(node) && !nd.has_issue) return false;
+                if (configOnly) {
+                    if (["control_plane", "data_plane", "consistency_checker"].indexOf(nd.id) >= 0) return true;
+                    if (nd.node_type === "gateway") return true;
+                    if (nd.service_name && cfg[nd.service_name]) return true;
+                    return false;
                 }
-                node.style('display', show ? 'element' : 'none');
+                return true;
+            }
+
+            cy.nodes().forEach(function (node) {
+                const d = node.data();
+                const parentLike = d.isParent || d.layer === "box";
+                let show;
+                if (parentLike) {
+                    const descendants = node.descendants().filter(function (n) { return !n.data("isParent") && n.data("layer") !== "box"; });
+                    show = descendants.some(function (n) { return leafOk(n.data(), n); });
+                } else {
+                    show = leafOk(d, node);
+                }
+                node.style("display", show ? "element" : "none");
             });
-            cy.edges().forEach(edge => {
+            cy.edges().forEach(function (edge) {
                 const d = edge.data();
-                const layerMatch = layer === 'all' || d.layer === layer;
+                const layerMatch = layer === "all" || d.layer === layer;
                 const src = cy.getElementById(d.source);
                 const tgt = cy.getElementById(d.target);
-                edge.style('display', (layerMatch && src.visible() && tgt.visible()) ? 'element' : 'none');
+                const badOk = !onlyBad || d.match_type === "inconsistent" || src.hasClass("has-issue") || tgt.hasClass("has-issue");
+                edge.style("display", (layerMatch && badOk && src.visible() && tgt.visible()) ? "element" : "none");
+            });
+            updateIssuePins();
+        }
+
+        function renderIssueList() {
+            const box = $("issue-list");
+            const banner = $("issue-banner");
+            const issues = (graphData && graphData.issues) || [];
+            if (!box) return;
+            if (!issues.length) {
+                box.innerHTML = "";
+                if (banner) banner.classList.remove("on");
+                return;
+            }
+            box.innerHTML = "<h3>不一致提示 (" + issues.length + ")</h3>" + issues.map(function (iss) {
+                const extra = (iss.expected || iss.observed)
+                    ? ("Exp " + formatWeightMap(iss.expected || {}) + " → Obs " + formatWeightMap(iss.observed || {}))
+                    : (iss.description || "");
+                return '<button class="issue-card" type="button" data-id="' + escapeHtml(iss.id) + '">' +
+                    '<div class="sev' + (iss.severity === "medium" ? " medium" : "") + '">' + escapeHtml(iss.severity === "high" ? "高" : "中") + " · " + escapeHtml(iss.service || iss.type || "") + "</div>" +
+                    '<div class="ttl">' + escapeHtml(iss.title || iss.type) + "</div>" +
+                    '<div class="desc">' + escapeHtml(extra) + "</div></button>";
+            }).join("");
+            box.querySelectorAll(".issue-card").forEach(function (btn) {
+                btn.onclick = function () {
+                    const rec = issues.filter(function (i) { return i.id === btn.getAttribute("data-id"); })[0];
+                    const ids = (rec && rec.node_ids) || [];
+                    const nid = ids.filter(function (id) { return id.indexOf("dp_") === 0; })[0] || ids[0];
+                    if (nid) locateNode(nid, { focus: true });
+                };
+            });
+            if (banner) {
+                banner.classList.add("on");
+                banner.innerHTML = "<strong>发现 " + issues.length + " 处不一致</strong><span>点击左侧卡片或图上红色标记定位到对应配置 / 服务。</span>";
+            }
+        }
+
+        function updateIssuePins() {
+            if (updateIssuePins._raf) return;
+            updateIssuePins._raf = requestAnimationFrame(function () {
+                updateIssuePins._raf = 0;
+                const layer = $("issue-pins");
+                if (!layer || !cy) return;
+                layer.innerHTML = "";
+                cy.nodes(".has-issue").forEach(function (n) {
+                    if (n.style("display") === "none" || !n.visible()) return;
+                    const issues = n.data("issues") || [];
+                    const high = !issues.length || issues.some(function (i) { return i.severity === "high"; });
+                    const rp = n.renderedPosition();
+                    const pin = document.createElement("button");
+                    pin.type = "button";
+                    pin.className = "issue-pin" + (high ? "" : " medium");
+                    pin.textContent = "!";
+                    pin.title = (issues[0] && issues[0].title) || "不一致";
+                    pin.style.left = rp.x + "px";
+                    pin.style.top = rp.y + "px";
+                    pin.onclick = function (evt) {
+                        evt.stopPropagation();
+                        locateNode(n.id(), { focus: true });
+                    };
+                    layer.appendChild(pin);
+                });
             });
         }
 
         function updateStats() {
             if (!graphData) return;
-            document.getElementById('node-count').textContent = graphData.nodes.length;
-            document.getElementById('edge-count').textContent = graphData.edges.length;
+            $("node-count").textContent = graphData.nodes.length;
+            $("edge-count").textContent = graphData.edges.length;
+            const issueN = ((graphData.issues || []).length) || cy.nodes(".has-issue").length;
+            $("bad-count").textContent = issueN;
         }
 
-        function fitGraph() { if (cy) cy.fit(50); }
+        function fitGraph() {
+            if (cy) cy.animate({ fit: { padding: 50 } }, { duration: 380, easing: "ease-out-cubic" });
+        }
         function resetView() {
-            document.getElementById('layer-filter').value = 'all';
-            document.getElementById('plane-filter').value = 'all';
+            $("layer-filter").value = "all";
+            $("plane-filter").value = "all";
+            $("inconsistent-only").checked = false;
+            if ($("config-only")) $("config-only").checked = true;
+            focusMode = false;
+            pathMode = false;
+            pathStart = null;
+            $("path-btn").classList.remove("on");
+            $("path-banner").classList.remove("on");
+            $("search-input").value = "";
+            $("search-drop").classList.remove("open");
             if (cy) {
-                cy.nodes().style('display', 'element');
-                cy.edges().style('display', 'element');
-                cy.fit(50);
+                cy.nodes().style("display", "element");
+                cy.edges().style("display", "element");
+                clearHighlight();
+                relayoutGraph();
             }
+            clearSelection();
         }
         function exportPNG() {
             if (!cy) return;
-            const link = document.createElement('a');
-            link.href = cy.png({ full: true, scale: 2, bg: '#0f0f1a' });
-            link.download = 'three_layer_graph.png';
+            const link = document.createElement("a");
+            link.href = cy.png({ full: true, scale: 2, bg: "#070b14" });
+            link.download = "three_layer_graph.png";
             link.click();
         }
+        function toggleHelp() { $("help").classList.toggle("open"); }
+
+        document.addEventListener("keydown", function (e) {
+            const tag = (e.target && e.target.tagName) || "";
+            const typing = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+            if ((e.key === "/" || (e.key === "k" && (e.ctrlKey || e.metaKey))) && !typing) {
+                e.preventDefault();
+                $("search-input").focus();
+                $("search-input").select();
+                return;
+            }
+            if (typing) {
+                if (e.key === "Escape") { e.target.blur(); $("search-drop").classList.remove("open"); }
+                return;
+            }
+            if (e.key === "Escape") {
+                if ($("help").classList.contains("open")) { toggleHelp(); return; }
+                if (pathMode) { togglePathMode(); return; }
+                clearSelection();
+            }
+            if (e.key === "f" || e.key === "F") fitGraph();
+            if (e.key === "p" || e.key === "P") togglePathMode();
+            if (e.key === "?" || e.key === "h" || e.key === "H") toggleHelp();
+        });
     </script>
 </body>
 </html>

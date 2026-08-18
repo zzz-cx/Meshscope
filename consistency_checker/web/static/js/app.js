@@ -3,6 +3,30 @@ function $(id) { return document.getElementById(id); }
 function switchPage(name) {
   document.querySelectorAll(".nav-btn").forEach((b) => b.classList.toggle("active", b.dataset.page === name));
   document.querySelectorAll(".page").forEach((p) => p.classList.toggle("active", p.id === "page-" + name));
+  document.body.classList.toggle("graph-page", name === "graph");
+  if (name === "graph") ensureGraphFrame();
+}
+
+function ensureGraphFrame() {
+  const frame = $("graph-frame");
+  if (!frame) return;
+  if (!frame.dataset.loaded) {
+    frame.src = "/three_layer_graph";
+    frame.dataset.loaded = "1";
+    return;
+  }
+  setTimeout(function () {
+    if (frame.contentWindow) {
+      frame.contentWindow.postMessage({ type: "configpilot-relayout" }, "*");
+    }
+  }, 80);
+}
+
+function reloadGraphFrame() {
+  const frame = $("graph-frame");
+  if (!frame) return;
+  frame.src = "/three_layer_graph?t=" + Date.now();
+  frame.dataset.loaded = "1";
 }
 
 function showStatus(id, kind, text) {
@@ -271,13 +295,14 @@ async function buildConsistencyGraph() {
     const { data } = await axios.post("/api/consistency/graph", {
       namespace: ns("consistency-namespace"),
     });
-    showStatus("consistency-status", "ok", "三层图已生成");
+    showStatus("consistency-status", "ok", "三层图已生成，可在「三层依赖图」中交互查看");
     const box = $("reports-container");
     box.innerHTML = "<pre>" + JSON.stringify({
       summary: data.summary,
       conflicts: data.conflicts,
       graph_path: data.graph_path,
     }, null, 2) + "</pre>";
+    reloadGraphFrame();
   } catch (err) {
     showStatus("consistency-status", "err", "构图失败: " + (err.response?.data?.error || err.message));
   }
@@ -315,7 +340,7 @@ async function loadReports() {
         <div>
           <span class="badge ${cls}">${(r.status || "unknown").toUpperCase()}</span>
           <a class="btn secondary" style="margin-left:8px;text-decoration:none" href="/api/report/${r.id}" target="_blank">详情</a>
-          <a class="btn secondary" style="margin-left:8px;text-decoration:none" href="/three_layer_graph?report=${r.id}" target="_blank">三层图</a>
+          <a class="btn secondary" style="margin-left:8px;text-decoration:none" href="/three_layer_graph?report_id=${encodeURIComponent(r.id)}" target="_blank">三层图</a>
         </div>
       </div>`;
     }).join("");

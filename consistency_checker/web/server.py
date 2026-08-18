@@ -171,12 +171,24 @@ class WebServer:
 
         @self.app.route('/api/three_layer_graph/<report_id>')
         def get_three_layer_graph(report_id):
-            """获取三层空间配置依赖图数据"""
-            graph_file = os.path.join(
-                self.config.visualization_output_dir,
-                f"{report_id}_three_layer_graph.json"
-            )
-            if os.path.exists(graph_file):
+            """获取三层空间配置依赖图数据。report_id=latest 时取最近一次生成的图。"""
+            vis_dir = self.config.visualization_output_dir
+            graph_file = None
+            if report_id == "latest":
+                aligned = os.path.join(vis_dir, "aligned_three_layer_graph.json")
+                if os.path.exists(aligned):
+                    graph_file = aligned
+                elif os.path.isdir(vis_dir):
+                    candidates = [
+                        os.path.join(vis_dir, name)
+                        for name in os.listdir(vis_dir)
+                        if name.endswith("_three_layer_graph.json")
+                    ]
+                    if candidates:
+                        graph_file = max(candidates, key=os.path.getmtime)
+            else:
+                graph_file = os.path.join(vis_dir, f"{report_id}_three_layer_graph.json")
+            if graph_file and os.path.exists(graph_file):
                 with open(graph_file, 'r', encoding='utf-8') as f:
                     return jsonify(json.load(f))
             return jsonify({"error": "三层图数据不存在"}), 404

@@ -59,6 +59,9 @@ class ThreeLayerGraphGenerator:
             config_edges=static_result.get("config_edges", []),
             consistency_result=consistency_result,
             namespace=namespace,
+            issues=static_result.get("plane_consistency_issues")
+            or static_result.get("conflicts")
+            or [],
         )
 
     def __init__(
@@ -69,6 +72,7 @@ class ThreeLayerGraphGenerator:
         config_edges: Optional[List[Any]] = None,
         consistency_result: Optional[ConsistencyResult] = None,
         namespace: str = "default",
+        issues: Optional[List[Dict[str, Any]]] = None,
     ):
         """
         初始化三层图生成器
@@ -87,6 +91,7 @@ class ThreeLayerGraphGenerator:
         self.config_edges = config_edges or []
         self.consistency_result = consistency_result
         self.namespace = namespace
+        self.issues = list(issues or [])
 
         self.graph = ThreeLayerGraph()
         self._id_counter = 0
@@ -142,9 +147,11 @@ class ThreeLayerGraphGenerator:
 
         # 控制面配置 → 一致性检查器
         match_type = ConsistencyMatchType.CONSISTENT
+        if self.issues:
+            match_type = ConsistencyMatchType.INCONSISTENT
         if self.consistency_result:
             status = self.consistency_result.overall_status
-            if status == ConsistencyStatus.INCONSISTENT:
+            if status == ConsistencyStatus.INCONSISTENT or self.issues:
                 match_type = ConsistencyMatchType.INCONSISTENT
             elif status == ConsistencyStatus.PARTIAL:
                 match_type = ConsistencyMatchType.PARTIAL
@@ -315,6 +322,8 @@ class ThreeLayerGraphGenerator:
                 src = "istio-gateway"
             elif edge_type == "traffic_split":
                 rel_type = FunctionalRelationType.TRAFFIC_SPLIT
+                if src == tgt:
+                    continue
 
             cp_src = f"cp_svc_{src}" if src != "istio-gateway" else "istio-gateway"
             cp_tgt = f"cp_svc_{tgt}"
@@ -367,10 +376,24 @@ class ThreeLayerGraphGenerator:
                                     )
                                 )
 
-            # 流量分配边：envoy -> pod
+            # 流量分配边：控制面 service → subset（期望），数据面 envoy → pod（默认按配置，观测值稍后覆盖）
             weights = rel.get("weights", {})
             for sub_name, w_info in weights.items():
                 w = w_info.get("weight", w_info) if isinstance(w_info, dict) else w_info
+                cp_src = f"cp_svc_{svc}"
+                cp_sub = f"cp_svc_{svc}_{sub_name}"
+                if cp_src in {n.id for n in self.graph.layer2_nodes} and cp_sub in {n.id for n in self.graph.layer2_nodes}:
+                    self.graph.layer2_edges.append(
+                        Layer2Edge(
+                            id=self._next_id("l2e"),
+                            source=cp_src,
+                            target=cp_sub,
+                            relation_type=FunctionalRelationType.TRAFFIC_SPLIT,
+                            label=f"Exp {w}%",
+                            weight=w,
+                            role="expected",
+                        )
+                    )
                 envoy_id = f"dp_envoy_{svc}"
                 pod_id = f"dp_pod_{svc}_{sub_name}"
                 if envoy_id in {n.id for n in self.graph.layer2_nodes} and pod_id in {n.id for n in self.graph.layer2_nodes}:
@@ -380,8 +403,9 @@ class ThreeLayerGraphGenerator:
                             source=envoy_id,
                             target=pod_id,
                             relation_type=FunctionalRelationType.TRAFFIC_SPLIT,
-                            label=f"{w}%",
+                            label=f"Exp {w}%",
                             weight=w,
+                            role="expected",
                         )
                     )
 
@@ -399,6 +423,55 @@ class ThreeLayerGraphGenerator:
                             )
                         )
                         break
+
+        self._overlay_observed_splits()
+
+    def _overlay_observed_splits(self):
+        """把动态数据面测到的流量权重画到 envoy → pod 上（Obs），与控制面期望（Exp）并列。"""
+        node_ids = {n.id for n in self.graph.layer2_nodes}
+        for issue in self.issues:
+            if not isinstance(issue, dict):
+                continue
+            itype = str(issue.get("type") or "")
+            if itype not in ("traffic_split_drift", "weight_error", "alignment_traffic_split"):
+                continue
+            svc = (issue.get("service") or "").strip()
+            expected = issue.get("expected") or {}
+            observed = issue.get("observed") or {}
+            if not svc or not isinstance(observed, dict) or not observed:
+                continue
+            envoy_id = f"dp_envoy_{svc}"
+            for edge in self.graph.layer2_edges:
+                if edge.source != envoy_id or not str(edge.target).startswith(f"dp_pod_{svc}_"):
+                    continue
+                sub = str(edge.target)[len(f"dp_pod_{svc}_"):]
+                edge.role = "expected"
+                if sub in expected:
+                    try:
+                        edge.weight = int(expected[sub])
+                    except (TypeError, ValueError):
+                        pass
+                if edge.weight is not None:
+                    edge.label = f"Exp {edge.weight}%"
+            for sub, raw in observed.items():
+                try:
+                    w = int(raw)
+                except (TypeError, ValueError):
+                    continue
+                pod_id = f"dp_pod_{svc}_{sub}"
+                if envoy_id not in node_ids or pod_id not in node_ids:
+                    continue
+                self.graph.layer2_edges.append(
+                    Layer2Edge(
+                        id=self._next_id("l2e"),
+                        source=envoy_id,
+                        target=pod_id,
+                        relation_type=FunctionalRelationType.TRAFFIC_SPLIT,
+                        label=f"Obs {w}%",
+                        weight=w,
+                        role="observed",
+                    )
+                )
 
     def _build_layer3(self):
         """构建第三层：配置资源及依赖"""
@@ -595,6 +668,7 @@ class ThreeLayerGraphGenerator:
                 "edges": len(self.graph.layer3_edges),
             },
             "cross_layer_edges": len(self.graph.cross_layer_edges),
+            "issue_count": len(self.issues),
             "legend": {
                 "layer1": "控制面/数据面/一致性检查器",
                 "layer2": "服务与子服务、功能关系",
@@ -640,6 +714,10 @@ class ThreeLayerGraphGenerator:
                 node["node_type"] = n.node_type
             if hasattr(n, "resource_type"):
                 node["resource_type"] = n.resource_type.value if hasattr(n.resource_type, "value") else str(n.resource_type)
+            if getattr(n, "namespace", None):
+                node["namespace"] = n.namespace
+            if getattr(n, "config_name", None):
+                node["config_name"] = n.config_name
             svc = _get_service_name(n)
             if svc:
                 node["service_name"] = svc
@@ -661,6 +739,8 @@ class ThreeLayerGraphGenerator:
                 edge["label"] = e.label
             if getattr(e, "weight", None) is not None:
                 edge["weight"] = e.weight
+            if getattr(e, "role", None):
+                edge["role"] = e.role
             edges.append(edge)
 
         for n in self.graph.layer1_nodes:
@@ -683,12 +763,109 @@ class ThreeLayerGraphGenerator:
             "nodes": nodes,
             "edges": edges,
             "metadata": self.graph.metadata,
+            "issues": self._attach_issues(nodes, edges),
             "layers": [
                 {"id": "layer1", "name": "数据面/控制面全局", "description": "边为一致/不一致匹配内容"},
                 {"id": "layer2", "name": "服务关系层", "description": "节点为服务与子服务，边为服务间功能关系"},
                 {"id": "layer3", "name": "配置关系层", "description": "节点为资源空间，边为配置资源依赖关系"},
             ],
         }
+
+    _ISSUE_TITLES = {
+        "missing_subset": "VS 引用不存在的 subset",
+        "gateway_unmatched": "Gateway 未匹配",
+        "gateway_selector_empty": "Gateway 选择器为空",
+        "gateway_selector_conflict": "Gateway 选择器冲突",
+        "route_priority_conflict": "路由优先级冲突",
+        "alignment_timeout": "超时配置不一致",
+        "alignment_discrete": "控制面/数据面语义不一致",
+        "traffic_split_drift": "流量权重偏离",
+        "weight_error": "流量权重错误",
+    }
+
+    def _issue_node_ids(self, issue: Dict[str, Any], node_ids: set) -> List[str]:
+        found: List[str] = []
+        svc = (issue.get("service") or "").strip()
+        vs_name = (issue.get("virtualservice") or "").strip()
+        gw = (issue.get("gateway") or "").strip()
+        itype = str(issue.get("type") or "")
+
+        def add(nid: str):
+            if nid and nid in node_ids and nid not in found:
+                found.append(nid)
+
+        if svc:
+            add(f"cp_svc_{svc}")
+            add(f"dp_envoy_{svc}")
+            add(f"cp_{svc}_DR")
+            add(f"cp_{svc}_VS_{svc}")
+            add(f"dp_{svc}_route")
+            for key in ("expected", "observed"):
+                mapping = issue.get(key) if isinstance(issue.get(key), dict) else {}
+                for sub in mapping:
+                    add(f"cp_svc_{svc}_{sub}")
+                    add(f"dp_pod_{svc}_{sub}")
+        if vs_name:
+            add(f"cp_{svc}_VS_{vs_name}" if svc else "")
+            for nid in node_ids:
+                if vs_name and vs_name in nid and ("_VS" in nid or nid.startswith("cp_")):
+                    add(nid)
+        if "gateway" in itype or gw:
+            add("istio-gateway")
+            add("cp_svc_istio-ingressgateway")
+        for n in self.graph.layer3_nodes:
+            if svc and getattr(n, "service_name", "") == svc:
+                add(n.id)
+            if vs_name and (getattr(n, "config_name", "") == vs_name or vs_name in n.id):
+                add(n.id)
+        return found
+
+    def _attach_issues(self, nodes: List[Dict[str, Any]], edges: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        node_ids = {n["id"] for n in nodes}
+        by_id = {n["id"]: n for n in nodes}
+        records: List[Dict[str, Any]] = []
+        affected: set = set()
+        for i, raw in enumerate(self.issues):
+            if not isinstance(raw, dict):
+                continue
+            itype = str(raw.get("type") or "unknown")
+            targets = self._issue_node_ids(raw, node_ids)
+            if not targets and raw.get("node_ids"):
+                targets = [nid for nid in raw["node_ids"] if nid in node_ids]
+            rec = {
+                "id": raw.get("id") or f"issue_{i + 1}",
+                "type": itype,
+                "severity": raw.get("severity") or "medium",
+                "title": raw.get("title") or self._ISSUE_TITLES.get(itype, itype.replace("_", " ")),
+                "description": raw.get("description") or "",
+                "service": raw.get("service"),
+                "node_ids": targets,
+                "expected": raw.get("expected"),
+                "observed": raw.get("observed"),
+            }
+            records.append(rec)
+            affected.update(targets)
+            snippet = {
+                "id": rec["id"],
+                "type": rec["type"],
+                "severity": rec["severity"],
+                "title": rec["title"],
+                "description": rec["description"],
+            }
+            for nid in targets:
+                node = by_id.get(nid)
+                if not node:
+                    continue
+                node["has_issue"] = True
+                node.setdefault("issues", []).append(snippet)
+
+        if records:
+            for edge in edges:
+                if edge.get("role") == "observed":
+                    edge["match_type"] = "inconsistent"
+                if edge.get("layer") == "layer1":
+                    edge["match_type"] = "inconsistent"
+        return records
 
     def save_to_file(self, filepath: str):
         """保存图数据到 JSON 文件"""

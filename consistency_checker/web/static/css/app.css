@@ -115,6 +115,26 @@ pre {
   border: 1px solid var(--line); border-radius: 12px; background: #0f0f1a;
 }
 
+body.graph-page .main {
+  padding: 16px 20px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+body.graph-page #page-graph.active {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+body.graph-page #page-graph h1 { margin-bottom: 4px; }
+body.graph-page #page-graph .lead { margin-bottom: 12px; }
+body.graph-page .graph-frame {
+  flex: 1;
+  height: auto;
+  min-height: 420px;
+}
+
 .panel-head {
   display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap;
 }

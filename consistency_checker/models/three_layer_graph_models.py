@@ -93,6 +93,7 @@ class Layer2Edge:
     relation_type: FunctionalRelationType
     label: Optional[str] = None
     weight: Optional[int] = None
+    role: Optional[str] = None  # expected | observed，动态核对流量时使用
 
 
 @dataclass

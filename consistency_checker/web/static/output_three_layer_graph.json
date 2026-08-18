@@ -1,0 +1,1210 @@
+{
+  "nodes": [
+    {
+      "id": "control_plane",
+      "label": "Control Plane",
+      "layer": "layer1",
+      "shape": "rectangle",
+      "plane_type": "control_plane"
+    },
+    {
+      "id": "data_plane",
+      "label": "Data Plane",
+      "layer": "layer1",
+      "shape": "rectangle",
+      "plane_type": "data_plane"
+    },
+    {
+      "id": "consistency_checker",
+      "label": "Consistency Checker",
+      "layer": "layer1",
+      "shape": "rectangle",
+      "plane_type": "consistency_checker"
+    },
+    {
+      "id": "istio-gateway",
+      "label": "istio-gateway",
+      "layer": "layer2",
+      "shape": "rect",
+      "plane_type": "control_plane",
+      "node_type": "gateway",
+      "has_issue": true,
+      "issues": [
+        {
+          "id": "issue_4",
+          "type": "gateway_unmatched",
+          "severity": "medium",
+          "title": "Gateway 选择器未匹配",
+          "description": "bookinfo VirtualService 绑定 Gateway bookinfo-gateway，与当前 istio-ingressgateway 的 selector 不一致，入口流量可能打不进去。"
+        }
+      ]
+    },
+    {
+      "id": "cp_svc_recommendationservice",
+      "label": "recommendationservice",
+      "layer": "layer2",
+      "shape": "hexagon",
+      "plane_type": "control_plane",
+      "node_type": "service",
+      "service_name": "recommendationservice"
+    },
+    {
+      "id": "dp_envoy_recommendationservice",
+      "label": "envoy-recommendationservice",
+      "layer": "layer2",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "node_type": "envoy",
+      "service_name": "recommendationservice"
+    },
+    {
+      "id": "cp_svc_bookinfo",
+      "label": "bookinfo",
+      "layer": "layer2",
+      "shape": "hexagon",
+      "plane_type": "control_plane",
+      "node_type": "service",
+      "service_name": "bookinfo",
+      "has_issue": true,
+      "issues": [
+        {
+          "id": "issue_4",
+          "type": "gateway_unmatched",
+          "severity": "medium",
+          "title": "Gateway 选择器未匹配",
+          "description": "bookinfo VirtualService 绑定 Gateway bookinfo-gateway，与当前 istio-ingressgateway 的 selector 不一致，入口流量可能打不进去。"
+        }
+      ]
+    },
+    {
+      "id": "dp_envoy_bookinfo",
+      "label": "envoy-bookinfo",
+      "layer": "layer2",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "node_type": "envoy",
+      "service_name": "bookinfo"
+    },
+    {
+      "id": "cp_svc_currencyservice",
+      "label": "currencyservice",
+      "layer": "layer2",
+      "shape": "hexagon",
+      "plane_type": "control_plane",
+      "node_type": "service",
+      "service_name": "currencyservice"
+    },
+    {
+      "id": "dp_envoy_currencyservice",
+      "label": "envoy-currencyservice",
+      "layer": "layer2",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "node_type": "envoy",
+      "service_name": "currencyservice"
+    },
+    {
+      "id": "cp_svc_prometheus",
+      "label": "prometheus",
+      "layer": "layer2",
+      "shape": "hexagon",
+      "plane_type": "control_plane",
+      "node_type": "service",
+      "service_name": "prometheus"
+    },
+    {
+      "id": "dp_envoy_prometheus",
+      "label": "envoy-prometheus",
+      "layer": "layer2",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "node_type": "envoy",
+      "service_name": "prometheus"
+    },
+    {
+      "id": "cp_svc_*",
+      "label": "*",
+      "layer": "layer2",
+      "shape": "hexagon",
+      "plane_type": "control_plane",
+      "node_type": "service",
+      "service_name": "*"
+    },
+    {
+      "id": "dp_envoy_*",
+      "label": "envoy-*",
+      "layer": "layer2",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "node_type": "envoy",
+      "service_name": "*"
+    },
+    {
+      "id": "cp_svc_productpage",
+      "label": "productpage",
+      "layer": "layer2",
+      "shape": "hexagon",
+      "plane_type": "control_plane",
+      "node_type": "service",
+      "service_name": "productpage",
+      "has_issue": true,
+      "issues": [
+        {
+          "id": "issue_2",
+          "type": "alignment_timeout",
+          "severity": "high",
+          "title": "超时配置不一致",
+          "description": "productpage 控制面 VS timeout=1s，数据面 Envoy route timeout=15s，超过容差，调用链超时无法对齐。"
+        }
+      ]
+    },
+    {
+      "id": "dp_envoy_productpage",
+      "label": "envoy-productpage",
+      "layer": "layer2",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "node_type": "envoy",
+      "service_name": "productpage",
+      "has_issue": true,
+      "issues": [
+        {
+          "id": "issue_2",
+          "type": "alignment_timeout",
+          "severity": "high",
+          "title": "超时配置不一致",
+          "description": "productpage 控制面 VS timeout=1s，数据面 Envoy route timeout=15s，超过容差，调用链超时无法对齐。"
+        }
+      ]
+    },
+    {
+      "id": "cp_svc_accounts",
+      "label": "accounts",
+      "layer": "layer2",
+      "shape": "hexagon",
+      "plane_type": "control_plane",
+      "node_type": "service",
+      "service_name": "accounts"
+    },
+    {
+      "id": "dp_envoy_accounts",
+      "label": "envoy-accounts",
+      "layer": "layer2",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "node_type": "envoy",
+      "service_name": "accounts"
+    },
+    {
+      "id": "cp_svc_kiali",
+      "label": "kiali",
+      "layer": "layer2",
+      "shape": "hexagon",
+      "plane_type": "control_plane",
+      "node_type": "service",
+      "service_name": "kiali"
+    },
+    {
+      "id": "dp_envoy_kiali",
+      "label": "envoy-kiali",
+      "layer": "layer2",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "node_type": "envoy",
+      "service_name": "kiali"
+    },
+    {
+      "id": "cp_svc_paymentservice",
+      "label": "paymentservice",
+      "layer": "layer2",
+      "shape": "hexagon",
+      "plane_type": "control_plane",
+      "node_type": "service",
+      "service_name": "paymentservice"
+    },
+    {
+      "id": "dp_envoy_paymentservice",
+      "label": "envoy-paymentservice",
+      "layer": "layer2",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "node_type": "envoy",
+      "service_name": "paymentservice"
+    },
+    {
+      "id": "cp_svc_ratings",
+      "label": "ratings",
+      "layer": "layer2",
+      "shape": "hexagon",
+      "plane_type": "control_plane",
+      "node_type": "service",
+      "service_name": "ratings"
+    },
+    {
+      "id": "dp_envoy_ratings",
+      "label": "envoy-ratings",
+      "layer": "layer2",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "node_type": "envoy",
+      "service_name": "ratings"
+    },
+    {
+      "id": "cp_svc_reviews",
+      "label": "reviews",
+      "layer": "layer2",
+      "shape": "hexagon",
+      "plane_type": "control_plane",
+      "node_type": "service",
+      "service_name": "reviews",
+      "has_issue": true,
+      "issues": [
+        {
+          "id": "issue_1",
+          "type": "missing_subset",
+          "severity": "high",
+          "title": "VS 引用不存在的 subset",
+          "description": "VirtualService reviews 将部分流量打到 subset v4，但 DestinationRule 只定义了 v1 / v2 / v3。请求会在运行时被拒绝。"
+        },
+        {
+          "id": "issue_3",
+          "type": "traffic_split_drift",
+          "severity": "medium",
+          "title": "流量权重与数据面偏离",
+          "description": "reviews 控制面声明 v1=20% / v2=80%，数据面实际观测约为 50% / 50%。"
+        }
+      ]
+    },
+    {
+      "id": "cp_svc_reviews_v1",
+      "label": "reviews v1",
+      "layer": "layer2",
+      "shape": "rect",
+      "plane_type": "control_plane",
+      "node_type": "subset",
+      "service_name": "reviews",
+      "has_issue": true,
+      "issues": [
+        {
+          "id": "issue_3",
+          "type": "traffic_split_drift",
+          "severity": "medium",
+          "title": "流量权重与数据面偏离",
+          "description": "reviews 控制面声明 v1=20% / v2=80%（Exp），动态数据面实测 envoy→pod 为 v1=50% / v2=50%（Obs）。"
+        }
+      ]
+    },
+    {
+      "id": "cp_svc_reviews_v2",
+      "label": "reviews v2",
+      "layer": "layer2",
+      "shape": "rect",
+      "plane_type": "control_plane",
+      "node_type": "subset",
+      "service_name": "reviews",
+      "has_issue": true,
+      "issues": [
+        {
+          "id": "issue_3",
+          "type": "traffic_split_drift",
+          "severity": "medium",
+          "title": "流量权重与数据面偏离",
+          "description": "reviews 控制面声明 v1=20% / v2=80%（Exp），动态数据面实测 envoy→pod 为 v1=50% / v2=50%（Obs）。"
+        }
+      ]
+    },
+    {
+      "id": "cp_svc_reviews_v3",
+      "label": "reviews v3",
+      "layer": "layer2",
+      "shape": "rect",
+      "plane_type": "control_plane",
+      "node_type": "subset",
+      "service_name": "reviews"
+    },
+    {
+      "id": "dp_envoy_reviews",
+      "label": "envoy-reviews",
+      "layer": "layer2",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "node_type": "envoy",
+      "service_name": "reviews",
+      "has_issue": true,
+      "issues": [
+        {
+          "id": "issue_3",
+          "type": "traffic_split_drift",
+          "severity": "medium",
+          "title": "流量权重与数据面偏离",
+          "description": "reviews 控制面声明 v1=20% / v2=80%，数据面实际观测约为 50% / 50%。"
+        }
+      ]
+    },
+    {
+      "id": "dp_pod_reviews_v1",
+      "label": "pod reviews/v1",
+      "layer": "layer2",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "node_type": "pod",
+      "service_name": "reviews",
+      "has_issue": true,
+      "issues": [
+        {
+          "id": "issue_3",
+          "type": "traffic_split_drift",
+          "severity": "medium",
+          "title": "流量权重与数据面偏离",
+          "description": "reviews 控制面声明 v1=20% / v2=80%（Exp），动态数据面实测 envoy→pod 为 v1=50% / v2=50%（Obs）。"
+        }
+      ]
+    },
+    {
+      "id": "dp_pod_reviews_v2",
+      "label": "pod reviews/v2",
+      "layer": "layer2",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "node_type": "pod",
+      "service_name": "reviews",
+      "has_issue": true,
+      "issues": [
+        {
+          "id": "issue_3",
+          "type": "traffic_split_drift",
+          "severity": "medium",
+          "title": "流量权重与数据面偏离",
+          "description": "reviews 控制面声明 v1=20% / v2=80%（Exp），动态数据面实测 envoy→pod 为 v1=50% / v2=50%（Obs）。"
+        }
+      ]
+    },
+    {
+      "id": "dp_pod_reviews_v3",
+      "label": "pod reviews/v3",
+      "layer": "layer2",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "node_type": "pod",
+      "service_name": "reviews"
+    },
+    {
+      "id": "cp_svc_emailservice",
+      "label": "emailservice",
+      "layer": "layer2",
+      "shape": "hexagon",
+      "plane_type": "control_plane",
+      "node_type": "service",
+      "service_name": "emailservice"
+    },
+    {
+      "id": "dp_envoy_emailservice",
+      "label": "envoy-emailservice",
+      "layer": "layer2",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "node_type": "envoy",
+      "service_name": "emailservice"
+    },
+    {
+      "id": "cp_svc_productcatalogservice",
+      "label": "productcatalogservice",
+      "layer": "layer2",
+      "shape": "hexagon",
+      "plane_type": "control_plane",
+      "node_type": "service",
+      "service_name": "productcatalogservice"
+    },
+    {
+      "id": "dp_envoy_productcatalogservice",
+      "label": "envoy-productcatalogservice",
+      "layer": "layer2",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "node_type": "envoy",
+      "service_name": "productcatalogservice"
+    },
+    {
+      "id": "cp_svc_istiod",
+      "label": "istiod",
+      "layer": "layer2",
+      "shape": "hexagon",
+      "plane_type": "control_plane",
+      "node_type": "service",
+      "service_name": "istiod"
+    },
+    {
+      "id": "dp_envoy_istiod",
+      "label": "envoy-istiod",
+      "layer": "layer2",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "node_type": "envoy",
+      "service_name": "istiod"
+    },
+    {
+      "id": "cp_svc_metadata",
+      "label": "metadata",
+      "layer": "layer2",
+      "shape": "hexagon",
+      "plane_type": "control_plane",
+      "node_type": "service",
+      "service_name": "metadata"
+    },
+    {
+      "id": "dp_envoy_metadata",
+      "label": "envoy-metadata",
+      "layer": "layer2",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "node_type": "envoy",
+      "service_name": "metadata"
+    },
+    {
+      "id": "cp_svc_frontend",
+      "label": "frontend",
+      "layer": "layer2",
+      "shape": "hexagon",
+      "plane_type": "control_plane",
+      "node_type": "service",
+      "service_name": "frontend"
+    },
+    {
+      "id": "dp_envoy_frontend",
+      "label": "envoy-frontend",
+      "layer": "layer2",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "node_type": "envoy",
+      "service_name": "frontend"
+    },
+    {
+      "id": "cp_svc_cartservice",
+      "label": "cartservice",
+      "layer": "layer2",
+      "shape": "hexagon",
+      "plane_type": "control_plane",
+      "node_type": "service",
+      "service_name": "cartservice"
+    },
+    {
+      "id": "dp_envoy_cartservice",
+      "label": "envoy-cartservice",
+      "layer": "layer2",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "node_type": "envoy",
+      "service_name": "cartservice"
+    },
+    {
+      "id": "cp_svc_istio-ingressgateway",
+      "label": "istio-ingressgateway",
+      "layer": "layer2",
+      "shape": "hexagon",
+      "plane_type": "control_plane",
+      "node_type": "service",
+      "service_name": "istio-ingressgateway"
+    },
+    {
+      "id": "dp_envoy_istio-ingressgateway",
+      "label": "envoy-istio-ingressgateway",
+      "layer": "layer2",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "node_type": "envoy",
+      "service_name": "istio-ingressgateway"
+    },
+    {
+      "id": "cp_svc_shippingservice",
+      "label": "shippingservice",
+      "layer": "layer2",
+      "shape": "hexagon",
+      "plane_type": "control_plane",
+      "node_type": "service",
+      "service_name": "shippingservice"
+    },
+    {
+      "id": "dp_envoy_shippingservice",
+      "label": "envoy-shippingservice",
+      "layer": "layer2",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "node_type": "envoy",
+      "service_name": "shippingservice"
+    },
+    {
+      "id": "cp_svc_adservice",
+      "label": "adservice",
+      "layer": "layer2",
+      "shape": "hexagon",
+      "plane_type": "control_plane",
+      "node_type": "service",
+      "service_name": "adservice"
+    },
+    {
+      "id": "dp_envoy_adservice",
+      "label": "envoy-adservice",
+      "layer": "layer2",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "node_type": "envoy",
+      "service_name": "adservice"
+    },
+    {
+      "id": "cp_svc_sleep",
+      "label": "sleep",
+      "layer": "layer2",
+      "shape": "hexagon",
+      "plane_type": "control_plane",
+      "node_type": "service",
+      "service_name": "sleep"
+    },
+    {
+      "id": "dp_envoy_sleep",
+      "label": "envoy-sleep",
+      "layer": "layer2",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "node_type": "envoy",
+      "service_name": "sleep"
+    },
+    {
+      "id": "cp_svc_details",
+      "label": "details",
+      "layer": "layer2",
+      "shape": "hexagon",
+      "plane_type": "control_plane",
+      "node_type": "service",
+      "service_name": "details"
+    },
+    {
+      "id": "dp_envoy_details",
+      "label": "envoy-details",
+      "layer": "layer2",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "node_type": "envoy",
+      "service_name": "details"
+    },
+    {
+      "id": "cp_svc_checkoutservice",
+      "label": "checkoutservice",
+      "layer": "layer2",
+      "shape": "hexagon",
+      "plane_type": "control_plane",
+      "node_type": "service",
+      "service_name": "checkoutservice"
+    },
+    {
+      "id": "dp_envoy_checkoutservice",
+      "label": "envoy-checkoutservice",
+      "layer": "layer2",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "node_type": "envoy",
+      "service_name": "checkoutservice"
+    },
+    {
+      "id": "cp_reviews_DR",
+      "label": "DR",
+      "layer": "layer3",
+      "shape": "rect",
+      "plane_type": "control_plane",
+      "resource_type": "DR",
+      "service_name": "reviews",
+      "has_issue": true,
+      "issues": [
+        {
+          "id": "issue_1",
+          "type": "missing_subset",
+          "severity": "high",
+          "title": "VS 引用不存在的 subset",
+          "description": "VirtualService reviews 将部分流量打到 subset v4，但 DestinationRule 只定义了 v1 / v2 / v3。请求会在运行时被拒绝。"
+        }
+      ]
+    },
+    {
+      "id": "cp_reviews_VS_reviews",
+      "label": "VS",
+      "layer": "layer3",
+      "shape": "rect",
+      "plane_type": "control_plane",
+      "resource_type": "VS",
+      "service_name": "reviews",
+      "has_issue": true,
+      "issues": [
+        {
+          "id": "issue_1",
+          "type": "missing_subset",
+          "severity": "high",
+          "title": "VS 引用不存在的 subset",
+          "description": "VirtualService reviews 将部分流量打到 subset v4，但 DestinationRule 只定义了 v1 / v2 / v3。请求会在运行时被拒绝。"
+        },
+        {
+          "id": "issue_3",
+          "type": "traffic_split_drift",
+          "severity": "medium",
+          "title": "流量权重与数据面偏离",
+          "description": "reviews 控制面声明 v1=20% / v2=80%，数据面实际观测约为 50% / 50%。"
+        }
+      ]
+    },
+    {
+      "id": "cp_bookinfo_VS_bookinfo",
+      "label": "VS",
+      "layer": "layer3",
+      "shape": "rect",
+      "plane_type": "control_plane",
+      "resource_type": "VS",
+      "service_name": "bookinfo",
+      "has_issue": true,
+      "issues": [
+        {
+          "id": "issue_4",
+          "type": "gateway_unmatched",
+          "severity": "medium",
+          "title": "Gateway 选择器未匹配",
+          "description": "bookinfo VirtualService 绑定 Gateway bookinfo-gateway，与当前 istio-ingressgateway 的 selector 不一致，入口流量可能打不进去。"
+        }
+      ]
+    },
+    {
+      "id": "cp_productpage_VS_productpage",
+      "label": "VS",
+      "layer": "layer3",
+      "shape": "rect",
+      "plane_type": "control_plane",
+      "resource_type": "VS",
+      "service_name": "productpage",
+      "has_issue": true,
+      "issues": [
+        {
+          "id": "issue_2",
+          "type": "alignment_timeout",
+          "severity": "high",
+          "title": "超时配置不一致",
+          "description": "productpage 控制面 VS timeout=1s，数据面 Envoy route timeout=15s，超过容差，调用链超时无法对齐。"
+        }
+      ]
+    },
+    {
+      "id": "dp_ratings_route",
+      "label": "envoy route",
+      "layer": "layer3",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "resource_type": "VS",
+      "service_name": "ratings"
+    },
+    {
+      "id": "dp_sleep_route",
+      "label": "envoy route",
+      "layer": "layer3",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "resource_type": "VS",
+      "service_name": "sleep"
+    },
+    {
+      "id": "dp_emailservice_route",
+      "label": "envoy route",
+      "layer": "layer3",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "resource_type": "VS",
+      "service_name": "emailservice"
+    },
+    {
+      "id": "dp_prometheus_route",
+      "label": "envoy route",
+      "layer": "layer3",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "resource_type": "VS",
+      "service_name": "prometheus"
+    },
+    {
+      "id": "dp_details_route",
+      "label": "envoy route",
+      "layer": "layer3",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "resource_type": "VS",
+      "service_name": "details"
+    },
+    {
+      "id": "dp_paymentservice_route",
+      "label": "envoy route",
+      "layer": "layer3",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "resource_type": "VS",
+      "service_name": "paymentservice"
+    },
+    {
+      "id": "dp_cartservice_route",
+      "label": "envoy route",
+      "layer": "layer3",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "resource_type": "VS",
+      "service_name": "cartservice"
+    },
+    {
+      "id": "dp_kiali_route",
+      "label": "envoy route",
+      "layer": "layer3",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "resource_type": "VS",
+      "service_name": "kiali"
+    },
+    {
+      "id": "dp_reviews_route",
+      "label": "envoy route",
+      "layer": "layer3",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "resource_type": "VS",
+      "service_name": "reviews"
+    },
+    {
+      "id": "dp_accounts_route",
+      "label": "envoy route",
+      "layer": "layer3",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "resource_type": "VS",
+      "service_name": "accounts"
+    },
+    {
+      "id": "dp_istio-ingressgateway_route",
+      "label": "envoy route",
+      "layer": "layer3",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "resource_type": "VS",
+      "service_name": "istio-ingressgateway"
+    },
+    {
+      "id": "dp_checkoutservice_route",
+      "label": "envoy route",
+      "layer": "layer3",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "resource_type": "VS",
+      "service_name": "checkoutservice"
+    },
+    {
+      "id": "dp_shippingservice_route",
+      "label": "envoy route",
+      "layer": "layer3",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "resource_type": "VS",
+      "service_name": "shippingservice"
+    },
+    {
+      "id": "dp_recommendationservice_route",
+      "label": "envoy route",
+      "layer": "layer3",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "resource_type": "VS",
+      "service_name": "recommendationservice"
+    },
+    {
+      "id": "dp_frontend_route",
+      "label": "envoy route",
+      "layer": "layer3",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "resource_type": "VS",
+      "service_name": "frontend"
+    },
+    {
+      "id": "dp_istiod_route",
+      "label": "envoy route",
+      "layer": "layer3",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "resource_type": "VS",
+      "service_name": "istiod"
+    },
+    {
+      "id": "dp_metadata_route",
+      "label": "envoy route",
+      "layer": "layer3",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "resource_type": "VS",
+      "service_name": "metadata"
+    },
+    {
+      "id": "dp_adservice_route",
+      "label": "envoy route",
+      "layer": "layer3",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "resource_type": "VS",
+      "service_name": "adservice"
+    },
+    {
+      "id": "dp_currencyservice_route",
+      "label": "envoy route",
+      "layer": "layer3",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "resource_type": "VS",
+      "service_name": "currencyservice"
+    },
+    {
+      "id": "dp_productpage_route",
+      "label": "envoy route",
+      "layer": "layer3",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "resource_type": "VS",
+      "service_name": "productpage",
+      "has_issue": true,
+      "issues": [
+        {
+          "id": "issue_2",
+          "type": "alignment_timeout",
+          "severity": "high",
+          "title": "超时配置不一致",
+          "description": "productpage 控制面 VS timeout=1s，数据面 Envoy route timeout=15s，超过容差，调用链超时无法对齐。"
+        }
+      ]
+    },
+    {
+      "id": "dp_*_route",
+      "label": "envoy route",
+      "layer": "layer3",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "resource_type": "VS",
+      "service_name": "*"
+    },
+    {
+      "id": "dp_productcatalogservice_route",
+      "label": "envoy route",
+      "layer": "layer3",
+      "shape": "rect",
+      "plane_type": "data_plane",
+      "resource_type": "VS",
+      "service_name": "productcatalogservice"
+    }
+  ],
+  "edges": [
+    {
+      "id": "l1e_0001",
+      "source": "control_plane",
+      "target": "consistency_checker",
+      "layer": "layer1",
+      "style": "dashed",
+      "match_type": "inconsistent",
+      "label": "控制面配置 (3 服务)"
+    },
+    {
+      "id": "l1e_0002",
+      "source": "data_plane",
+      "target": "consistency_checker",
+      "layer": "layer1",
+      "style": "dashed",
+      "match_type": "inconsistent",
+      "label": "数据面状态 (22 服务)"
+    },
+    {
+      "id": "l2e_0007",
+      "source": "cp_svc_bookinfo",
+      "target": "cp_svc_productpage",
+      "layer": "layer2",
+      "style": "solid",
+      "relation_type": "route",
+      "label": "100%",
+      "match_type": "inconsistent"
+    },
+    {
+      "id": "l2e_0008",
+      "source": "dp_envoy_bookinfo",
+      "target": "dp_envoy_productpage",
+      "layer": "layer2",
+      "style": "solid",
+      "relation_type": "route",
+      "label": "100%"
+    },
+    {
+      "id": "l2e_0009",
+      "source": "istio-gateway",
+      "target": "cp_svc_bookinfo",
+      "layer": "layer2",
+      "style": "solid",
+      "relation_type": "gateway",
+      "label": "bookinfo-gateway",
+      "match_type": "inconsistent"
+    },
+    {
+      "id": "l2e_0010",
+      "source": "cp_svc_productpage",
+      "target": "cp_svc_productpage",
+      "layer": "layer2",
+      "style": "solid",
+      "relation_type": "route",
+      "label": "100%",
+      "match_type": "inconsistent"
+    },
+    {
+      "id": "l2e_0011",
+      "source": "dp_envoy_productpage",
+      "target": "dp_envoy_productpage",
+      "layer": "layer2",
+      "style": "solid",
+      "relation_type": "route",
+      "label": "100%",
+      "match_type": "inconsistent"
+    },
+    {
+      "id": "l2e_0012",
+      "source": "cp_svc_productpage",
+      "target": "cp_svc_productpage",
+      "layer": "layer2",
+      "style": "solid",
+      "relation_type": "route",
+      "label": "100%",
+      "match_type": "inconsistent"
+    },
+    {
+      "id": "l2e_0013",
+      "source": "dp_envoy_productpage",
+      "target": "dp_envoy_productpage",
+      "layer": "layer2",
+      "style": "solid",
+      "relation_type": "route",
+      "label": "100%",
+      "match_type": "inconsistent"
+    },
+    {
+      "id": "l2e_0016",
+      "source": "cp_svc_bookinfo",
+      "target": "cp_svc_productpage",
+      "layer": "layer2",
+      "style": "solid",
+      "relation_type": "route",
+      "label": "Route",
+      "match_type": "inconsistent"
+    },
+    {
+      "id": "l3e_0017",
+      "source": "cp_reviews_DR",
+      "target": "cp_reviews_VS_reviews",
+      "layer": "layer3",
+      "style": "solid",
+      "label": "Subnet",
+      "match_type": "inconsistent"
+    },
+    {
+      "id": "cle_0018",
+      "source": "cp_reviews_VS_reviews",
+      "target": "cp_svc_reviews_v1",
+      "layer": "cross_layer",
+      "style": "solid",
+      "relation_type": "traffic_split",
+      "label": "20%"
+    },
+    {
+      "id": "cle_0019",
+      "source": "cp_reviews_VS_reviews",
+      "target": "cp_svc_reviews_v2",
+      "layer": "cross_layer",
+      "style": "solid",
+      "relation_type": "traffic_split",
+      "label": "80%"
+    },
+    {
+      "id": "cle_0020",
+      "source": "cp_bookinfo_VS_bookinfo",
+      "target": "cp_svc_productpage",
+      "layer": "cross_layer",
+      "style": "solid",
+      "relation_type": "route",
+      "label": "Route",
+      "match_type": "inconsistent"
+    },
+    {
+      "id": "l2e_cp_reviews_v1",
+      "source": "cp_svc_reviews",
+      "target": "cp_svc_reviews_v1",
+      "layer": "layer2",
+      "style": "dashed",
+      "relation_type": "traffic_split",
+      "role": "expected",
+      "label": "Exp 20%",
+      "weight": 20
+    },
+    {
+      "id": "l2e_cp_reviews_v2",
+      "source": "cp_svc_reviews",
+      "target": "cp_svc_reviews_v2",
+      "layer": "layer2",
+      "style": "dashed",
+      "relation_type": "traffic_split",
+      "role": "expected",
+      "label": "Exp 80%",
+      "weight": 80
+    },
+    {
+      "id": "l2e_0014",
+      "source": "dp_envoy_reviews",
+      "target": "dp_pod_reviews_v1",
+      "layer": "layer2",
+      "style": "dashed",
+      "relation_type": "traffic_split",
+      "role": "expected",
+      "label": "Exp 20%",
+      "weight": 20
+    },
+    {
+      "id": "l2e_0015",
+      "source": "dp_envoy_reviews",
+      "target": "dp_pod_reviews_v2",
+      "layer": "layer2",
+      "style": "dashed",
+      "relation_type": "traffic_split",
+      "role": "expected",
+      "label": "Exp 80%",
+      "weight": 80
+    },
+    {
+      "id": "l2e_obs_reviews_v1",
+      "source": "dp_envoy_reviews",
+      "target": "dp_pod_reviews_v1",
+      "layer": "layer2",
+      "style": "solid",
+      "relation_type": "traffic_split",
+      "role": "observed",
+      "match_type": "inconsistent",
+      "label": "Obs 50%",
+      "weight": 50
+    },
+    {
+      "id": "l2e_obs_reviews_v2",
+      "source": "dp_envoy_reviews",
+      "target": "dp_pod_reviews_v2",
+      "layer": "layer2",
+      "style": "solid",
+      "relation_type": "traffic_split",
+      "role": "observed",
+      "match_type": "inconsistent",
+      "label": "Obs 50%",
+      "weight": 50
+    }
+  ],
+  "metadata": {
+    "model": "three_layer",
+    "layer1": {
+      "nodes": 3,
+      "edges": 2
+    },
+    "layer2": {
+      "nodes": 53,
+      "edges": 14
+    },
+    "layer3": {
+      "nodes": 26,
+      "edges": 1
+    },
+    "cross_layer_edges": 3,
+    "legend": {
+      "layer1": "控制面/数据面/一致性检查器",
+      "layer2": "服务与子服务、功能关系",
+      "layer3": "配置资源(DR/VS/EF/RLS/SE)及依赖",
+      "cross_layer": "配置→服务（服务间依赖）"
+    },
+    "issue_count": 4
+  },
+  "layers": [
+    {
+      "id": "layer1",
+      "name": "数据面/控制面全局",
+      "description": "边为一致/不一致匹配内容"
+    },
+    {
+      "id": "layer2",
+      "name": "服务关系层",
+      "description": "节点为服务与子服务，边为服务间功能关系"
+    },
+    {
+      "id": "layer3",
+      "name": "配置关系层",
+      "description": "节点为资源空间，边为配置资源依赖关系"
+    }
+  ],
+  "issues": [
+    {
+      "id": "issue_1",
+      "type": "missing_subset",
+      "severity": "high",
+      "title": "VS 引用不存在的 subset",
+      "description": "VirtualService reviews 将部分流量打到 subset v4，但 DestinationRule 只定义了 v1 / v2 / v3。请求会在运行时被拒绝。",
+      "service": "reviews",
+      "node_ids": [
+        "cp_reviews_VS_reviews",
+        "cp_reviews_DR",
+        "cp_svc_reviews"
+      ]
+    },
+    {
+      "id": "issue_2",
+      "type": "alignment_timeout",
+      "severity": "high",
+      "title": "超时配置不一致",
+      "description": "productpage 控制面 VS timeout=1s，数据面 Envoy route timeout=15s，超过容差，调用链超时无法对齐。",
+      "service": "productpage",
+      "node_ids": [
+        "cp_productpage_VS_productpage",
+        "dp_productpage_route",
+        "cp_svc_productpage",
+        "dp_envoy_productpage"
+      ]
+    },
+    {
+      "id": "issue_3",
+      "type": "traffic_split_drift",
+      "severity": "medium",
+      "title": "流量权重与数据面偏离",
+      "description": "reviews 控制面声明 v1=20% / v2=80%（Exp），动态数据面实测 envoy→pod 为 v1=50% / v2=50%（Obs）。",
+      "service": "reviews",
+      "node_ids": [
+        "cp_svc_reviews",
+        "cp_svc_reviews_v1",
+        "cp_svc_reviews_v2",
+        "dp_envoy_reviews",
+        "dp_pod_reviews_v1",
+        "dp_pod_reviews_v2",
+        "cp_reviews_VS_reviews"
+      ],
+      "expected": {
+        "v1": 20,
+        "v2": 80
+      },
+      "observed": {
+        "v1": 50,
+        "v2": 50
+      }
+    },
+    {
+      "id": "issue_4",
+      "type": "gateway_unmatched",
+      "severity": "medium",
+      "title": "Gateway 选择器未匹配",
+      "description": "bookinfo VirtualService 绑定 Gateway bookinfo-gateway，与当前 istio-ingressgateway 的 selector 不一致，入口流量可能打不进去。",
+      "service": "bookinfo",
+      "node_ids": [
+        "istio-gateway",
+        "cp_bookinfo_VS_bookinfo",
+        "cp_svc_bookinfo"
+      ]
+    }
+  ]
+}
