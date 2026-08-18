@@ -1,19 +1,17 @@
 # Istio 配置监控与导出（`istio_monitor`）
 
-MeshScope 静态分析与动态验证的**配置数据源**：从 Kubernetes / Istio 控制面与数据面拉取配置，落盘到本地目录，供 `main_parser`、一致性检查与 `istio_Dynamic_Test` 使用。
+MeshScope 的配置数据源：从集群拉取控制面与数据面配置，落盘后给 parser 做对齐。动态验证和 checker 不再直接当 YAML 解析入口。
 
-## 在 MeshScope 中的位置
+## 在系统中的位置
 
 ```text
 集群 (K8s + Istio)
     ↓  istio_monitor 导出
-istio_control_config/     # VirtualService、DestinationRule、Service、Gateway …
-istio_sidecar_config/     # Sidecar Envoy routes/clusters/listeners
-istio_ingress_config/     # Ingress Gateway Envoy 配置（入口 VS 校验）
-    ↓  istio_config_parser.main_parser
-IR / 配置图谱
-    ↓  istio_Dynamic_Test（可选 --control-plane-config / --from-control-plane）
-动态验证流水线
+istio_control_config / istio_sidecar_config / istio_ingress_config
+    ↓  python -m istio_config_parser.main_parser
+aligned_semantic.json
+    ↓  istio_Dynamic_Test（期望来自对齐模型）
+    ↓  consistency_checker（消费产物）
 ```
 
 | 下游模块 | 使用的目录 / 能力 |

@@ -1,20 +1,26 @@
 # Istio 动态验证（`istio_Dynamic_Test`）
 
-基于 Istio 控制面配置，自动生成测试用例、在集群入口发流量、采集 Envoy/Prometheus 观测数据，并校验实际行为是否与策略期望一致。
+基于 **parser 写出的对齐语义模型** 生成测试用例、在集群入口发流量、采集 Envoy/Prometheus 观测，并校验行为是否与期望一致。
+
+期望只来自 `aligned_semantic.json` 里 `matched` / `partial_matched` 的元组。没有该文件会直接报错，**不会**回退解析 YAML 或把 `configs/istio_config.json` 当期望源。请先：
+
+```bash
+python -m configpilot static --namespace default
+```
 
 ## 快速开始
 
 ```bash
-# 推荐 CLI 入口
-python -m istio_Dynamic_Test.cmd -i configs/istio_config.json \
+# 统一入口（推荐）
+python -m configpilot dynamic -- --from-control-plane \
   --ingress-url http://<ingress-host>:<port> \
   --ssh-host <node-ip> --ssh-user root --ssh-password <pwd>
 
-# 从已有测试矩阵运行
-python -m istio_Dynamic_Test.cmd --matrix configs/output_matrix.json \
-  --ingress-url http://<ingress-host>:<port> --ssh-host <node-ip>
+# 模块入口
+python -m istio_Dynamic_Test.cmd --from-control-plane \
+  --ingress-url http://<ingress-host>:<port> \
+  --ssh-host <node-ip> --ssh-user root --ssh-password <pwd>
 
-# 查看全部参数
 python -m istio_Dynamic_Test.cmd --help
 ```
 
@@ -106,8 +112,9 @@ istio_Dynamic_Test/
 | 模块 | 说明 |
 |------|------|
 | `base.py` | 生成器抽象基类 |
-| `config_generator.py` | 从 Istio JSON + 入口 URL 生成 `TestSuite`（可同步控制面目录） |
-| `test_case_generator.py` | 正交组合用例生成（评估/效率实验也会 subprocess 调用） |
+| `config_generator.py` | 组装套件；期望来自对齐模型 |
+| `semantic_generator.py` | 从 `aligned_semantic.json` 生成用例 |
+| `test_case_generator.py` | 正交组合（评估脚本也会调用） |
 
 ### `internal/traffic/`
 
@@ -174,7 +181,7 @@ gRPC 通过 **grpcurl** 发流；Envoy 访问日志含 `grpc_status` 字段用�
 | `-i`, `--input` | Istio 配置 JSON（与 `configs/` 下样例格式一致） |
 | `--matrix` | 旧版 `output_matrix.json` 测试矩阵 |
 | `--ingress-url` | 集群入口 URL |
-| `--from-control-plane` | 直接从控制面配置目录生成用例（无需 `-i`） |
+| `--from-control-plane` | 使用控制面快照目录做补充信息；**期望仍来自对齐模型** |
 | `--control-plane-config` | 控制面快照目录（默认指向 `istio_config_parser/istio_monitor/istio_control_config`） |
 | `--service-deps` | 服务依赖 JSON（可选） |
 | `--namespace` | K8s 命名空间（默认 `default`） |
@@ -207,15 +214,14 @@ gRPC 通过 **grpcurl** 发流；Envoy 访问日志含 `grpc_status` 字段用�
 ## 与其他模块的关系
 
 ```text
-istio_config_parser/     # 静态解析、控制面监控 → 产出 JSON / 控制面目录
+istio_config_parser/     # 写出 aligned_semantic.json
         ↓
-istio_Dynamic_Test/      # 动态验证（本模块）
+istio_Dynamic_Test/      # 期望只认对齐元组
         ↓
-consistency_checker/       # 静态+动态一致性、三层图可视化（引用本模块 API）
-evaluation/              # e2e、有效性、准确性等评估脚本
+consistency_checker/     # 消费静/动产物，三层图与 Web
 ```
 
-典型工作流：静态解析 → `configs/istio_config.json` → 本模块动态验证 → 一致性检查 / 评估报告。
+典型工作流：`configpilot static` → `configpilot dynamic` → `configpilot check` / `web`。
 
 ---
 

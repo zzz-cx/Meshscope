@@ -1,40 +1,40 @@
-# Istio配置解析与分析模块
+# Istio 配置解析与分析
 
-本项目是一个强大的Istio配置解析与分析系统，提供统一的数据模型、并行处理能力和完整的可视化功能。
+parser 把控制面 YAML 和数据面 Envoy dump 映射成**同一套语义模型**，做平面对齐和跨资源冲突，并写出 `aligned_semantic.json`。动态验证和 checker 都消费这份产物，不要在那些模块里再解析 YAML。
 
-## 🚀 核心特性
+推荐：
+
+```bash
+python -m configpilot static --namespace default --export
+python -m istio_config_parser.main_parser --namespace default --export
+```
+
+默认写出 `results/consistency/aligned_semantic.json`（pairs、conflicts、expected_tuples、graph_data）。
+
+`graph_data` 供 Web「静态分析」页使用：服务节点带命名空间、声明式资源（VS/DR/EF 等）和对应数据面规则摘要。
+
+## 核心特性
 
 ### 统一解析架构
-- **语义聚合**：自动聚合相关配置（如VirtualService + DestinationRule）
-- **双平面统一**：使用统一的FunctionModel表示控制平面和数据平面
-- **一致性验证**：自动检测配置不一致问题
-- **并行处理**：支持多线程并行解析，显著提升处理效率
+- **语义聚合**：VirtualService + DestinationRule 等到同一功能
+- **双平面统一**：`FunctionModel` + 语义元组 `⟨predicate, action, scope, constraint⟩`
+- **对齐与冲突**：平面差异 + 缺 subset / 路由优先级 / Gateway 选择器
+- **并行处理**：多线程解析
 
 ### 功能解析支持
-- **路由解析**：VirtualService路由规则解析
-- **熔断配置**：DestinationRule熔断策略解析
-- **限流配置**：EnvoyFilter限流策略解析
-- **流量迁移**：金丝雀发布和灰度配置解析
+- 路由、熔断、限流、流量迁移、重试、超时等
+
 
 ## 📁 项目结构
 
 ### 核心模块
 
 #### `main_parser.py` - 主解析器
-统一解析器的命令行入口，支持多种运行模式：
 
 ```bash
-# 基本用法 - 并行解析并生成IR
-python main_parser.py
-
-# 导出模型文件（推荐）
-python main_parser.py --export
-
-# 指定命名空间和线程数
-python main_parser.py --namespace online-boutique --max-workers 4
-
-# 保存IR到文件
-python main_parser.py --output my_ir.json --details
+python -m istio_config_parser.main_parser
+python -m istio_config_parser.main_parser --export
+python -m istio_config_parser.main_parser --namespace online-boutique --max-workers 4 --details
 ```
 
 **主要参数**：
@@ -49,10 +49,11 @@ python main_parser.py --output my_ir.json --details
 #### `models/` - 数据模型层
 统一的数据模型定义，支持控制平面和数据平面的统一表示：
 
-- **`function_models.py`**：功能模型定义（Routing、CircuitBreaker、RateLimit、TrafficShifting等）
-- **`alignment_models.py`**：模型对齐和匹配逻辑
-- **`ir_models.py`**：中间表示（IR）模型，支持一致性验证
-- **`data_structures.py`**：通用数据结构（向后兼容）
+- **`function_models.py`**：功能模型（Routing、CircuitBreaker、RateLimit、TrafficShifting 等）
+- **`semantic_tuple.py`**：语义元组
+- **`alignment_models.py`**：平面对齐
+- **`ir_models.py`**：IR
+- **`data_structures.py`**：向后兼容结构
 
 #### `parsers/` - 解析器层
 模块化的解析器实现，支持并行处理：
@@ -103,53 +104,25 @@ python main_parser.py --output my_ir.json --details
 - **`route_parser.py`**：路由解析
 - **`service_parser.py`**：服务解析
 
-## 🛠️ 使用方法
-
-### 基本使用
-
-1. **解析并生成IR**：
-   ```bash
-   python main_parser.py
-   ```
-
-2. **导出模型文件**：
-   ```bash
-   python main_parser.py --export
-   ```
-
-3. **指定配置和参数**：
-   ```bash
-   python main_parser.py --namespace online-boutique --max-workers 4 --export
-   ```
-
-### 数据平面配置导出（补齐 clusters/listeners）
-
-一致性检验需要 `routes.json`、`clusters.json`、`listeners.json`。若缺少 clusters/listeners，可运行：
+## 使用方法
 
 ```bash
-# 使用 istioctl（推荐，自动选择代理）
-python istio_monitor/export_data_plane_config.py --method istioctl
-
-# 使用 kubectl exec 指定 Pod
-python istio_monitor/export_data_plane_config.py --pod <pod-name> -n default --method kubectl-exec
-
-# 指定输出目录
-python istio_monitor/export_data_plane_config.py -o ./istio_sidecar_config --method istioctl
+python -m istio_config_parser.main_parser
+python -m istio_config_parser.main_parser --export
+python -m istio_config_parser.main_parser --namespace online-boutique --max-workers 4 --export --details
 ```
 
-或通过 `istio_sidecar_monitor.py` 的 `--update-now` 获取（默认已包含 routes/clusters/listeners）。
+对齐产物默认在 `results/consistency/aligned_semantic.json`。`--export` 仍可额外写出 `models_output/` 下的平面模型文件。
 
-### 控制平面配置导出
+### 数据平面 / 控制面导出
+
+一致性检验需要 `routes.json`、`clusters.json`、`listeners.json`：
 
 ```bash
-# 使用默认 kubeconfig
-python istio_monitor/export_control_plane_config.py
-
-# 指定远程集群
-python istio_monitor/export_control_plane_config.py --k8s-host 192.168.1.100 --k8s-token <token>
-
-# 指定输出目录
-python istio_monitor/export_control_plane_config.py -o ./istio_control_config
+python -m istio_config_parser.istio_monitor.export_data_plane_config --method istioctl
+python -m istio_config_parser.istio_monitor.export_data_plane_config --pod <pod-name> -n default --method kubectl-exec
+python -m istio_config_parser.istio_monitor.export_control_plane_config
+python -m istio_config_parser.istio_monitor.istio_sidecar_monitor --update-now
 ```
 
 ### 性能优化
@@ -157,13 +130,9 @@ python istio_monitor/export_control_plane_config.py -o ./istio_control_config
 1. **并行处理**（默认启用）：
    ```bash
    # 自动计算线程数
-   python main_parser.py --export
-   
-   # 手动指定线程数
-   python main_parser.py --export --max-workers 8
-   
-   # 禁用并行处理
-   python main_parser.py --no-parallel
+   python -m istio_config_parser.main_parser --export
+   python -m istio_config_parser.main_parser --export --max-workers 8
+   python -m istio_config_parser.main_parser --no-parallel
    ```
 
 2. **性能测试**：
@@ -174,11 +143,7 @@ python istio_monitor/export_control_plane_config.py -o ./istio_control_config
 
 ### 输出说明
 
-模型文件输出到 `models_output/` 目录，包含：
-- 控制平面模型：包含所有Istio CRD的功能配置
-- 数据平面模型：包含Envoy代理的实际配置
-- 对比分析：控制平面与数据平面的差异分析
-- 可视化数据：支持图形化展示的标准化数据
+主产物是 `results/consistency/aligned_semantic.json`（对齐 pairs、冲突、期望元组、静态 `graph_data`）。`--export` 时 `models_output/` 另有平面模型与对比文件。
 
 ## 📊 输出示例
 
