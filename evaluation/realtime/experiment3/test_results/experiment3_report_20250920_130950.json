@@ -1,0 +1,292 @@
+{
+  "experiment_id": "exp3_1758344989",
+  "start_time": "2025-09-20T13:09:49.876316",
+  "end_time": null,
+  "config": {
+    "change_rates": [
+      "low"
+    ],
+    "config_scales": [
+      "small"
+    ],
+    "methods": [
+      "static_only"
+    ],
+    "output_dir": "test_results",
+    "repetitions": 1,
+    "test_duration": 5
+  },
+  "method_results": [
+    {
+      "method": "static_only",
+      "start_time": "2025-09-20T13:09:49.879316",
+      "end_time": "2025-09-20T13:09:49.883316",
+      "parsing_time": 0.00400090217590332,
+      "analysis_time": 0.0,
+      "total_time": 0.00400090217590332,
+      "issues_found": [
+        {
+          "type": "service_reference_error",
+          "severity": "error",
+          "message": "VirtualService productpage routes to non-existent service: nonexistent-service",
+          "resource": "productpage",
+          "field": "spec.http.route.destination.host"
+        }
+      ],
+      "config_coverage": {
+        "service_count": 4,
+        "virtual_service_coverage": 75.0,
+        "destination_rule_coverage": 25.0,
+        "total_configuration_elements": 8
+      },
+      "accuracy_metrics": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0,
+        "expected_issues": 1,
+        "actual_issues": 1,
+        "false_positives": 0,
+        "false_negatives": 0
+      },
+      "config_scale": "small",
+      "change_rate": "low",
+      "repetition": 1,
+      "timestamp": "2025-09-20T13:09:49.883316"
+    }
+  ],
+  "comparison_analysis": {
+    "overall": {
+      "summary": {
+        "total_experiments": 1,
+        "successful_experiments": 1,
+        "failed_experiments": 0
+      },
+      "accuracy_analysis": {
+        "count": 1,
+        "precision": {
+          "mean": 1.0,
+          "std": 0.0,
+          "min": 1.0,
+          "max": 1.0,
+          "median": 1.0
+        },
+        "recall": {
+          "mean": 1.0,
+          "std": 0.0,
+          "min": 1.0,
+          "max": 1.0,
+          "median": 1.0
+        },
+        "f1_score": {
+          "mean": 1.0,
+          "std": 0.0,
+          "min": 1.0,
+          "max": 1.0,
+          "median": 1.0
+        },
+        "latency": {
+          "mean": 0.0,
+          "std": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "median": 0.0
+        }
+      },
+      "performance_analysis": {
+        "static_only": {
+          "average_latency_ms": 4.00090217590332,
+          "median_latency_ms": 4.00090217590332,
+          "p95_latency_ms": 4.00090217590332,
+          "p99_latency_ms": 4.00090217590332,
+          "min_latency_ms": 4.00090217590332,
+          "max_latency_ms": 4.00090217590332,
+          "throughput_per_second": 249.94362672069602,
+          "success_rate": 1.0
+        }
+      },
+      "statistical_tests": {},
+      "recommendations": []
+    },
+    "by_method": {
+      "static_only": {
+        "summary": {
+          "total_experiments": 1,
+          "successful_experiments": 1,
+          "failed_experiments": 0
+        },
+        "accuracy_analysis": {
+          "count": 1,
+          "precision": {
+            "mean": 1.0,
+            "std": 0.0,
+            "min": 1.0,
+            "max": 1.0,
+            "median": 1.0
+          },
+          "recall": {
+            "mean": 1.0,
+            "std": 0.0,
+            "min": 1.0,
+            "max": 1.0,
+            "median": 1.0
+          },
+          "f1_score": {
+            "mean": 1.0,
+            "std": 0.0,
+            "min": 1.0,
+            "max": 1.0,
+            "median": 1.0
+          },
+          "latency": {
+            "mean": 0.0,
+            "std": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "median": 0.0
+          }
+        },
+        "performance_analysis": {
+          "static_only": {
+            "average_latency_ms": 4.00090217590332,
+            "median_latency_ms": 4.00090217590332,
+            "p95_latency_ms": 4.00090217590332,
+            "p99_latency_ms": 4.00090217590332,
+            "min_latency_ms": 4.00090217590332,
+            "max_latency_ms": 4.00090217590332,
+            "throughput_per_second": 249.94362672069602,
+            "success_rate": 1.0
+          }
+        },
+        "statistical_tests": {},
+        "recommendations": []
+      }
+    },
+    "by_scale": {
+      "small": {
+        "summary": {
+          "total_experiments": 1,
+          "successful_experiments": 1,
+          "failed_experiments": 0
+        },
+        "accuracy_analysis": {
+          "count": 1,
+          "precision": {
+            "mean": 1.0,
+            "std": 0.0,
+            "min": 1.0,
+            "max": 1.0,
+            "median": 1.0
+          },
+          "recall": {
+            "mean": 1.0,
+            "std": 0.0,
+            "min": 1.0,
+            "max": 1.0,
+            "median": 1.0
+          },
+          "f1_score": {
+            "mean": 1.0,
+            "std": 0.0,
+            "min": 1.0,
+            "max": 1.0,
+            "median": 1.0
+          },
+          "latency": {
+            "mean": 0.0,
+            "std": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "median": 0.0
+          }
+        },
+        "performance_analysis": {
+          "static_only": {
+            "average_latency_ms": 4.00090217590332,
+            "median_latency_ms": 4.00090217590332,
+            "p95_latency_ms": 4.00090217590332,
+            "p99_latency_ms": 4.00090217590332,
+            "min_latency_ms": 4.00090217590332,
+            "max_latency_ms": 4.00090217590332,
+            "throughput_per_second": 249.94362672069602,
+            "success_rate": 1.0
+          }
+        },
+        "statistical_tests": {},
+        "recommendations": []
+      }
+    },
+    "by_rate": {
+      "low": {
+        "summary": {
+          "total_experiments": 1,
+          "successful_experiments": 1,
+          "failed_experiments": 0
+        },
+        "accuracy_analysis": {
+          "count": 1,
+          "precision": {
+            "mean": 1.0,
+            "std": 0.0,
+            "min": 1.0,
+            "max": 1.0,
+            "median": 1.0
+          },
+          "recall": {
+            "mean": 1.0,
+            "std": 0.0,
+            "min": 1.0,
+            "max": 1.0,
+            "median": 1.0
+          },
+          "f1_score": {
+            "mean": 1.0,
+            "std": 0.0,
+            "min": 1.0,
+            "max": 1.0,
+            "median": 1.0
+          },
+          "latency": {
+            "mean": 0.0,
+            "std": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "median": 0.0
+          }
+        },
+        "performance_analysis": {
+          "static_only": {
+            "average_latency_ms": 4.00090217590332,
+            "median_latency_ms": 4.00090217590332,
+            "p95_latency_ms": 4.00090217590332,
+            "p99_latency_ms": 4.00090217590332,
+            "min_latency_ms": 4.00090217590332,
+            "max_latency_ms": 4.00090217590332,
+            "throughput_per_second": 249.94362672069602,
+            "success_rate": 1.0
+          }
+        },
+        "statistical_tests": {},
+        "recommendations": []
+      }
+    }
+  },
+  "summary": {
+    "total_experiments": 1,
+    "success_rate": 1.0,
+    "best_method": "static_only",
+    "performance_insights": [
+      {
+        "method": "static_only",
+        "average_latency_ms": 4.00090217590332,
+        "performance_grade": "优秀"
+      }
+    ],
+    "accuracy_insights": [
+      {
+        "overall_f1_score": 1.0,
+        "accuracy_grade": "优秀"
+      }
+    ],
+    "recommendations": []
+  }
+}

@@ -1,0 +1,43 @@
+% Auto-generated — REAL cluster timings (mode=cluster).
+% Highlight: N=30 / C5  runs=2
+
+\subsection{Orthogonal Testing Efficiency}
+
+\begin{figure*}[t]
+\centering
+% \includegraphics[width=0.85\linewidth]{figures/evaluation/orthogonal-reduction.png}
+\caption{Orthogonal validation under different scales (real cluster).
+(a) Test-case growth vs configuration items.
+(b) Complete validation wall-clock time vs configuration items.}
+\label{fig:orthogonal-reduction}
+\end{figure*}
+
+\textbf{Goal.}
+Evaluate orthogonal reduction of dynamic validation cost on a live Istio cluster, and whether fault detection coverage is preserved after merging.
+
+\textbf{Setup.}
+Service scales $N\in\{30\}$, configuration levels $\{C3,C4,C5\}$.
+Each validation case performs live \texttt{kubectl apply}, ingress traffic, assertion, and delete.
+Orthogonal bundles share one apply/clear and issue per-effect traffic.
+Each cell is repeated 2 times; times are wall-clock mean$\pm$std.
+
+\textbf{Results.}
+Under a 30-service deployment at C5 (885 configuration items), exhaustive validation uses 600 cases vs 154 orthogonal cases (reduction 74.33\%).
+Complete validation wall-clock time drops from $964.7\pm0.5$s to $269.5\pm0.2$s (time reduction 72.07\%).
+
+\textbf{Coverage ablation.}
+Table~\ref{tab:ortho-ablation} reports live fault/effect detection before vs after merging.
+
+\begin{table*}[t]
+\centering
+\caption{Real-cluster detection and validation time (C5).}
+\label{tab:ortho-ablation}
+\scriptsize
+\begin{tabular}{cccccccccc}
+\toprule
+$N$ & $|F|$ & DR$_b$ & DR$_a$ & $\Delta$ & Cases$_e$ & Cases$_o$ & Red. & $T_e$ (s) & $T_o$ (s) \\
+\midrule
+30 & 600 & 100.00\% & 100.00\% & 0.00 & 600 & 154 & 74.33\% & 964.7$\pm$0.5 & 269.5$\pm$0.2 \\
+\bottomrule
+\end{tabular}
+\end{table*}

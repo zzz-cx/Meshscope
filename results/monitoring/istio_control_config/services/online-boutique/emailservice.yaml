@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: '{"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"labels":{"app":"emailservice"},"name":"emailservice","namespace":"online-boutique"},"spec":{"ports":[{"name":"grpc","port":5000,"targetPort":8080}],"selector":{"app":"emailservice"},"type":"ClusterIP"}}
+
+      '
+  labels:
+    app: emailservice
+  name: emailservice
+  namespace: online-boutique
+spec:
+  clusterIP: 10.105.75.227
+  ports:
+  - name: grpc
+    port: 5000
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app: emailservice
+  sessionAffinity: None
+  type: ClusterIP

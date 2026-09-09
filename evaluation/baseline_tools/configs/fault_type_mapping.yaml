@@ -1,0 +1,51 @@
+# Fixed mapping: tool output → GT fault_type (do not retune post-hoc)
+version: 1
+confidence_threshold: 0.7
+
+istioctl:
+  # message code / keyword → fault_type
+  codes:
+    IST0101: missing_service_ref          # fallback only; keywords win for subset
+    IST0130: routing_conflict
+    IST0131: routing_conflict
+    IST0132: gateway_selector_error
+    IST0133: authorization_conflict
+    IST0145: gateway_selector_error
+    IST0173: missing_subset
+    IST0174: missing_service_ref
+  keywords:
+    - {match: ["host+subset"], fault_type: missing_subset}
+    - {match: ["subset", "not found"], fault_type: missing_subset}
+    - {match: ["subset", "does not select"], fault_type: missing_subset}
+    - {match: ["referenced host"], fault_type: missing_service_ref}
+    - {match: ["referenced", "not found"], fault_type: missing_service_ref}
+    - {match: ["host", "not found"], fault_type: missing_service_ref}
+    - {match: ["deny all traffic"], fault_type: authorization_conflict}
+    - {match: ["authorizationpolicy"], fault_type: authorization_conflict}
+    - {match: ["authorization"], fault_type: authorization_conflict}
+    - {match: ["unreachable"], fault_type: routing_conflict}
+    - {match: ["ineffective"], fault_type: routing_conflict}
+    - {match: ["gateway", "selector"], fault_type: gateway_selector_error}
+    - {match: ["conflicting gateway"], fault_type: gateway_selector_error}
+    - {match: ["weight"], fault_type: weight_error}
+    - {match: ["mtls"], fault_type: mtls_inconsistency}
+    - {match: ["peerauthentication"], fault_type: mtls_inconsistency}
+    - {match: ["schema validation error"], fault_type: schema_validation_error}
+  default: generic_config_error
+
+kube_linter:
+  keywords:
+    - {match: ["duplicate"], fault_type: duplicate_config}
+  default: generic_config_error
+
+kubeval:
+  default: schema_validation_error
+
+dynamic_signals:
+  http_5xx_rate: missing_service_ref
+  split_mismatch: weight_error
+  high_latency: timeout_error
+  retry_amplification: retry_policy_error
+  premature_eject: circuit_breaker_error
+  rate_limit_mismatch: rate_limit_error
+  fault_abort_observed: fault_injection_error

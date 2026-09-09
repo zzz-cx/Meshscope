@@ -1,0 +1,6944 @@
+{
+  "report_id": "report_demo_bookinfo",
+  "title": "Bookinfo Demo · 三层一致性检验展示",
+  "timestamp": "2026-09-03T15:57:11.095571",
+  "namespace": "default",
+  "executed_by": "demo",
+  "static_analysis": {
+    "total_services": 23,
+    "total_policies": 5,
+    "total_edges": 21,
+    "plane_consistency_issues": 13,
+    "policies_by_type": {
+      "traffic_split": 2,
+      "timeout": 1,
+      "circuit_breaker": 1,
+      "routing": 1
+    },
+    "services_with_virtualservice": 4,
+    "services_with_destinationrule": 2
+  },
+  "dynamic_testing": {
+    "total_test_cases": 4,
+    "verified_tests": 1,
+    "failed_tests": 3,
+    "verification_rate": 0.25,
+    "tests_by_policy_type": {
+      "traffic_split": {
+        "total": 1,
+        "verified": 0,
+        "failed": 1
+      },
+      "routing": {
+        "total": 2,
+        "verified": 1,
+        "failed": 1
+      },
+      "circuit_breaker": {
+        "total": 1,
+        "verified": 0,
+        "failed": 1
+      }
+    }
+  },
+  "consistency_check": {
+    "overall_status": "inconsistent",
+    "total_policies": 5,
+    "verified_policies": 2,
+    "consistency_rate": 0.4,
+    "summary": {
+      "total_inconsistencies": 21,
+      "critical_issues": 1,
+      "high_issues": 13,
+      "scope_issues": 4,
+      "behavior_deviations": 3,
+      "policy_conflicts": 1,
+      "unverified_policies": 1,
+      "by_layer": {
+        "layer1": 7,
+        "layer2": 8,
+        "layer3": 6
+      },
+      "by_type": {
+        "behavior_deviation": 2,
+        "control_only": 2,
+        "data_only": 1,
+        "gateway_selector_conflict": 1,
+        "gateway_selector_empty": 1,
+        "gateway_unmatched": 1,
+        "mismatched": 2,
+        "missing_subset": 1,
+        "partial_matched": 1,
+        "policy_conflict": 1,
+        "policy_not_verified": 1,
+        "route_priority_conflict": 1,
+        "scope_mismatch": 4,
+        "timeout_mismatch": 1,
+        "traffic_split_drift": 1
+      },
+      "layers": [
+        {
+          "id": "layer1",
+          "name": "第一层 · 控制面 / 数据面全局",
+          "what": "比较同一功能在声明式配置 Sdecl 与 Envoy 数据面 Sdp 上是否对齐。不看运行时流量，只看控制面 YAML 与 sidecar dump 投影出的语义元组。",
+          "checks": [
+            {
+              "type": "control_only",
+              "name": "仅控制面",
+              "desc": "YAML 声明了策略，Envoy dump 中没有对应语义（Pilot 未下发或 sidecar 未同步）。"
+            },
+            {
+              "type": "data_only",
+              "name": "仅数据面",
+              "desc": "Envoy 存在规则，控制面未声明（残留配置或手工注入）。"
+            },
+            {
+              "type": "mismatched",
+              "name": "平面语义不匹配",
+              "desc": "两侧都有配置，但 predicate / action / constraint 不一致。"
+            },
+            {
+              "type": "partial_matched",
+              "name": "部分匹配",
+              "desc": "功能存在于两侧，部分字段对齐、部分超出容差 τ。"
+            },
+            {
+              "type": "timeout_mismatch",
+              "name": "超时不一致",
+              "desc": "控制面与数据面的 timeout 约束不同。"
+            }
+          ]
+        },
+        {
+          "id": "layer2",
+          "name": "第二层 · 服务关系",
+          "what": "在服务 / subset 关系上核对路由、流量分割、重试、超时、熔断是否按 Sdecl 生效。Srt 来自动态测试的实测行为；流量分割可同时对比期望权重与观测权重。",
+          "checks": [
+            {
+              "type": "behavior_deviation",
+              "name": "运行时行为偏差",
+              "desc": "动态测试未通过：实测 Srt 与声明 Sdecl（及数据面 Sdp）不一致。"
+            },
+            {
+              "type": "traffic_split_drift",
+              "name": "流量分割漂移",
+              "desc": "期望 subset 权重与运行时观测权重超出容差。"
+            },
+            {
+              "type": "scope_mismatch",
+              "name": "作用范围未覆盖",
+              "desc": "策略声明的 subset 未被测试覆盖，无法确认运行时是否生效。"
+            },
+            {
+              "type": "policy_not_verified",
+              "name": "策略未被验证",
+              "desc": "存在声明式策略，但没有对应的动态测试用例。"
+            }
+          ]
+        },
+        {
+          "id": "layer3",
+          "name": "第三层 · 配置资源",
+          "what": "检查 VS / DR / Gateway / EnvoyFilter 等资源之间的引用是否闭合。单资源合法、组合后语义破裂的问题落在这一层（例如 VS 引用了不存在的 subset）。",
+          "checks": [
+            {
+              "type": "missing_subset",
+              "name": "缺失 subset",
+              "desc": "VirtualService 引用的 subset 在 DestinationRule 中未定义。"
+            },
+            {
+              "type": "gateway_unmatched",
+              "name": "Gateway 未匹配",
+              "desc": "VirtualService 绑定的 Gateway 在集群中不存在。"
+            },
+            {
+              "type": "gateway_selector_empty",
+              "name": "Gateway selector 为空",
+              "desc": "Gateway 未设置 selector，无法绑定 ingress workload。"
+            },
+            {
+              "type": "gateway_selector_conflict",
+              "name": "Gateway selector 冲突",
+              "desc": "多个 Gateway 使用相同 selector，入口选择不确定。"
+            },
+            {
+              "type": "route_priority_conflict",
+              "name": "路由优先级冲突",
+              "desc": "同一 VirtualService 中两条 HTTP 规则匹配条件相同。"
+            },
+            {
+              "type": "policy_conflict",
+              "name": "策略冲突",
+              "desc": "同一服务上存在多条互相覆盖的流量分配策略。"
+            }
+          ]
+        }
+      ],
+      "checks_performed": [
+        {
+          "layer": "layer1",
+          "layer_name": "第一层 · 控制面 / 数据面全局",
+          "type": "control_only",
+          "name": "仅控制面",
+          "description": "YAML 声明了策略，Envoy dump 中没有对应语义（Pilot 未下发或 sidecar 未同步）。"
+        },
+        {
+          "layer": "layer1",
+          "layer_name": "第一层 · 控制面 / 数据面全局",
+          "type": "data_only",
+          "name": "仅数据面",
+          "description": "Envoy 存在规则，控制面未声明（残留配置或手工注入）。"
+        },
+        {
+          "layer": "layer1",
+          "layer_name": "第一层 · 控制面 / 数据面全局",
+          "type": "mismatched",
+          "name": "平面语义不匹配",
+          "description": "两侧都有配置，但 predicate / action / constraint 不一致。"
+        },
+        {
+          "layer": "layer1",
+          "layer_name": "第一层 · 控制面 / 数据面全局",
+          "type": "partial_matched",
+          "name": "部分匹配",
+          "description": "功能存在于两侧，部分字段对齐、部分超出容差 τ。"
+        },
+        {
+          "layer": "layer1",
+          "layer_name": "第一层 · 控制面 / 数据面全局",
+          "type": "timeout_mismatch",
+          "name": "超时不一致",
+          "description": "控制面与数据面的 timeout 约束不同。"
+        },
+        {
+          "layer": "layer2",
+          "layer_name": "第二层 · 服务关系",
+          "type": "behavior_deviation",
+          "name": "运行时行为偏差",
+          "description": "动态测试未通过：实测 Srt 与声明 Sdecl（及数据面 Sdp）不一致。"
+        },
+        {
+          "layer": "layer2",
+          "layer_name": "第二层 · 服务关系",
+          "type": "traffic_split_drift",
+          "name": "流量分割漂移",
+          "description": "期望 subset 权重与运行时观测权重超出容差。"
+        },
+        {
+          "layer": "layer2",
+          "layer_name": "第二层 · 服务关系",
+          "type": "scope_mismatch",
+          "name": "作用范围未覆盖",
+          "description": "策略声明的 subset 未被测试覆盖，无法确认运行时是否生效。"
+        },
+        {
+          "layer": "layer2",
+          "layer_name": "第二层 · 服务关系",
+          "type": "policy_not_verified",
+          "name": "策略未被验证",
+          "description": "存在声明式策略，但没有对应的动态测试用例。"
+        },
+        {
+          "layer": "layer3",
+          "layer_name": "第三层 · 配置资源",
+          "type": "missing_subset",
+          "name": "缺失 subset",
+          "description": "VirtualService 引用的 subset 在 DestinationRule 中未定义。"
+        },
+        {
+          "layer": "layer3",
+          "layer_name": "第三层 · 配置资源",
+          "type": "gateway_unmatched",
+          "name": "Gateway 未匹配",
+          "description": "VirtualService 绑定的 Gateway 在集群中不存在。"
+        },
+        {
+          "layer": "layer3",
+          "layer_name": "第三层 · 配置资源",
+          "type": "gateway_selector_empty",
+          "name": "Gateway selector 为空",
+          "description": "Gateway 未设置 selector，无法绑定 ingress workload。"
+        },
+        {
+          "layer": "layer3",
+          "layer_name": "第三层 · 配置资源",
+          "type": "gateway_selector_conflict",
+          "name": "Gateway selector 冲突",
+          "description": "多个 Gateway 使用相同 selector，入口选择不确定。"
+        },
+        {
+          "layer": "layer3",
+          "layer_name": "第三层 · 配置资源",
+          "type": "route_priority_conflict",
+          "name": "路由优先级冲突",
+          "description": "同一 VirtualService 中两条 HTTP 规则匹配条件相同。"
+        },
+        {
+          "layer": "layer3",
+          "layer_name": "第三层 · 配置资源",
+          "type": "policy_conflict",
+          "name": "策略冲突",
+          "description": "同一服务上存在多条互相覆盖的流量分配策略。"
+        }
+      ]
+    },
+    "inconsistencies": [
+      {
+        "id": "inc_align_2_reviews_routing",
+        "inconsistency_type": "mismatched",
+        "type": "mismatched",
+        "severity": "high",
+        "description": "reviews 路由权重与数据面不一致：声明 v1 80% / v2 20%，Envoy 为 50% / 50%",
+        "layer": "layer1",
+        "layer_name": "第一层 · 控制面 / 数据面全局",
+        "resource_kind": "VirtualService",
+        "resource_name": "reviews",
+        "resource_namespace": "default",
+        "affected_services": [
+          "reviews"
+        ],
+        "affected_subsets": [
+          "v1",
+          "v2"
+        ],
+        "function_type": "routing",
+        "alignment_status": "mismatched",
+        "Sdecl": {
+          "tuple_id": "default.reviews.routing.0",
+          "function_type": "routing",
+          "plane": "control_plane",
+          "predicate": {
+            "uri": {
+              "prefix": "/"
+            }
+          },
+          "action": {
+            "type": "route"
+          },
+          "scope": {
+            "namespace": "default",
+            "service": "reviews",
+            "subsets": [
+              "v1",
+              "v2"
+            ]
+          },
+          "constraint": {
+            "destinations": [
+              {
+                "host": "reviews",
+                "subset": "v1",
+                "weight": 80
+              },
+              {
+                "host": "reviews",
+                "subset": "v2",
+                "weight": 20
+              }
+            ],
+            "weights": {
+              "v1": 80,
+              "v2": 20
+            }
+          },
+          "source_resources": [],
+          "summary": "match prefix=/ · → v1 80% / v2 20%"
+        },
+        "Sdp": {
+          "tuple_id": "default.reviews.routing.0",
+          "function_type": "routing",
+          "plane": "data_plane",
+          "predicate": {
+            "uri": {
+              "prefix": "/"
+            }
+          },
+          "action": {
+            "type": "route"
+          },
+          "scope": {
+            "namespace": "default",
+            "service": "reviews",
+            "subsets": [
+              "v1",
+              "v2"
+            ]
+          },
+          "constraint": {
+            "destinations": [
+              {
+                "host": "reviews",
+                "subset": "v1",
+                "weight": 50
+              },
+              {
+                "host": "reviews",
+                "subset": "v2",
+                "weight": 50
+              }
+            ],
+            "weights": {
+              "v1": 50,
+              "v2": 50
+            }
+          },
+          "source_resources": [],
+          "summary": "match prefix=/ · → v1 50% / v2 50%"
+        },
+        "Srt": {
+          "tuple_id": "runtime.case_002",
+          "function_type": "routing",
+          "plane": "runtime",
+          "predicate": {
+            "path": "/reviews/1",
+            "header": "end-user=jason",
+            "subset": "v2"
+          },
+          "action": {
+            "type": "observe"
+          },
+          "scope": {
+            "service": "reviews",
+            "source": "productpage",
+            "subsets": [
+              "v2"
+            ]
+          },
+          "constraint": {
+            "destination": "reviews/v1"
+          },
+          "summary": "用例 case_002 未通过 · 期望 {'destination': 'reviews/v2'} · 实测 {'destination': 'reviews/v1'}",
+          "test_case_id": "case_002",
+          "verified": false,
+          "expected": {
+            "destination": "reviews/v2"
+          },
+          "actual": {
+            "destination": "reviews/v1"
+          }
+        },
+        "root_cause": "控制面 Sdecl 与数据面 Sdp 对齐状态为 mismatched",
+        "suggestions": [
+          "对照 Sdecl 与 Sdp 的 predicate / action / constraint",
+          "确认 istiod 已将最新配置下发到 sidecar"
+        ],
+        "impact_scope": [
+          "reviews",
+          "v1",
+          "v2"
+        ],
+        "affected_policies": [],
+        "static_expectation": {
+          "alignment_status": "mismatched",
+          "control": {
+            "v1": 80,
+            "v2": 20
+          }
+        },
+        "dynamic_observation": {
+          "data": {
+            "v1": 50,
+            "v2": 50
+          }
+        },
+        "details": {
+          "differences": [
+            {
+              "kind": "discrete",
+              "description": "reviews 路由权重与数据面不一致：声明 v1 80% / v2 20%，Envoy 为 50% / 50%",
+              "control": {
+                "v1": 80,
+                "v2": 20
+              },
+              "data": {
+                "v1": 50,
+                "v2": 50
+              }
+            }
+          ],
+          "pair_key": "default.reviews.routing"
+        }
+      },
+      {
+        "id": "inc_align_3_reviews_traffic_shifting",
+        "inconsistency_type": "partial_matched",
+        "type": "partial_matched",
+        "severity": "medium",
+        "description": "reviews 流量分割部分匹配：v2 权重偏差 10%，仍超出容差 τ=0.1 的边缘",
+        "layer": "layer1",
+        "layer_name": "第一层 · 控制面 / 数据面全局",
+        "resource_kind": "DestinationRule",
+        "resource_name": "reviews",
+        "resource_namespace": "default",
+        "affected_services": [
+          "reviews"
+        ],
+        "affected_subsets": [
+          "v1",
+          "v2"
+        ],
+        "function_type": "traffic_shifting",
+        "alignment_status": "partial_matched",
+        "Sdecl": {
+          "tuple_id": "default.reviews.traffic_shifting",
+          "function_type": "traffic_shifting",
+          "plane": "control_plane",
+          "predicate": {},
+          "action": {
+            "type": "traffic_shifting"
+          },
+          "scope": {
+            "namespace": "default",
+            "service": "reviews",
+            "subsets": [
+              "v1",
+              "v2"
+            ]
+          },
+          "constraint": {
+            "weights": {
+              "v1": 90,
+              "v2": 10
+            }
+          },
+          "source_resources": [],
+          "summary": "→ v1 90% / v2 10% · action=traffic_shifting"
+        },
+        "Sdp": {
+          "tuple_id": "default.reviews.traffic_shifting",
+          "function_type": "traffic_shifting",
+          "plane": "data_plane",
+          "predicate": {},
+          "action": {
+            "type": "traffic_shifting"
+          },
+          "scope": {
+            "namespace": "default",
+            "service": "reviews",
+            "subsets": [
+              "v1",
+              "v2"
+            ]
+          },
+          "constraint": {
+            "weights": {
+              "v1": 80,
+              "v2": 20
+            }
+          },
+          "source_resources": [],
+          "summary": "→ v1 80% / v2 20% · action=traffic_shifting"
+        },
+        "Srt": {
+          "tuple_id": "runtime.case_001",
+          "function_type": "traffic_split",
+          "plane": "runtime",
+          "predicate": {
+            "path": "/reviews/1",
+            "subset": "v1"
+          },
+          "action": {
+            "type": "observe"
+          },
+          "scope": {
+            "service": "reviews",
+            "source": "productpage",
+            "subsets": [
+              "v1"
+            ]
+          },
+          "constraint": {
+            "weights": {
+              "v1": 51,
+              "v2": 49
+            }
+          },
+          "summary": "用例 case_001 未通过 · 期望 {'weights': {'v1': 80, 'v2': 20}} · 实测 {'weights': {'v1': 51, 'v2': 49}}",
+          "test_case_id": "case_001",
+          "verified": false,
+          "expected": {
+            "weights": {
+              "v1": 80,
+              "v2": 20
+            }
+          },
+          "actual": {
+            "weights": {
+              "v1": 51,
+              "v2": 49
+            }
+          }
+        },
+        "root_cause": "控制面 Sdecl 与数据面 Sdp 对齐状态为 partial_matched",
+        "suggestions": [
+          "对照 Sdecl 与 Sdp 的 predicate / action / constraint",
+          "确认 istiod 已将最新配置下发到 sidecar"
+        ],
+        "impact_scope": [
+          "reviews",
+          "v1",
+          "v2"
+        ],
+        "affected_policies": [],
+        "static_expectation": {
+          "alignment_status": "partial_matched",
+          "control": {
+            "v1": 90,
+            "v2": 10
+          }
+        },
+        "dynamic_observation": {
+          "data": {
+            "v1": 80,
+            "v2": 20
+          }
+        },
+        "details": {
+          "differences": [
+            {
+              "kind": "numeric",
+              "description": "reviews 流量分割部分匹配：v2 权重偏差 10%，仍超出容差 τ=0.1 的边缘",
+              "control": {
+                "v1": 90,
+                "v2": 10
+              },
+              "data": {
+                "v1": 80,
+                "v2": 20
+              }
+            }
+          ],
+          "pair_key": "default.reviews.traffic_shifting"
+        }
+      },
+      {
+        "id": "inc_align_4_ratings_timeout",
+        "inconsistency_type": "timeout_mismatch",
+        "type": "timeout_mismatch",
+        "severity": "high",
+        "description": "ratings 超时不一致：VirtualService timeout=1s，Envoy route timeout=5s",
+        "layer": "layer1",
+        "layer_name": "第一层 · 控制面 / 数据面全局",
+        "resource_kind": "VirtualService",
+        "resource_name": "ratings",
+        "resource_namespace": "default",
+        "affected_services": [
+          "ratings"
+        ],
+        "affected_subsets": [
+          "v1"
+        ],
+        "function_type": "timeout",
+        "alignment_status": "mismatched",
+        "Sdecl": {
+          "tuple_id": "default.ratings.timeout",
+          "function_type": "timeout",
+          "plane": "control_plane",
+          "predicate": {},
+          "action": {
+            "type": "timeout"
+          },
+          "scope": {
+            "namespace": "default",
+            "service": "ratings",
+            "subsets": [
+              "v1"
+            ]
+          },
+          "constraint": {
+            "timeout": "1s",
+            "timeout_seconds": 1
+          },
+          "source_resources": [],
+          "summary": "action=timeout · timeout=1s · timeout_seconds=1"
+        },
+        "Sdp": {
+          "tuple_id": "default.ratings.timeout",
+          "function_type": "timeout",
+          "plane": "data_plane",
+          "predicate": {},
+          "action": {
+            "type": "timeout"
+          },
+          "scope": {
+            "namespace": "default",
+            "service": "ratings",
+            "subsets": [
+              "v1"
+            ]
+          },
+          "constraint": {
+            "timeout": "5s",
+            "timeout_seconds": 5
+          },
+          "source_resources": [],
+          "summary": "action=timeout · timeout=5s · timeout_seconds=5"
+        },
+        "Srt": null,
+        "root_cause": "控制面 Sdecl 与数据面 Sdp 对齐状态为 mismatched",
+        "suggestions": [
+          "对照 Sdecl 与 Sdp 的 predicate / action / constraint",
+          "确认 istiod 已将最新配置下发到 sidecar"
+        ],
+        "impact_scope": [
+          "ratings",
+          "v1"
+        ],
+        "affected_policies": [],
+        "static_expectation": {
+          "alignment_status": "mismatched",
+          "control": "1s"
+        },
+        "dynamic_observation": {
+          "data": "5s"
+        },
+        "details": {
+          "differences": [
+            {
+              "kind": "timeout",
+              "description": "ratings 超时不一致：VirtualService timeout=1s，Envoy route timeout=5s",
+              "control": "1s",
+              "data": "5s"
+            }
+          ],
+          "pair_key": "default.ratings.timeout"
+        }
+      },
+      {
+        "id": "inc_align_5_details_retry",
+        "inconsistency_type": "control_only",
+        "type": "control_only",
+        "severity": "high",
+        "description": "details 声明了重试策略，sidecar dump 中没有对应 retry_policy",
+        "layer": "layer1",
+        "layer_name": "第一层 · 控制面 / 数据面全局",
+        "resource_kind": "VirtualService",
+        "resource_name": "details",
+        "resource_namespace": "default",
+        "affected_services": [
+          "details"
+        ],
+        "affected_subsets": [],
+        "function_type": "retry",
+        "alignment_status": "control_only",
+        "Sdecl": {
+          "tuple_id": "default.details.retry",
+          "function_type": "retry",
+          "plane": "control_plane",
+          "predicate": {},
+          "action": {
+            "type": "retry"
+          },
+          "scope": {
+            "namespace": "default",
+            "service": "details"
+          },
+          "constraint": {
+            "attempts": 3,
+            "retry_on": "5xx"
+          },
+          "source_resources": [],
+          "summary": "action=retry · attempts=3 · retry_on=5xx"
+        },
+        "Sdp": null,
+        "Srt": null,
+        "root_cause": "控制面 Sdecl 与数据面 Sdp 对齐状态为 control_only",
+        "suggestions": [
+          "对照 Sdecl 与 Sdp 的 predicate / action / constraint",
+          "确认 istiod 已将最新配置下发到 sidecar"
+        ],
+        "impact_scope": [
+          "details"
+        ],
+        "affected_policies": [],
+        "static_expectation": {
+          "alignment_status": "control_only",
+          "control": null
+        },
+        "dynamic_observation": {
+          "data": null
+        },
+        "details": {
+          "differences": [
+            {
+              "kind": "missing",
+              "description": "details 声明了重试策略，sidecar dump 中没有对应 retry_policy"
+            }
+          ],
+          "pair_key": "default.details.retry"
+        }
+      },
+      {
+        "id": "inc_align_6_productpage_fault_injection",
+        "inconsistency_type": "data_only",
+        "type": "data_only",
+        "severity": "high",
+        "description": "productpage Envoy 存在 abort 故障注入，控制面 YAML 未声明",
+        "layer": "layer1",
+        "layer_name": "第一层 · 控制面 / 数据面全局",
+        "resource_kind": "VirtualService",
+        "resource_name": null,
+        "resource_namespace": "default",
+        "affected_services": [
+          "productpage"
+        ],
+        "affected_subsets": [],
+        "function_type": "fault_injection",
+        "alignment_status": "data_only",
+        "Sdecl": null,
+        "Sdp": {
+          "tuple_id": "default.productpage.fault",
+          "function_type": "fault_injection",
+          "plane": "data_plane",
+          "predicate": {
+            "uri": {
+              "prefix": "/productpage"
+            }
+          },
+          "action": {
+            "type": "abort"
+          },
+          "scope": {
+            "namespace": "default",
+            "service": "productpage"
+          },
+          "constraint": {
+            "abort_percent": 10,
+            "http_status": 503
+          },
+          "source_resources": [],
+          "summary": "match prefix=/productpage · action=abort · abort_percent=10"
+        },
+        "Srt": null,
+        "root_cause": "控制面 Sdecl 与数据面 Sdp 对齐状态为 data_only",
+        "suggestions": [
+          "对照 Sdecl 与 Sdp 的 predicate / action / constraint",
+          "确认 istiod 已将最新配置下发到 sidecar"
+        ],
+        "impact_scope": [
+          "productpage"
+        ],
+        "affected_policies": [],
+        "static_expectation": {
+          "alignment_status": "data_only",
+          "control": null
+        },
+        "dynamic_observation": {
+          "data": null
+        },
+        "details": {
+          "differences": [
+            {
+              "kind": "missing",
+              "description": "productpage Envoy 存在 abort 故障注入，控制面 YAML 未声明"
+            }
+          ],
+          "pair_key": "default.productpage.fault_injection"
+        }
+      },
+      {
+        "id": "inc_align_7_ratings_circuit_breaker",
+        "inconsistency_type": "mismatched",
+        "type": "mismatched",
+        "severity": "high",
+        "description": "ratings 熔断阈值不一致：声明 consecutive5xx=5，数据面为 2",
+        "layer": "layer1",
+        "layer_name": "第一层 · 控制面 / 数据面全局",
+        "resource_kind": "DestinationRule",
+        "resource_name": "ratings",
+        "resource_namespace": "default",
+        "affected_services": [
+          "ratings"
+        ],
+        "affected_subsets": [
+          "v1"
+        ],
+        "function_type": "circuit_breaker",
+        "alignment_status": "mismatched",
+        "Sdecl": {
+          "tuple_id": "default.ratings.cb",
+          "function_type": "circuit_breaker",
+          "plane": "control_plane",
+          "predicate": {},
+          "action": {
+            "type": "circuit_breaker"
+          },
+          "scope": {
+            "namespace": "default",
+            "service": "ratings",
+            "subsets": [
+              "v1"
+            ]
+          },
+          "constraint": {
+            "consecutive_errors": 5,
+            "max_connections": 100
+          },
+          "source_resources": [],
+          "summary": "action=circuit_breaker · max_connections=100 · consecutive_errors=5"
+        },
+        "Sdp": {
+          "tuple_id": "default.ratings.cb",
+          "function_type": "circuit_breaker",
+          "plane": "data_plane",
+          "predicate": {},
+          "action": {
+            "type": "circuit_breaker"
+          },
+          "scope": {
+            "namespace": "default",
+            "service": "ratings",
+            "subsets": [
+              "v1"
+            ]
+          },
+          "constraint": {
+            "consecutive_errors": 2,
+            "max_connections": 100
+          },
+          "source_resources": [],
+          "summary": "action=circuit_breaker · max_connections=100 · consecutive_errors=2"
+        },
+        "Srt": {
+          "tuple_id": "runtime.case_003",
+          "function_type": "circuit_breaker",
+          "plane": "runtime",
+          "predicate": {
+            "fault": "5xx"
+          },
+          "action": {
+            "type": "observe"
+          },
+          "scope": {
+            "service": "ratings",
+            "source": "reviews"
+          },
+          "constraint": {
+            "open_after": 2,
+            "ejected": true
+          },
+          "summary": "用例 case_003 未通过 · 期望 {'open_after': 5} · 实测 {'open_after': 2, 'ejected': True}",
+          "test_case_id": "case_003",
+          "verified": false,
+          "expected": {
+            "open_after": 5
+          },
+          "actual": {
+            "open_after": 2,
+            "ejected": true
+          }
+        },
+        "root_cause": "控制面 Sdecl 与数据面 Sdp 对齐状态为 mismatched",
+        "suggestions": [
+          "对照 Sdecl 与 Sdp 的 predicate / action / constraint",
+          "确认 istiod 已将最新配置下发到 sidecar"
+        ],
+        "impact_scope": [
+          "ratings",
+          "v1"
+        ],
+        "affected_policies": [],
+        "static_expectation": {
+          "alignment_status": "mismatched",
+          "control": 5
+        },
+        "dynamic_observation": {
+          "data": 2
+        },
+        "details": {
+          "differences": [
+            {
+              "kind": "discrete",
+              "description": "ratings 熔断阈值不一致：声明 consecutive5xx=5，数据面为 2",
+              "control": 5,
+              "data": 2
+            }
+          ],
+          "pair_key": "default.ratings.circuit_breaker"
+        }
+      },
+      {
+        "id": "inc_align_8_productpage_rate_limit",
+        "inconsistency_type": "control_only",
+        "type": "control_only",
+        "severity": "high",
+        "description": "productpage EnvoyFilter 限流已声明，数据面未看到 local_ratelimit 过滤器",
+        "layer": "layer1",
+        "layer_name": "第一层 · 控制面 / 数据面全局",
+        "resource_kind": "EnvoyFilter",
+        "resource_name": "productpage-ratelimit",
+        "resource_namespace": "default",
+        "affected_services": [
+          "productpage"
+        ],
+        "affected_subsets": [],
+        "function_type": "rate_limit",
+        "alignment_status": "control_only",
+        "Sdecl": {
+          "tuple_id": "default.productpage.rl",
+          "function_type": "rate_limit",
+          "plane": "control_plane",
+          "predicate": {},
+          "action": {
+            "type": "rate_limit"
+          },
+          "scope": {
+            "namespace": "default",
+            "service": "productpage"
+          },
+          "constraint": {
+            "requests_per_unit": 10,
+            "unit": "second"
+          },
+          "source_resources": [],
+          "summary": "action=rate_limit"
+        },
+        "Sdp": null,
+        "Srt": null,
+        "root_cause": "控制面 Sdecl 与数据面 Sdp 对齐状态为 control_only",
+        "suggestions": [
+          "对照 Sdecl 与 Sdp 的 predicate / action / constraint",
+          "确认 istiod 已将最新配置下发到 sidecar"
+        ],
+        "impact_scope": [
+          "productpage"
+        ],
+        "affected_policies": [],
+        "static_expectation": {
+          "alignment_status": "control_only",
+          "control": null
+        },
+        "dynamic_observation": {
+          "data": null
+        },
+        "details": {
+          "differences": [
+            {
+              "kind": "missing",
+              "description": "productpage EnvoyFilter 限流已声明，数据面未看到 local_ratelimit 过滤器"
+            }
+          ],
+          "pair_key": "default.productpage.rate_limit"
+        }
+      },
+      {
+        "id": "inc_conflict_1_missing_subset",
+        "inconsistency_type": "missing_subset",
+        "type": "missing_subset",
+        "severity": "high",
+        "description": "VirtualService 'reviews' 引用 subset 'v3'，但 DestinationRule 中 reviews 只定义了 ['v1', 'v2']",
+        "layer": "layer3",
+        "layer_name": "第三层 · 配置资源",
+        "resource_kind": "VirtualService",
+        "resource_name": "reviews",
+        "resource_namespace": "default",
+        "affected_services": [
+          "reviews"
+        ],
+        "affected_subsets": [
+          "v3"
+        ],
+        "function_type": "routing",
+        "alignment_status": null,
+        "Sdecl": {
+          "tuple_id": "decl.VirtualService.reviews",
+          "function_type": "routing",
+          "plane": "control_plane",
+          "predicate": {},
+          "action": {
+            "type": "missing_subset"
+          },
+          "scope": {
+            "service": "reviews",
+            "namespace": "default",
+            "subsets": [
+              "v3"
+            ]
+          },
+          "constraint": {
+            "virtualservice": "reviews",
+            "namespace": "default",
+            "service": "reviews",
+            "missing_subset": "v3",
+            "available_subsets": [
+              "v1",
+              "v2"
+            ]
+          },
+          "source_resources": [],
+          "summary": "action=missing_subset"
+        },
+        "Sdp": null,
+        "Srt": null,
+        "root_cause": "跨资源引用或选择器组合后语义破裂",
+        "suggestions": [
+          "核对 VirtualService 引用的 Gateway / subset 是否真实存在",
+          "合并重复匹配条件或冲突的 Gateway selector"
+        ],
+        "impact_scope": [
+          "reviews",
+          "v3"
+        ],
+        "affected_policies": [],
+        "static_expectation": {},
+        "dynamic_observation": {},
+        "details": {
+          "type": "missing_subset",
+          "severity": "high",
+          "virtualservice": "reviews",
+          "namespace": "default",
+          "service": "reviews",
+          "missing_subset": "v3",
+          "available_subsets": [
+            "v1",
+            "v2"
+          ],
+          "description": "VirtualService 'reviews' 引用 subset 'v3'，但 DestinationRule 中 reviews 只定义了 ['v1', 'v2']"
+        }
+      },
+      {
+        "id": "inc_conflict_2_gateway_unmatched",
+        "inconsistency_type": "gateway_unmatched",
+        "type": "gateway_unmatched",
+        "severity": "high",
+        "description": "VirtualService 'bookinfo' 绑定 Gateway 'missing-gateway'，但未找到对应 Gateway 资源",
+        "layer": "layer3",
+        "layer_name": "第三层 · 配置资源",
+        "resource_kind": "VirtualService",
+        "resource_name": "bookinfo",
+        "resource_namespace": "default",
+        "affected_services": [],
+        "affected_subsets": [],
+        "function_type": null,
+        "alignment_status": null,
+        "Sdecl": {
+          "tuple_id": "decl.VirtualService.bookinfo",
+          "function_type": "routing",
+          "plane": "control_plane",
+          "predicate": {},
+          "action": {
+            "type": "gateway_unmatched"
+          },
+          "scope": {
+            "namespace": "default"
+          },
+          "constraint": {
+            "virtualservice": "bookinfo",
+            "namespace": "default",
+            "gateway": "missing-gateway"
+          },
+          "source_resources": [],
+          "summary": "action=gateway_unmatched"
+        },
+        "Sdp": null,
+        "Srt": null,
+        "root_cause": "跨资源引用或选择器组合后语义破裂",
+        "suggestions": [
+          "核对 VirtualService 引用的 Gateway / subset 是否真实存在",
+          "合并重复匹配条件或冲突的 Gateway selector"
+        ],
+        "impact_scope": [],
+        "affected_policies": [],
+        "static_expectation": {},
+        "dynamic_observation": {},
+        "details": {
+          "type": "gateway_unmatched",
+          "severity": "high",
+          "virtualservice": "bookinfo",
+          "namespace": "default",
+          "gateway": "missing-gateway",
+          "description": "VirtualService 'bookinfo' 绑定 Gateway 'missing-gateway'，但未找到对应 Gateway 资源"
+        }
+      },
+      {
+        "id": "inc_conflict_3_gateway_selector_empty",
+        "inconsistency_type": "gateway_selector_empty",
+        "type": "gateway_selector_empty",
+        "severity": "medium",
+        "description": "Gateway 'empty-selector-gateway' 未设置 selector，无法绑定到 ingress/gateway workload",
+        "layer": "layer3",
+        "layer_name": "第三层 · 配置资源",
+        "resource_kind": "Gateway",
+        "resource_name": "empty-selector-gateway",
+        "resource_namespace": "default",
+        "affected_services": [],
+        "affected_subsets": [],
+        "function_type": null,
+        "alignment_status": null,
+        "Sdecl": {
+          "tuple_id": "decl.Gateway.empty-selector-gateway",
+          "function_type": "routing",
+          "plane": "control_plane",
+          "predicate": {},
+          "action": {
+            "type": "gateway_selector_empty"
+          },
+          "scope": {
+            "namespace": "default"
+          },
+          "constraint": {
+            "gateway": "empty-selector-gateway",
+            "namespace": "default"
+          },
+          "source_resources": [],
+          "summary": "action=gateway_selector_empty"
+        },
+        "Sdp": null,
+        "Srt": null,
+        "root_cause": "跨资源引用或选择器组合后语义破裂",
+        "suggestions": [
+          "核对 VirtualService 引用的 Gateway / subset 是否真实存在",
+          "合并重复匹配条件或冲突的 Gateway selector"
+        ],
+        "impact_scope": [],
+        "affected_policies": [],
+        "static_expectation": {},
+        "dynamic_observation": {},
+        "details": {
+          "type": "gateway_selector_empty",
+          "severity": "medium",
+          "gateway": "empty-selector-gateway",
+          "namespace": "default",
+          "description": "Gateway 'empty-selector-gateway' 未设置 selector，无法绑定到 ingress/gateway workload"
+        }
+      },
+      {
+        "id": "inc_conflict_4_gateway_selector_conflict",
+        "inconsistency_type": "gateway_selector_conflict",
+        "type": "gateway_selector_conflict",
+        "severity": "high",
+        "description": "多个 Gateway ['default/bookinfo-gateway', 'default/frontend-gateway'] 使用相同 selector {'istio': 'ingressgateway'}，入口选择器冲突",
+        "layer": "layer3",
+        "layer_name": "第三层 · 配置资源",
+        "resource_kind": "Gateway",
+        "resource_name": "default/bookinfo-gateway, default/frontend-gateway",
+        "resource_namespace": null,
+        "affected_services": [],
+        "affected_subsets": [],
+        "function_type": null,
+        "alignment_status": null,
+        "Sdecl": {
+          "tuple_id": "decl.Gateway.default/bookinfo-gateway, default/frontend-gateway",
+          "function_type": "routing",
+          "plane": "control_plane",
+          "predicate": {},
+          "action": {
+            "type": "gateway_selector_conflict"
+          },
+          "scope": {},
+          "constraint": {
+            "gateways": [
+              "default/bookinfo-gateway",
+              "default/frontend-gateway"
+            ],
+            "selector": {
+              "istio": "ingressgateway"
+            }
+          },
+          "source_resources": [],
+          "summary": "action=gateway_selector_conflict"
+        },
+        "Sdp": null,
+        "Srt": null,
+        "root_cause": "跨资源引用或选择器组合后语义破裂",
+        "suggestions": [
+          "核对 VirtualService 引用的 Gateway / subset 是否真实存在",
+          "合并重复匹配条件或冲突的 Gateway selector"
+        ],
+        "impact_scope": [],
+        "affected_policies": [],
+        "static_expectation": {},
+        "dynamic_observation": {},
+        "details": {
+          "type": "gateway_selector_conflict",
+          "severity": "high",
+          "gateways": [
+            "default/bookinfo-gateway",
+            "default/frontend-gateway"
+          ],
+          "selector": {
+            "istio": "ingressgateway"
+          },
+          "description": "多个 Gateway ['default/bookinfo-gateway', 'default/frontend-gateway'] 使用相同 selector {'istio': 'ingressgateway'}，入口选择器冲突"
+        }
+      },
+      {
+        "id": "inc_conflict_5_route_priority_conflict",
+        "inconsistency_type": "route_priority_conflict",
+        "type": "route_priority_conflict",
+        "severity": "high",
+        "description": "VirtualService 'reviews' 第 0 与第 1 条 HTTP 规则匹配条件相同，优先级冲突",
+        "layer": "layer3",
+        "layer_name": "第三层 · 配置资源",
+        "resource_kind": "VirtualService",
+        "resource_name": "reviews",
+        "resource_namespace": "default",
+        "affected_services": [],
+        "affected_subsets": [],
+        "function_type": "routing",
+        "alignment_status": null,
+        "Sdecl": {
+          "tuple_id": "decl.VirtualService.reviews",
+          "function_type": "routing",
+          "plane": "control_plane",
+          "predicate": {},
+          "action": {
+            "type": "route_priority_conflict"
+          },
+          "scope": {
+            "namespace": "default"
+          },
+          "constraint": {
+            "virtualservice": "reviews",
+            "namespace": "default",
+            "rules": [
+              0,
+              1
+            ]
+          },
+          "source_resources": [],
+          "summary": "action=route_priority_conflict"
+        },
+        "Sdp": null,
+        "Srt": null,
+        "root_cause": "跨资源引用或选择器组合后语义破裂",
+        "suggestions": [
+          "核对 VirtualService 引用的 Gateway / subset 是否真实存在",
+          "合并重复匹配条件或冲突的 Gateway selector"
+        ],
+        "impact_scope": [],
+        "affected_policies": [],
+        "static_expectation": {},
+        "dynamic_observation": {},
+        "details": {
+          "type": "route_priority_conflict",
+          "severity": "high",
+          "virtualservice": "reviews",
+          "namespace": "default",
+          "rules": [
+            0,
+            1
+          ],
+          "description": "VirtualService 'reviews' 第 0 与第 1 条 HTTP 规则匹配条件相同，优先级冲突"
+        }
+      },
+      {
+        "id": "inc_policy_unverified_policy_0003",
+        "inconsistency_type": "policy_not_verified",
+        "type": "policy_not_verified",
+        "severity": "medium",
+        "description": "策略 ratings-timeout 未被动态测试验证",
+        "layer": "layer2",
+        "layer_name": "第二层 · 服务关系",
+        "resource_kind": "VirtualService",
+        "resource_name": "ratings",
+        "resource_namespace": "default",
+        "affected_services": [
+          "ratings"
+        ],
+        "affected_subsets": [
+          "v1"
+        ],
+        "function_type": "timeout",
+        "alignment_status": "mismatched",
+        "Sdecl": {
+          "tuple_id": "default.ratings.timeout",
+          "function_type": "timeout",
+          "plane": "control_plane",
+          "predicate": {},
+          "action": {
+            "type": "timeout"
+          },
+          "scope": {
+            "namespace": "default",
+            "service": "ratings",
+            "subsets": [
+              "v1"
+            ]
+          },
+          "constraint": {
+            "timeout": "1s",
+            "timeout_seconds": 1
+          },
+          "source_resources": [],
+          "summary": "action=timeout · timeout=1s · timeout_seconds=1"
+        },
+        "Sdp": {
+          "tuple_id": "default.ratings.timeout",
+          "function_type": "timeout",
+          "plane": "data_plane",
+          "predicate": {},
+          "action": {
+            "type": "timeout"
+          },
+          "scope": {
+            "namespace": "default",
+            "service": "ratings",
+            "subsets": [
+              "v1"
+            ]
+          },
+          "constraint": {
+            "timeout": "5s",
+            "timeout_seconds": 5
+          },
+          "source_resources": [],
+          "summary": "action=timeout · timeout=5s · timeout_seconds=5"
+        },
+        "Srt": null,
+        "root_cause": "缺少对应的测试用例",
+        "suggestions": [
+          "为 ratings-timeout 添加动态测试用例",
+          "确认策略是否真正生效"
+        ],
+        "impact_scope": [
+          "ratings"
+        ],
+        "affected_policies": [
+          "policy_0003"
+        ],
+        "static_expectation": {
+          "policy": "ratings-timeout",
+          "type": "timeout"
+        },
+        "dynamic_observation": {
+          "tests": 0,
+          "status": "no_test_coverage"
+        },
+        "details": {}
+      },
+      {
+        "id": "inc_scope_policy_0001",
+        "inconsistency_type": "scope_mismatch",
+        "type": "scope_mismatch",
+        "severity": "medium",
+        "description": "策略 reviews-split-primary 的部分作用范围未被测试覆盖",
+        "layer": "layer2",
+        "layer_name": "第二层 · 服务关系",
+        "resource_kind": "DestinationRule",
+        "resource_name": "reviews",
+        "resource_namespace": "default",
+        "affected_services": [
+          "reviews"
+        ],
+        "affected_subsets": [
+          "v2",
+          "v3"
+        ],
+        "function_type": "traffic_shifting",
+        "alignment_status": "partial_matched",
+        "Sdecl": {
+          "tuple_id": "default.reviews.traffic_shifting",
+          "function_type": "traffic_shifting",
+          "plane": "control_plane",
+          "predicate": {},
+          "action": {
+            "type": "traffic_shifting"
+          },
+          "scope": {
+            "namespace": "default",
+            "service": "reviews",
+            "subsets": [
+              "v1",
+              "v2"
+            ]
+          },
+          "constraint": {
+            "weights": {
+              "v1": 90,
+              "v2": 10
+            }
+          },
+          "source_resources": [],
+          "summary": "→ v1 90% / v2 10% · action=traffic_shifting"
+        },
+        "Sdp": {
+          "tuple_id": "default.reviews.traffic_shifting",
+          "function_type": "traffic_shifting",
+          "plane": "data_plane",
+          "predicate": {},
+          "action": {
+            "type": "traffic_shifting"
+          },
+          "scope": {
+            "namespace": "default",
+            "service": "reviews",
+            "subsets": [
+              "v1",
+              "v2"
+            ]
+          },
+          "constraint": {
+            "weights": {
+              "v1": 80,
+              "v2": 20
+            }
+          },
+          "source_resources": [],
+          "summary": "→ v1 80% / v2 20% · action=traffic_shifting"
+        },
+        "Srt": null,
+        "root_cause": "测试覆盖不完整",
+        "suggestions": [
+          "添加针对子集 {'v2', 'v3'} 的测试用例",
+          "确认这些子集是否真实存在"
+        ],
+        "impact_scope": [
+          "v2",
+          "v3"
+        ],
+        "affected_policies": [
+          "policy_0001"
+        ],
+        "static_expectation": {
+          "applies_to": [
+            "v2",
+            "v1",
+            "v3"
+          ]
+        },
+        "dynamic_observation": {
+          "tested": [
+            "v1"
+          ],
+          "missing": [
+            "v2",
+            "v3"
+          ]
+        },
+        "details": {}
+      },
+      {
+        "id": "inc_scope_policy_0002",
+        "inconsistency_type": "scope_mismatch",
+        "type": "scope_mismatch",
+        "severity": "medium",
+        "description": "策略 reviews-split-canary 的部分作用范围未被测试覆盖",
+        "layer": "layer2",
+        "layer_name": "第二层 · 服务关系",
+        "resource_kind": "DestinationRule",
+        "resource_name": "reviews",
+        "resource_namespace": "default",
+        "affected_services": [
+          "reviews"
+        ],
+        "affected_subsets": [
+          "v2"
+        ],
+        "function_type": "traffic_shifting",
+        "alignment_status": "partial_matched",
+        "Sdecl": {
+          "tuple_id": "default.reviews.traffic_shifting",
+          "function_type": "traffic_shifting",
+          "plane": "control_plane",
+          "predicate": {},
+          "action": {
+            "type": "traffic_shifting"
+          },
+          "scope": {
+            "namespace": "default",
+            "service": "reviews",
+            "subsets": [
+              "v1",
+              "v2"
+            ]
+          },
+          "constraint": {
+            "weights": {
+              "v1": 90,
+              "v2": 10
+            }
+          },
+          "source_resources": [],
+          "summary": "→ v1 90% / v2 10% · action=traffic_shifting"
+        },
+        "Sdp": {
+          "tuple_id": "default.reviews.traffic_shifting",
+          "function_type": "traffic_shifting",
+          "plane": "data_plane",
+          "predicate": {},
+          "action": {
+            "type": "traffic_shifting"
+          },
+          "scope": {
+            "namespace": "default",
+            "service": "reviews",
+            "subsets": [
+              "v1",
+              "v2"
+            ]
+          },
+          "constraint": {
+            "weights": {
+              "v1": 80,
+              "v2": 20
+            }
+          },
+          "source_resources": [],
+          "summary": "→ v1 80% / v2 20% · action=traffic_shifting"
+        },
+        "Srt": null,
+        "root_cause": "测试覆盖不完整",
+        "suggestions": [
+          "添加针对子集 {'v2'} 的测试用例",
+          "确认这些子集是否真实存在"
+        ],
+        "impact_scope": [
+          "v2"
+        ],
+        "affected_policies": [
+          "policy_0002"
+        ],
+        "static_expectation": {
+          "applies_to": [
+            "v2",
+            "v1"
+          ]
+        },
+        "dynamic_observation": {
+          "tested": [
+            "v1"
+          ],
+          "missing": [
+            "v2"
+          ]
+        },
+        "details": {}
+      },
+      {
+        "id": "inc_scope_policy_0004",
+        "inconsistency_type": "scope_mismatch",
+        "type": "scope_mismatch",
+        "severity": "medium",
+        "description": "策略 ratings-cb 的部分作用范围未被测试覆盖",
+        "layer": "layer2",
+        "layer_name": "第二层 · 服务关系",
+        "resource_kind": "DestinationRule",
+        "resource_name": "ratings",
+        "resource_namespace": "default",
+        "affected_services": [
+          "ratings"
+        ],
+        "affected_subsets": [
+          "v1"
+        ],
+        "function_type": "circuit_breaker",
+        "alignment_status": "mismatched",
+        "Sdecl": {
+          "tuple_id": "default.ratings.cb",
+          "function_type": "circuit_breaker",
+          "plane": "control_plane",
+          "predicate": {},
+          "action": {
+            "type": "circuit_breaker"
+          },
+          "scope": {
+            "namespace": "default",
+            "service": "ratings",
+            "subsets": [
+              "v1"
+            ]
+          },
+          "constraint": {
+            "consecutive_errors": 5,
+            "max_connections": 100
+          },
+          "source_resources": [],
+          "summary": "action=circuit_breaker · max_connections=100 · consecutive_errors=5"
+        },
+        "Sdp": {
+          "tuple_id": "default.ratings.cb",
+          "function_type": "circuit_breaker",
+          "plane": "data_plane",
+          "predicate": {},
+          "action": {
+            "type": "circuit_breaker"
+          },
+          "scope": {
+            "namespace": "default",
+            "service": "ratings",
+            "subsets": [
+              "v1"
+            ]
+          },
+          "constraint": {
+            "consecutive_errors": 2,
+            "max_connections": 100
+          },
+          "source_resources": [],
+          "summary": "action=circuit_breaker · max_connections=100 · consecutive_errors=2"
+        },
+        "Srt": null,
+        "root_cause": "测试覆盖不完整",
+        "suggestions": [
+          "添加针对子集 {'v1'} 的测试用例",
+          "确认这些子集是否真实存在"
+        ],
+        "impact_scope": [
+          "v1"
+        ],
+        "affected_policies": [
+          "policy_0004"
+        ],
+        "static_expectation": {
+          "applies_to": [
+            "v1"
+          ]
+        },
+        "dynamic_observation": {
+          "tested": [],
+          "missing": [
+            "v1"
+          ]
+        },
+        "details": {}
+      },
+      {
+        "id": "inc_scope_policy_0005",
+        "inconsistency_type": "scope_mismatch",
+        "type": "scope_mismatch",
+        "severity": "medium",
+        "description": "策略 reviews 的部分作用范围未被测试覆盖",
+        "layer": "layer2",
+        "layer_name": "第二层 · 服务关系",
+        "resource_kind": "VirtualService",
+        "resource_name": "reviews",
+        "resource_namespace": "default",
+        "affected_services": [
+          "reviews"
+        ],
+        "affected_subsets": [
+          "v1"
+        ],
+        "function_type": "routing",
+        "alignment_status": "mismatched",
+        "Sdecl": {
+          "tuple_id": "default.reviews.routing.0",
+          "function_type": "routing",
+          "plane": "control_plane",
+          "predicate": {
+            "uri": {
+              "prefix": "/"
+            }
+          },
+          "action": {
+            "type": "route"
+          },
+          "scope": {
+            "namespace": "default",
+            "service": "reviews",
+            "subsets": [
+              "v1",
+              "v2"
+            ]
+          },
+          "constraint": {
+            "destinations": [
+              {
+                "host": "reviews",
+                "subset": "v1",
+                "weight": 80
+              },
+              {
+                "host": "reviews",
+                "subset": "v2",
+                "weight": 20
+              }
+            ],
+            "weights": {
+              "v1": 80,
+              "v2": 20
+            }
+          },
+          "source_resources": [],
+          "summary": "match prefix=/ · → v1 80% / v2 20%"
+        },
+        "Sdp": {
+          "tuple_id": "default.reviews.routing.0",
+          "function_type": "routing",
+          "plane": "data_plane",
+          "predicate": {
+            "uri": {
+              "prefix": "/"
+            }
+          },
+          "action": {
+            "type": "route"
+          },
+          "scope": {
+            "namespace": "default",
+            "service": "reviews",
+            "subsets": [
+              "v1",
+              "v2"
+            ]
+          },
+          "constraint": {
+            "destinations": [
+              {
+                "host": "reviews",
+                "subset": "v1",
+                "weight": 50
+              },
+              {
+                "host": "reviews",
+                "subset": "v2",
+                "weight": 50
+              }
+            ],
+            "weights": {
+              "v1": 50,
+              "v2": 50
+            }
+          },
+          "source_resources": [],
+          "summary": "match prefix=/ · → v1 50% / v2 50%"
+        },
+        "Srt": null,
+        "root_cause": "测试覆盖不完整",
+        "suggestions": [
+          "添加针对子集 {'v1'} 的测试用例",
+          "确认这些子集是否真实存在"
+        ],
+        "impact_scope": [
+          "v1"
+        ],
+        "affected_policies": [
+          "policy_0005"
+        ],
+        "static_expectation": {
+          "applies_to": [
+            "v2",
+            "v1"
+          ]
+        },
+        "dynamic_observation": {
+          "tested": [
+            "v2"
+          ],
+          "missing": [
+            "v1"
+          ]
+        },
+        "details": {}
+      },
+      {
+        "id": "inc_deviation_case_001",
+        "inconsistency_type": "traffic_split_drift",
+        "type": "traffic_split_drift",
+        "severity": "high",
+        "description": "测试 case_001 的实际行为与策略 reviews-split-primary 定义不一致",
+        "layer": "layer2",
+        "layer_name": "第二层 · 服务关系",
+        "resource_kind": "DestinationRule",
+        "resource_name": "reviews",
+        "resource_namespace": "default",
+        "affected_services": [
+          "reviews"
+        ],
+        "affected_subsets": [
+          "v1",
+          "v2"
+        ],
+        "function_type": "traffic_shifting",
+        "alignment_status": "partial_matched",
+        "Sdecl": {
+          "tuple_id": "default.reviews.traffic_shifting",
+          "function_type": "traffic_shifting",
+          "plane": "control_plane",
+          "predicate": {},
+          "action": {
+            "type": "traffic_shifting"
+          },
+          "scope": {
+            "namespace": "default",
+            "service": "reviews",
+            "subsets": [
+              "v1",
+              "v2"
+            ]
+          },
+          "constraint": {
+            "weights": {
+              "v1": 90,
+              "v2": 10
+            }
+          },
+          "source_resources": [],
+          "summary": "→ v1 90% / v2 10% · action=traffic_shifting"
+        },
+        "Sdp": {
+          "tuple_id": "default.reviews.traffic_shifting",
+          "function_type": "traffic_shifting",
+          "plane": "data_plane",
+          "predicate": {},
+          "action": {
+            "type": "traffic_shifting"
+          },
+          "scope": {
+            "namespace": "default",
+            "service": "reviews",
+            "subsets": [
+              "v1",
+              "v2"
+            ]
+          },
+          "constraint": {
+            "weights": {
+              "v1": 80,
+              "v2": 20
+            }
+          },
+          "source_resources": [],
+          "summary": "→ v1 80% / v2 20% · action=traffic_shifting"
+        },
+        "Srt": {
+          "tuple_id": "runtime.case_001",
+          "function_type": "traffic_split",
+          "plane": "runtime",
+          "predicate": {
+            "path": "/reviews/1",
+            "subset": "v1"
+          },
+          "action": {
+            "type": "observe"
+          },
+          "scope": {
+            "service": "reviews",
+            "source": "productpage",
+            "subsets": [
+              "v1"
+            ]
+          },
+          "constraint": {
+            "weights": {
+              "v1": 51,
+              "v2": 49
+            }
+          },
+          "summary": "用例 case_001 未通过 · 期望 {'weights': {'v1': 80, 'v2': 20}} · 实测 {'weights': {'v1': 51, 'v2': 49}}",
+          "test_case_id": "case_001",
+          "verified": false,
+          "expected": {
+            "weights": {
+              "v1": 80,
+              "v2": 20
+            }
+          },
+          "actual": {
+            "weights": {
+              "v1": 51,
+              "v2": 49
+            }
+          }
+        },
+        "root_cause": "以下维度验证失败: weight",
+        "suggestions": [
+          "检查DestinationRule中的subset定义",
+          "验证流量权重配置是否正确",
+          "确保有足够的请求量进行统计验证",
+          "查看详细日志: case_001"
+        ],
+        "impact_scope": [
+          "reviews"
+        ],
+        "affected_policies": [
+          "policy_0001"
+        ],
+        "static_expectation": {
+          "weights": {
+            "v1": 80,
+            "v2": 20
+          }
+        },
+        "dynamic_observation": {
+          "weights": {
+            "v1": 51,
+            "v2": 49
+          }
+        },
+        "details": {}
+      },
+      {
+        "id": "inc_deviation_case_002",
+        "inconsistency_type": "behavior_deviation",
+        "type": "behavior_deviation",
+        "severity": "high",
+        "description": "测试 case_002 的实际行为与策略 reviews 定义不一致",
+        "layer": "layer2",
+        "layer_name": "第二层 · 服务关系",
+        "resource_kind": "VirtualService",
+        "resource_name": "reviews",
+        "resource_namespace": "default",
+        "affected_services": [
+          "reviews"
+        ],
+        "affected_subsets": [
+          "v1",
+          "v2"
+        ],
+        "function_type": "routing",
+        "alignment_status": "mismatched",
+        "Sdecl": {
+          "tuple_id": "default.reviews.routing.0",
+          "function_type": "routing",
+          "plane": "control_plane",
+          "predicate": {
+            "uri": {
+              "prefix": "/"
+            }
+          },
+          "action": {
+            "type": "route"
+          },
+          "scope": {
+            "namespace": "default",
+            "service": "reviews",
+            "subsets": [
+              "v1",
+              "v2"
+            ]
+          },
+          "constraint": {
+            "destinations": [
+              {
+                "host": "reviews",
+                "subset": "v1",
+                "weight": 80
+              },
+              {
+                "host": "reviews",
+                "subset": "v2",
+                "weight": 20
+              }
+            ],
+            "weights": {
+              "v1": 80,
+              "v2": 20
+            }
+          },
+          "source_resources": [],
+          "summary": "match prefix=/ · → v1 80% / v2 20%"
+        },
+        "Sdp": {
+          "tuple_id": "default.reviews.routing.0",
+          "function_type": "routing",
+          "plane": "data_plane",
+          "predicate": {
+            "uri": {
+              "prefix": "/"
+            }
+          },
+          "action": {
+            "type": "route"
+          },
+          "scope": {
+            "namespace": "default",
+            "service": "reviews",
+            "subsets": [
+              "v1",
+              "v2"
+            ]
+          },
+          "constraint": {
+            "destinations": [
+              {
+                "host": "reviews",
+                "subset": "v1",
+                "weight": 50
+              },
+              {
+                "host": "reviews",
+                "subset": "v2",
+                "weight": 50
+              }
+            ],
+            "weights": {
+              "v1": 50,
+              "v2": 50
+            }
+          },
+          "source_resources": [],
+          "summary": "match prefix=/ · → v1 50% / v2 50%"
+        },
+        "Srt": {
+          "tuple_id": "runtime.case_002",
+          "function_type": "routing",
+          "plane": "runtime",
+          "predicate": {
+            "path": "/reviews/1",
+            "header": "end-user=jason",
+            "subset": "v2"
+          },
+          "action": {
+            "type": "observe"
+          },
+          "scope": {
+            "service": "reviews",
+            "source": "productpage",
+            "subsets": [
+              "v2"
+            ]
+          },
+          "constraint": {
+            "destination": "reviews/v1"
+          },
+          "summary": "用例 case_002 未通过 · 期望 {'destination': 'reviews/v2'} · 实测 {'destination': 'reviews/v1'}",
+          "test_case_id": "case_002",
+          "verified": false,
+          "expected": {
+            "destination": "reviews/v2"
+          },
+          "actual": {
+            "destination": "reviews/v1"
+          }
+        },
+        "root_cause": "以下维度验证失败: route",
+        "suggestions": [
+          "检查VirtualService的匹配条件是否正确",
+          "确认目标服务和端口配置",
+          "查看详细日志: case_002"
+        ],
+        "impact_scope": [
+          "reviews"
+        ],
+        "affected_policies": [
+          "policy_0005"
+        ],
+        "static_expectation": {
+          "destination": "reviews/v2"
+        },
+        "dynamic_observation": {
+          "destination": "reviews/v1"
+        },
+        "details": {}
+      },
+      {
+        "id": "inc_deviation_case_003",
+        "inconsistency_type": "behavior_deviation",
+        "type": "behavior_deviation",
+        "severity": "critical",
+        "description": "测试 case_003 的实际行为与策略 ratings-cb 定义不一致",
+        "layer": "layer2",
+        "layer_name": "第二层 · 服务关系",
+        "resource_kind": "DestinationRule",
+        "resource_name": "ratings",
+        "resource_namespace": "default",
+        "affected_services": [
+          "ratings"
+        ],
+        "affected_subsets": [
+          "v1"
+        ],
+        "function_type": "circuit_breaker",
+        "alignment_status": "mismatched",
+        "Sdecl": {
+          "tuple_id": "default.ratings.cb",
+          "function_type": "circuit_breaker",
+          "plane": "control_plane",
+          "predicate": {},
+          "action": {
+            "type": "circuit_breaker"
+          },
+          "scope": {
+            "namespace": "default",
+            "service": "ratings",
+            "subsets": [
+              "v1"
+            ]
+          },
+          "constraint": {
+            "consecutive_errors": 5,
+            "max_connections": 100
+          },
+          "source_resources": [],
+          "summary": "action=circuit_breaker · max_connections=100 · consecutive_errors=5"
+        },
+        "Sdp": {
+          "tuple_id": "default.ratings.cb",
+          "function_type": "circuit_breaker",
+          "plane": "data_plane",
+          "predicate": {},
+          "action": {
+            "type": "circuit_breaker"
+          },
+          "scope": {
+            "namespace": "default",
+            "service": "ratings",
+            "subsets": [
+              "v1"
+            ]
+          },
+          "constraint": {
+            "consecutive_errors": 2,
+            "max_connections": 100
+          },
+          "source_resources": [],
+          "summary": "action=circuit_breaker · max_connections=100 · consecutive_errors=2"
+        },
+        "Srt": {
+          "tuple_id": "runtime.case_003",
+          "function_type": "circuit_breaker",
+          "plane": "runtime",
+          "predicate": {
+            "fault": "5xx"
+          },
+          "action": {
+            "type": "observe"
+          },
+          "scope": {
+            "service": "ratings",
+            "source": "reviews"
+          },
+          "constraint": {
+            "open_after": 2,
+            "ejected": true
+          },
+          "summary": "用例 case_003 未通过 · 期望 {'open_after': 5} · 实测 {'open_after': 2, 'ejected': True}",
+          "test_case_id": "case_003",
+          "verified": false,
+          "expected": {
+            "open_after": 5
+          },
+          "actual": {
+            "open_after": 2,
+            "ejected": true
+          }
+        },
+        "root_cause": "以下维度验证失败: outlier",
+        "suggestions": [
+          "检查连接池和异常检测配置",
+          "确认触发条件是否达到",
+          "查看详细日志: case_003"
+        ],
+        "impact_scope": [
+          "ratings"
+        ],
+        "affected_policies": [
+          "policy_0004"
+        ],
+        "static_expectation": {
+          "open_after": 5
+        },
+        "dynamic_observation": {
+          "open_after": 2,
+          "ejected": true
+        },
+        "details": {}
+      },
+      {
+        "id": "inc_conflict_reviews_traffic_split",
+        "inconsistency_type": "policy_conflict",
+        "type": "policy_conflict",
+        "severity": "high",
+        "description": "服务 reviews 配置了多个流量分配策略，可能导致行为不确定",
+        "layer": "layer3",
+        "layer_name": "第三层 · 配置资源",
+        "resource_kind": "DestinationRule",
+        "resource_name": null,
+        "resource_namespace": "default",
+        "affected_services": [
+          "reviews"
+        ],
+        "affected_subsets": [
+          "v1",
+          "v2"
+        ],
+        "function_type": "traffic_shifting",
+        "alignment_status": "partial_matched",
+        "Sdecl": {
+          "tuple_id": "default.reviews.traffic_shifting",
+          "function_type": "traffic_shifting",
+          "plane": "control_plane",
+          "predicate": {},
+          "action": {
+            "type": "traffic_shifting"
+          },
+          "scope": {
+            "namespace": "default",
+            "service": "reviews",
+            "subsets": [
+              "v1",
+              "v2"
+            ]
+          },
+          "constraint": {
+            "weights": {
+              "v1": 90,
+              "v2": 10
+            }
+          },
+          "source_resources": [],
+          "summary": "→ v1 90% / v2 10% · action=traffic_shifting"
+        },
+        "Sdp": {
+          "tuple_id": "default.reviews.traffic_shifting",
+          "function_type": "traffic_shifting",
+          "plane": "data_plane",
+          "predicate": {},
+          "action": {
+            "type": "traffic_shifting"
+          },
+          "scope": {
+            "namespace": "default",
+            "service": "reviews",
+            "subsets": [
+              "v1",
+              "v2"
+            ]
+          },
+          "constraint": {
+            "weights": {
+              "v1": 80,
+              "v2": 20
+            }
+          },
+          "source_resources": [],
+          "summary": "→ v1 80% / v2 20% · action=traffic_shifting"
+        },
+        "Srt": null,
+        "root_cause": "重复的流量分配配置",
+        "suggestions": [
+          "合并或删除冗余的流量分配策略",
+          "确保只有一个DestinationRule定义流量权重"
+        ],
+        "impact_scope": [
+          "reviews"
+        ],
+        "affected_policies": [
+          "policy_0001",
+          "policy_0002"
+        ],
+        "static_expectation": {},
+        "dynamic_observation": {},
+        "details": {}
+      }
+    ]
+  },
+  "graph_data": {
+    "nodes": [
+      {
+        "id": "productpage",
+        "namespace": "default",
+        "type": "service",
+        "subsets": [],
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "reviews",
+        "namespace": "default",
+        "type": "service",
+        "subsets": [
+          "v1",
+          "v2"
+        ],
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "ratings",
+        "namespace": "default",
+        "type": "service",
+        "subsets": [
+          "v1"
+        ],
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "details",
+        "namespace": "default",
+        "type": "service",
+        "subsets": [],
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "default/productpage",
+        "namespace": "default",
+        "type": "service",
+        "subsets": [],
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "VirtualService/default/bookinfo",
+        "namespace": "default",
+        "type": "resource",
+        "subsets": [],
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "default/*",
+        "namespace": "default",
+        "type": "service",
+        "subsets": [],
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "default/reviews",
+        "namespace": "default",
+        "type": "service",
+        "subsets": [
+          "v1",
+          "v2"
+        ],
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "VirtualService/default/reviews",
+        "namespace": "default",
+        "type": "resource",
+        "subsets": [],
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "DestinationRule/default/reviews",
+        "namespace": "default",
+        "type": "resource",
+        "subsets": [],
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "default/ratings",
+        "namespace": "default",
+        "type": "service",
+        "subsets": [
+          "v1"
+        ],
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "VirtualService/default/ratings",
+        "namespace": "default",
+        "type": "resource",
+        "subsets": [],
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "default/details",
+        "namespace": "default",
+        "type": "service",
+        "subsets": [],
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "VirtualService/default/details",
+        "namespace": "default",
+        "type": "resource",
+        "subsets": [],
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "DestinationRule/default/ratings",
+        "namespace": "default",
+        "type": "resource",
+        "subsets": [],
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "EnvoyFilter/default/productpage-ratelimit",
+        "namespace": "default",
+        "type": "resource",
+        "subsets": [],
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "Gateway/default/bookinfo-gateway",
+        "namespace": "default",
+        "type": "resource",
+        "subsets": [],
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "Gateway/default/frontend-gateway",
+        "namespace": "default",
+        "type": "resource",
+        "subsets": [],
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "Gateway/default/empty-selector-gateway",
+        "namespace": "default",
+        "type": "resource",
+        "subsets": [],
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "Service/default/productpage",
+        "namespace": "default",
+        "type": "resource",
+        "subsets": [],
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "Service/default/reviews",
+        "namespace": "default",
+        "type": "resource",
+        "subsets": [],
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "Service/default/ratings",
+        "namespace": "default",
+        "type": "resource",
+        "subsets": [],
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "Service/default/details",
+        "namespace": "default",
+        "type": "resource",
+        "subsets": [],
+        "consistency_status": "unknown"
+      }
+    ],
+    "edges": [
+      {
+        "id": "edge_0001",
+        "source": "default/productpage",
+        "target": "default/productpage",
+        "type": "route",
+        "weight": 100,
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "edge_0002",
+        "source": "VirtualService/default/bookinfo",
+        "target": "default/productpage",
+        "type": "declares",
+        "weight": null,
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "edge_0003",
+        "source": "VirtualService/default/bookinfo",
+        "target": "default/*",
+        "type": "declares",
+        "weight": null,
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "edge_0004",
+        "source": "default/reviews",
+        "target": "default/reviews",
+        "type": "route",
+        "weight": 80,
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "edge_0005",
+        "source": "default/reviews",
+        "target": "default/reviews",
+        "type": "route",
+        "weight": 20,
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "edge_0006",
+        "source": "default/reviews",
+        "target": "default/reviews",
+        "type": "route",
+        "weight": 50,
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "edge_0007",
+        "source": "VirtualService/default/reviews",
+        "target": "default/reviews",
+        "type": "declares",
+        "weight": null,
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "edge_0008",
+        "source": "DestinationRule/default/reviews",
+        "target": "default/reviews",
+        "type": "declares",
+        "weight": null,
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "edge_0009",
+        "source": "VirtualService/default/ratings",
+        "target": "default/ratings",
+        "type": "declares",
+        "weight": null,
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "edge_0010",
+        "source": "VirtualService/default/details",
+        "target": "default/details",
+        "type": "declares",
+        "weight": null,
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "edge_0011",
+        "source": "DestinationRule/default/ratings",
+        "target": "default/ratings",
+        "type": "declares",
+        "weight": null,
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "edge_0012",
+        "source": "EnvoyFilter/default/productpage-ratelimit",
+        "target": "default/productpage",
+        "type": "declares",
+        "weight": null,
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "edge_0013",
+        "source": "default/ratings",
+        "target": "default/ratings",
+        "type": "route",
+        "weight": 100,
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "edge_0014",
+        "source": "Service/default/productpage",
+        "target": "default/productpage",
+        "type": "declares",
+        "weight": null,
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "edge_0015",
+        "source": "Service/default/reviews",
+        "target": "default/reviews",
+        "type": "declares",
+        "weight": null,
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "edge_0016",
+        "source": "Service/default/ratings",
+        "target": "default/ratings",
+        "type": "declares",
+        "weight": null,
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "edge_0017",
+        "source": "Service/default/details",
+        "target": "default/details",
+        "type": "declares",
+        "weight": null,
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "edge_gw",
+        "source": "istio-gateway",
+        "target": "productpage",
+        "type": "gateway",
+        "weight": null,
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "edge_pp_reviews",
+        "source": "productpage",
+        "target": "reviews",
+        "type": "route",
+        "weight": 100,
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "edge_reviews_ratings",
+        "source": "reviews",
+        "target": "ratings",
+        "type": "route",
+        "weight": 100,
+        "consistency_status": "unknown"
+      },
+      {
+        "id": "edge_reviews_details",
+        "source": "reviews",
+        "target": "details",
+        "type": "route",
+        "weight": 100,
+        "consistency_status": "unknown"
+      }
+    ]
+  },
+  "executive_summary": "# 执行摘要\n\n命名空间: default\n生成时间: 2026-09-03 15:57:11\n\n## 总体状态: INCONSISTENT\n\n**一致性率**: 40.00%\n**总策略数**: 5\n**已验证策略**: 2\n**不一致策略**: 2\n**未验证策略**: 1\n\n## 问题概览\n\n- 总不一致性: 21\n- 关键问题: 1\n- 高优先级问题: 13\n- 作用范围问题: 4\n- 行为偏差: 3\n- 策略冲突: 1\n\n## 关键发现\n\n- [HIGH] reviews 路由权重与数据面不一致：声明 v1 80% / v2 20%，Envoy 为 50% / 50%\n- [HIGH] ratings 超时不一致：VirtualService timeout=1s，Envoy route timeout=5s\n- [HIGH] details 声明了重试策略，sidecar dump 中没有对应 retry_policy\n- [HIGH] productpage Envoy 存在 abort 故障注入，控制面 YAML 未声明\n- [HIGH] ratings 熔断阈值不一致：声明 consecutive5xx=5，数据面为 2",
+  "detailed_findings": [
+    {
+      "id": "inc_deviation_case_003",
+      "inconsistency_type": "behavior_deviation",
+      "type": "behavior_deviation",
+      "severity": "critical",
+      "description": "测试 case_003 的实际行为与策略 ratings-cb 定义不一致",
+      "layer": "layer2",
+      "layer_name": "第二层 · 服务关系",
+      "resource_kind": "DestinationRule",
+      "resource_name": "ratings",
+      "resource_namespace": "default",
+      "affected_services": [
+        "ratings"
+      ],
+      "affected_subsets": [
+        "v1"
+      ],
+      "function_type": "circuit_breaker",
+      "alignment_status": "mismatched",
+      "Sdecl": {
+        "tuple_id": "default.ratings.cb",
+        "function_type": "circuit_breaker",
+        "plane": "control_plane",
+        "predicate": {},
+        "action": {
+          "type": "circuit_breaker"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "ratings",
+          "subsets": [
+            "v1"
+          ]
+        },
+        "constraint": {
+          "consecutive_errors": 5,
+          "max_connections": 100
+        },
+        "source_resources": [],
+        "summary": "action=circuit_breaker · max_connections=100 · consecutive_errors=5"
+      },
+      "Sdp": {
+        "tuple_id": "default.ratings.cb",
+        "function_type": "circuit_breaker",
+        "plane": "data_plane",
+        "predicate": {},
+        "action": {
+          "type": "circuit_breaker"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "ratings",
+          "subsets": [
+            "v1"
+          ]
+        },
+        "constraint": {
+          "consecutive_errors": 2,
+          "max_connections": 100
+        },
+        "source_resources": [],
+        "summary": "action=circuit_breaker · max_connections=100 · consecutive_errors=2"
+      },
+      "Srt": {
+        "tuple_id": "runtime.case_003",
+        "function_type": "circuit_breaker",
+        "plane": "runtime",
+        "predicate": {
+          "fault": "5xx"
+        },
+        "action": {
+          "type": "observe"
+        },
+        "scope": {
+          "service": "ratings",
+          "source": "reviews"
+        },
+        "constraint": {
+          "open_after": 2,
+          "ejected": true
+        },
+        "summary": "用例 case_003 未通过 · 期望 {'open_after': 5} · 实测 {'open_after': 2, 'ejected': True}",
+        "test_case_id": "case_003",
+        "verified": false,
+        "expected": {
+          "open_after": 5
+        },
+        "actual": {
+          "open_after": 2,
+          "ejected": true
+        }
+      },
+      "root_cause": "以下维度验证失败: outlier",
+      "suggestions": [
+        "检查连接池和异常检测配置",
+        "确认触发条件是否达到",
+        "查看详细日志: case_003"
+      ],
+      "impact_scope": [
+        "ratings"
+      ],
+      "affected_policies": [
+        "policy_0004"
+      ],
+      "static_expectation": {
+        "open_after": 5
+      },
+      "dynamic_observation": {
+        "open_after": 2,
+        "ejected": true
+      },
+      "details": {}
+    },
+    {
+      "id": "inc_align_2_reviews_routing",
+      "inconsistency_type": "mismatched",
+      "type": "mismatched",
+      "severity": "high",
+      "description": "reviews 路由权重与数据面不一致：声明 v1 80% / v2 20%，Envoy 为 50% / 50%",
+      "layer": "layer1",
+      "layer_name": "第一层 · 控制面 / 数据面全局",
+      "resource_kind": "VirtualService",
+      "resource_name": "reviews",
+      "resource_namespace": "default",
+      "affected_services": [
+        "reviews"
+      ],
+      "affected_subsets": [
+        "v1",
+        "v2"
+      ],
+      "function_type": "routing",
+      "alignment_status": "mismatched",
+      "Sdecl": {
+        "tuple_id": "default.reviews.routing.0",
+        "function_type": "routing",
+        "plane": "control_plane",
+        "predicate": {
+          "uri": {
+            "prefix": "/"
+          }
+        },
+        "action": {
+          "type": "route"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "reviews",
+          "subsets": [
+            "v1",
+            "v2"
+          ]
+        },
+        "constraint": {
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1",
+              "weight": 80
+            },
+            {
+              "host": "reviews",
+              "subset": "v2",
+              "weight": 20
+            }
+          ],
+          "weights": {
+            "v1": 80,
+            "v2": 20
+          }
+        },
+        "source_resources": [],
+        "summary": "match prefix=/ · → v1 80% / v2 20%"
+      },
+      "Sdp": {
+        "tuple_id": "default.reviews.routing.0",
+        "function_type": "routing",
+        "plane": "data_plane",
+        "predicate": {
+          "uri": {
+            "prefix": "/"
+          }
+        },
+        "action": {
+          "type": "route"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "reviews",
+          "subsets": [
+            "v1",
+            "v2"
+          ]
+        },
+        "constraint": {
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1",
+              "weight": 50
+            },
+            {
+              "host": "reviews",
+              "subset": "v2",
+              "weight": 50
+            }
+          ],
+          "weights": {
+            "v1": 50,
+            "v2": 50
+          }
+        },
+        "source_resources": [],
+        "summary": "match prefix=/ · → v1 50% / v2 50%"
+      },
+      "Srt": {
+        "tuple_id": "runtime.case_002",
+        "function_type": "routing",
+        "plane": "runtime",
+        "predicate": {
+          "path": "/reviews/1",
+          "header": "end-user=jason",
+          "subset": "v2"
+        },
+        "action": {
+          "type": "observe"
+        },
+        "scope": {
+          "service": "reviews",
+          "source": "productpage",
+          "subsets": [
+            "v2"
+          ]
+        },
+        "constraint": {
+          "destination": "reviews/v1"
+        },
+        "summary": "用例 case_002 未通过 · 期望 {'destination': 'reviews/v2'} · 实测 {'destination': 'reviews/v1'}",
+        "test_case_id": "case_002",
+        "verified": false,
+        "expected": {
+          "destination": "reviews/v2"
+        },
+        "actual": {
+          "destination": "reviews/v1"
+        }
+      },
+      "root_cause": "控制面 Sdecl 与数据面 Sdp 对齐状态为 mismatched",
+      "suggestions": [
+        "对照 Sdecl 与 Sdp 的 predicate / action / constraint",
+        "确认 istiod 已将最新配置下发到 sidecar"
+      ],
+      "impact_scope": [
+        "reviews",
+        "v1",
+        "v2"
+      ],
+      "affected_policies": [],
+      "static_expectation": {
+        "alignment_status": "mismatched",
+        "control": {
+          "v1": 80,
+          "v2": 20
+        }
+      },
+      "dynamic_observation": {
+        "data": {
+          "v1": 50,
+          "v2": 50
+        }
+      },
+      "details": {
+        "differences": [
+          {
+            "kind": "discrete",
+            "description": "reviews 路由权重与数据面不一致：声明 v1 80% / v2 20%，Envoy 为 50% / 50%",
+            "control": {
+              "v1": 80,
+              "v2": 20
+            },
+            "data": {
+              "v1": 50,
+              "v2": 50
+            }
+          }
+        ],
+        "pair_key": "default.reviews.routing"
+      }
+    },
+    {
+      "id": "inc_align_4_ratings_timeout",
+      "inconsistency_type": "timeout_mismatch",
+      "type": "timeout_mismatch",
+      "severity": "high",
+      "description": "ratings 超时不一致：VirtualService timeout=1s，Envoy route timeout=5s",
+      "layer": "layer1",
+      "layer_name": "第一层 · 控制面 / 数据面全局",
+      "resource_kind": "VirtualService",
+      "resource_name": "ratings",
+      "resource_namespace": "default",
+      "affected_services": [
+        "ratings"
+      ],
+      "affected_subsets": [
+        "v1"
+      ],
+      "function_type": "timeout",
+      "alignment_status": "mismatched",
+      "Sdecl": {
+        "tuple_id": "default.ratings.timeout",
+        "function_type": "timeout",
+        "plane": "control_plane",
+        "predicate": {},
+        "action": {
+          "type": "timeout"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "ratings",
+          "subsets": [
+            "v1"
+          ]
+        },
+        "constraint": {
+          "timeout": "1s",
+          "timeout_seconds": 1
+        },
+        "source_resources": [],
+        "summary": "action=timeout · timeout=1s · timeout_seconds=1"
+      },
+      "Sdp": {
+        "tuple_id": "default.ratings.timeout",
+        "function_type": "timeout",
+        "plane": "data_plane",
+        "predicate": {},
+        "action": {
+          "type": "timeout"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "ratings",
+          "subsets": [
+            "v1"
+          ]
+        },
+        "constraint": {
+          "timeout": "5s",
+          "timeout_seconds": 5
+        },
+        "source_resources": [],
+        "summary": "action=timeout · timeout=5s · timeout_seconds=5"
+      },
+      "Srt": null,
+      "root_cause": "控制面 Sdecl 与数据面 Sdp 对齐状态为 mismatched",
+      "suggestions": [
+        "对照 Sdecl 与 Sdp 的 predicate / action / constraint",
+        "确认 istiod 已将最新配置下发到 sidecar"
+      ],
+      "impact_scope": [
+        "ratings",
+        "v1"
+      ],
+      "affected_policies": [],
+      "static_expectation": {
+        "alignment_status": "mismatched",
+        "control": "1s"
+      },
+      "dynamic_observation": {
+        "data": "5s"
+      },
+      "details": {
+        "differences": [
+          {
+            "kind": "timeout",
+            "description": "ratings 超时不一致：VirtualService timeout=1s，Envoy route timeout=5s",
+            "control": "1s",
+            "data": "5s"
+          }
+        ],
+        "pair_key": "default.ratings.timeout"
+      }
+    },
+    {
+      "id": "inc_align_5_details_retry",
+      "inconsistency_type": "control_only",
+      "type": "control_only",
+      "severity": "high",
+      "description": "details 声明了重试策略，sidecar dump 中没有对应 retry_policy",
+      "layer": "layer1",
+      "layer_name": "第一层 · 控制面 / 数据面全局",
+      "resource_kind": "VirtualService",
+      "resource_name": "details",
+      "resource_namespace": "default",
+      "affected_services": [
+        "details"
+      ],
+      "affected_subsets": [],
+      "function_type": "retry",
+      "alignment_status": "control_only",
+      "Sdecl": {
+        "tuple_id": "default.details.retry",
+        "function_type": "retry",
+        "plane": "control_plane",
+        "predicate": {},
+        "action": {
+          "type": "retry"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "details"
+        },
+        "constraint": {
+          "attempts": 3,
+          "retry_on": "5xx"
+        },
+        "source_resources": [],
+        "summary": "action=retry · attempts=3 · retry_on=5xx"
+      },
+      "Sdp": null,
+      "Srt": null,
+      "root_cause": "控制面 Sdecl 与数据面 Sdp 对齐状态为 control_only",
+      "suggestions": [
+        "对照 Sdecl 与 Sdp 的 predicate / action / constraint",
+        "确认 istiod 已将最新配置下发到 sidecar"
+      ],
+      "impact_scope": [
+        "details"
+      ],
+      "affected_policies": [],
+      "static_expectation": {
+        "alignment_status": "control_only",
+        "control": null
+      },
+      "dynamic_observation": {
+        "data": null
+      },
+      "details": {
+        "differences": [
+          {
+            "kind": "missing",
+            "description": "details 声明了重试策略，sidecar dump 中没有对应 retry_policy"
+          }
+        ],
+        "pair_key": "default.details.retry"
+      }
+    },
+    {
+      "id": "inc_align_6_productpage_fault_injection",
+      "inconsistency_type": "data_only",
+      "type": "data_only",
+      "severity": "high",
+      "description": "productpage Envoy 存在 abort 故障注入，控制面 YAML 未声明",
+      "layer": "layer1",
+      "layer_name": "第一层 · 控制面 / 数据面全局",
+      "resource_kind": "VirtualService",
+      "resource_name": null,
+      "resource_namespace": "default",
+      "affected_services": [
+        "productpage"
+      ],
+      "affected_subsets": [],
+      "function_type": "fault_injection",
+      "alignment_status": "data_only",
+      "Sdecl": null,
+      "Sdp": {
+        "tuple_id": "default.productpage.fault",
+        "function_type": "fault_injection",
+        "plane": "data_plane",
+        "predicate": {
+          "uri": {
+            "prefix": "/productpage"
+          }
+        },
+        "action": {
+          "type": "abort"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "productpage"
+        },
+        "constraint": {
+          "abort_percent": 10,
+          "http_status": 503
+        },
+        "source_resources": [],
+        "summary": "match prefix=/productpage · action=abort · abort_percent=10"
+      },
+      "Srt": null,
+      "root_cause": "控制面 Sdecl 与数据面 Sdp 对齐状态为 data_only",
+      "suggestions": [
+        "对照 Sdecl 与 Sdp 的 predicate / action / constraint",
+        "确认 istiod 已将最新配置下发到 sidecar"
+      ],
+      "impact_scope": [
+        "productpage"
+      ],
+      "affected_policies": [],
+      "static_expectation": {
+        "alignment_status": "data_only",
+        "control": null
+      },
+      "dynamic_observation": {
+        "data": null
+      },
+      "details": {
+        "differences": [
+          {
+            "kind": "missing",
+            "description": "productpage Envoy 存在 abort 故障注入，控制面 YAML 未声明"
+          }
+        ],
+        "pair_key": "default.productpage.fault_injection"
+      }
+    },
+    {
+      "id": "inc_align_7_ratings_circuit_breaker",
+      "inconsistency_type": "mismatched",
+      "type": "mismatched",
+      "severity": "high",
+      "description": "ratings 熔断阈值不一致：声明 consecutive5xx=5，数据面为 2",
+      "layer": "layer1",
+      "layer_name": "第一层 · 控制面 / 数据面全局",
+      "resource_kind": "DestinationRule",
+      "resource_name": "ratings",
+      "resource_namespace": "default",
+      "affected_services": [
+        "ratings"
+      ],
+      "affected_subsets": [
+        "v1"
+      ],
+      "function_type": "circuit_breaker",
+      "alignment_status": "mismatched",
+      "Sdecl": {
+        "tuple_id": "default.ratings.cb",
+        "function_type": "circuit_breaker",
+        "plane": "control_plane",
+        "predicate": {},
+        "action": {
+          "type": "circuit_breaker"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "ratings",
+          "subsets": [
+            "v1"
+          ]
+        },
+        "constraint": {
+          "consecutive_errors": 5,
+          "max_connections": 100
+        },
+        "source_resources": [],
+        "summary": "action=circuit_breaker · max_connections=100 · consecutive_errors=5"
+      },
+      "Sdp": {
+        "tuple_id": "default.ratings.cb",
+        "function_type": "circuit_breaker",
+        "plane": "data_plane",
+        "predicate": {},
+        "action": {
+          "type": "circuit_breaker"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "ratings",
+          "subsets": [
+            "v1"
+          ]
+        },
+        "constraint": {
+          "consecutive_errors": 2,
+          "max_connections": 100
+        },
+        "source_resources": [],
+        "summary": "action=circuit_breaker · max_connections=100 · consecutive_errors=2"
+      },
+      "Srt": {
+        "tuple_id": "runtime.case_003",
+        "function_type": "circuit_breaker",
+        "plane": "runtime",
+        "predicate": {
+          "fault": "5xx"
+        },
+        "action": {
+          "type": "observe"
+        },
+        "scope": {
+          "service": "ratings",
+          "source": "reviews"
+        },
+        "constraint": {
+          "open_after": 2,
+          "ejected": true
+        },
+        "summary": "用例 case_003 未通过 · 期望 {'open_after': 5} · 实测 {'open_after': 2, 'ejected': True}",
+        "test_case_id": "case_003",
+        "verified": false,
+        "expected": {
+          "open_after": 5
+        },
+        "actual": {
+          "open_after": 2,
+          "ejected": true
+        }
+      },
+      "root_cause": "控制面 Sdecl 与数据面 Sdp 对齐状态为 mismatched",
+      "suggestions": [
+        "对照 Sdecl 与 Sdp 的 predicate / action / constraint",
+        "确认 istiod 已将最新配置下发到 sidecar"
+      ],
+      "impact_scope": [
+        "ratings",
+        "v1"
+      ],
+      "affected_policies": [],
+      "static_expectation": {
+        "alignment_status": "mismatched",
+        "control": 5
+      },
+      "dynamic_observation": {
+        "data": 2
+      },
+      "details": {
+        "differences": [
+          {
+            "kind": "discrete",
+            "description": "ratings 熔断阈值不一致：声明 consecutive5xx=5，数据面为 2",
+            "control": 5,
+            "data": 2
+          }
+        ],
+        "pair_key": "default.ratings.circuit_breaker"
+      }
+    },
+    {
+      "id": "inc_align_8_productpage_rate_limit",
+      "inconsistency_type": "control_only",
+      "type": "control_only",
+      "severity": "high",
+      "description": "productpage EnvoyFilter 限流已声明，数据面未看到 local_ratelimit 过滤器",
+      "layer": "layer1",
+      "layer_name": "第一层 · 控制面 / 数据面全局",
+      "resource_kind": "EnvoyFilter",
+      "resource_name": "productpage-ratelimit",
+      "resource_namespace": "default",
+      "affected_services": [
+        "productpage"
+      ],
+      "affected_subsets": [],
+      "function_type": "rate_limit",
+      "alignment_status": "control_only",
+      "Sdecl": {
+        "tuple_id": "default.productpage.rl",
+        "function_type": "rate_limit",
+        "plane": "control_plane",
+        "predicate": {},
+        "action": {
+          "type": "rate_limit"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "productpage"
+        },
+        "constraint": {
+          "requests_per_unit": 10,
+          "unit": "second"
+        },
+        "source_resources": [],
+        "summary": "action=rate_limit"
+      },
+      "Sdp": null,
+      "Srt": null,
+      "root_cause": "控制面 Sdecl 与数据面 Sdp 对齐状态为 control_only",
+      "suggestions": [
+        "对照 Sdecl 与 Sdp 的 predicate / action / constraint",
+        "确认 istiod 已将最新配置下发到 sidecar"
+      ],
+      "impact_scope": [
+        "productpage"
+      ],
+      "affected_policies": [],
+      "static_expectation": {
+        "alignment_status": "control_only",
+        "control": null
+      },
+      "dynamic_observation": {
+        "data": null
+      },
+      "details": {
+        "differences": [
+          {
+            "kind": "missing",
+            "description": "productpage EnvoyFilter 限流已声明，数据面未看到 local_ratelimit 过滤器"
+          }
+        ],
+        "pair_key": "default.productpage.rate_limit"
+      }
+    },
+    {
+      "id": "inc_conflict_1_missing_subset",
+      "inconsistency_type": "missing_subset",
+      "type": "missing_subset",
+      "severity": "high",
+      "description": "VirtualService 'reviews' 引用 subset 'v3'，但 DestinationRule 中 reviews 只定义了 ['v1', 'v2']",
+      "layer": "layer3",
+      "layer_name": "第三层 · 配置资源",
+      "resource_kind": "VirtualService",
+      "resource_name": "reviews",
+      "resource_namespace": "default",
+      "affected_services": [
+        "reviews"
+      ],
+      "affected_subsets": [
+        "v3"
+      ],
+      "function_type": "routing",
+      "alignment_status": null,
+      "Sdecl": {
+        "tuple_id": "decl.VirtualService.reviews",
+        "function_type": "routing",
+        "plane": "control_plane",
+        "predicate": {},
+        "action": {
+          "type": "missing_subset"
+        },
+        "scope": {
+          "service": "reviews",
+          "namespace": "default",
+          "subsets": [
+            "v3"
+          ]
+        },
+        "constraint": {
+          "virtualservice": "reviews",
+          "namespace": "default",
+          "service": "reviews",
+          "missing_subset": "v3",
+          "available_subsets": [
+            "v1",
+            "v2"
+          ]
+        },
+        "source_resources": [],
+        "summary": "action=missing_subset"
+      },
+      "Sdp": null,
+      "Srt": null,
+      "root_cause": "跨资源引用或选择器组合后语义破裂",
+      "suggestions": [
+        "核对 VirtualService 引用的 Gateway / subset 是否真实存在",
+        "合并重复匹配条件或冲突的 Gateway selector"
+      ],
+      "impact_scope": [
+        "reviews",
+        "v3"
+      ],
+      "affected_policies": [],
+      "static_expectation": {},
+      "dynamic_observation": {},
+      "details": {
+        "type": "missing_subset",
+        "severity": "high",
+        "virtualservice": "reviews",
+        "namespace": "default",
+        "service": "reviews",
+        "missing_subset": "v3",
+        "available_subsets": [
+          "v1",
+          "v2"
+        ],
+        "description": "VirtualService 'reviews' 引用 subset 'v3'，但 DestinationRule 中 reviews 只定义了 ['v1', 'v2']"
+      }
+    },
+    {
+      "id": "inc_conflict_2_gateway_unmatched",
+      "inconsistency_type": "gateway_unmatched",
+      "type": "gateway_unmatched",
+      "severity": "high",
+      "description": "VirtualService 'bookinfo' 绑定 Gateway 'missing-gateway'，但未找到对应 Gateway 资源",
+      "layer": "layer3",
+      "layer_name": "第三层 · 配置资源",
+      "resource_kind": "VirtualService",
+      "resource_name": "bookinfo",
+      "resource_namespace": "default",
+      "affected_services": [],
+      "affected_subsets": [],
+      "function_type": null,
+      "alignment_status": null,
+      "Sdecl": {
+        "tuple_id": "decl.VirtualService.bookinfo",
+        "function_type": "routing",
+        "plane": "control_plane",
+        "predicate": {},
+        "action": {
+          "type": "gateway_unmatched"
+        },
+        "scope": {
+          "namespace": "default"
+        },
+        "constraint": {
+          "virtualservice": "bookinfo",
+          "namespace": "default",
+          "gateway": "missing-gateway"
+        },
+        "source_resources": [],
+        "summary": "action=gateway_unmatched"
+      },
+      "Sdp": null,
+      "Srt": null,
+      "root_cause": "跨资源引用或选择器组合后语义破裂",
+      "suggestions": [
+        "核对 VirtualService 引用的 Gateway / subset 是否真实存在",
+        "合并重复匹配条件或冲突的 Gateway selector"
+      ],
+      "impact_scope": [],
+      "affected_policies": [],
+      "static_expectation": {},
+      "dynamic_observation": {},
+      "details": {
+        "type": "gateway_unmatched",
+        "severity": "high",
+        "virtualservice": "bookinfo",
+        "namespace": "default",
+        "gateway": "missing-gateway",
+        "description": "VirtualService 'bookinfo' 绑定 Gateway 'missing-gateway'，但未找到对应 Gateway 资源"
+      }
+    },
+    {
+      "id": "inc_conflict_4_gateway_selector_conflict",
+      "inconsistency_type": "gateway_selector_conflict",
+      "type": "gateway_selector_conflict",
+      "severity": "high",
+      "description": "多个 Gateway ['default/bookinfo-gateway', 'default/frontend-gateway'] 使用相同 selector {'istio': 'ingressgateway'}，入口选择器冲突",
+      "layer": "layer3",
+      "layer_name": "第三层 · 配置资源",
+      "resource_kind": "Gateway",
+      "resource_name": "default/bookinfo-gateway, default/frontend-gateway",
+      "resource_namespace": null,
+      "affected_services": [],
+      "affected_subsets": [],
+      "function_type": null,
+      "alignment_status": null,
+      "Sdecl": {
+        "tuple_id": "decl.Gateway.default/bookinfo-gateway, default/frontend-gateway",
+        "function_type": "routing",
+        "plane": "control_plane",
+        "predicate": {},
+        "action": {
+          "type": "gateway_selector_conflict"
+        },
+        "scope": {},
+        "constraint": {
+          "gateways": [
+            "default/bookinfo-gateway",
+            "default/frontend-gateway"
+          ],
+          "selector": {
+            "istio": "ingressgateway"
+          }
+        },
+        "source_resources": [],
+        "summary": "action=gateway_selector_conflict"
+      },
+      "Sdp": null,
+      "Srt": null,
+      "root_cause": "跨资源引用或选择器组合后语义破裂",
+      "suggestions": [
+        "核对 VirtualService 引用的 Gateway / subset 是否真实存在",
+        "合并重复匹配条件或冲突的 Gateway selector"
+      ],
+      "impact_scope": [],
+      "affected_policies": [],
+      "static_expectation": {},
+      "dynamic_observation": {},
+      "details": {
+        "type": "gateway_selector_conflict",
+        "severity": "high",
+        "gateways": [
+          "default/bookinfo-gateway",
+          "default/frontend-gateway"
+        ],
+        "selector": {
+          "istio": "ingressgateway"
+        },
+        "description": "多个 Gateway ['default/bookinfo-gateway', 'default/frontend-gateway'] 使用相同 selector {'istio': 'ingressgateway'}，入口选择器冲突"
+      }
+    },
+    {
+      "id": "inc_conflict_5_route_priority_conflict",
+      "inconsistency_type": "route_priority_conflict",
+      "type": "route_priority_conflict",
+      "severity": "high",
+      "description": "VirtualService 'reviews' 第 0 与第 1 条 HTTP 规则匹配条件相同，优先级冲突",
+      "layer": "layer3",
+      "layer_name": "第三层 · 配置资源",
+      "resource_kind": "VirtualService",
+      "resource_name": "reviews",
+      "resource_namespace": "default",
+      "affected_services": [],
+      "affected_subsets": [],
+      "function_type": "routing",
+      "alignment_status": null,
+      "Sdecl": {
+        "tuple_id": "decl.VirtualService.reviews",
+        "function_type": "routing",
+        "plane": "control_plane",
+        "predicate": {},
+        "action": {
+          "type": "route_priority_conflict"
+        },
+        "scope": {
+          "namespace": "default"
+        },
+        "constraint": {
+          "virtualservice": "reviews",
+          "namespace": "default",
+          "rules": [
+            0,
+            1
+          ]
+        },
+        "source_resources": [],
+        "summary": "action=route_priority_conflict"
+      },
+      "Sdp": null,
+      "Srt": null,
+      "root_cause": "跨资源引用或选择器组合后语义破裂",
+      "suggestions": [
+        "核对 VirtualService 引用的 Gateway / subset 是否真实存在",
+        "合并重复匹配条件或冲突的 Gateway selector"
+      ],
+      "impact_scope": [],
+      "affected_policies": [],
+      "static_expectation": {},
+      "dynamic_observation": {},
+      "details": {
+        "type": "route_priority_conflict",
+        "severity": "high",
+        "virtualservice": "reviews",
+        "namespace": "default",
+        "rules": [
+          0,
+          1
+        ],
+        "description": "VirtualService 'reviews' 第 0 与第 1 条 HTTP 规则匹配条件相同，优先级冲突"
+      }
+    },
+    {
+      "id": "inc_deviation_case_001",
+      "inconsistency_type": "traffic_split_drift",
+      "type": "traffic_split_drift",
+      "severity": "high",
+      "description": "测试 case_001 的实际行为与策略 reviews-split-primary 定义不一致",
+      "layer": "layer2",
+      "layer_name": "第二层 · 服务关系",
+      "resource_kind": "DestinationRule",
+      "resource_name": "reviews",
+      "resource_namespace": "default",
+      "affected_services": [
+        "reviews"
+      ],
+      "affected_subsets": [
+        "v1",
+        "v2"
+      ],
+      "function_type": "traffic_shifting",
+      "alignment_status": "partial_matched",
+      "Sdecl": {
+        "tuple_id": "default.reviews.traffic_shifting",
+        "function_type": "traffic_shifting",
+        "plane": "control_plane",
+        "predicate": {},
+        "action": {
+          "type": "traffic_shifting"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "reviews",
+          "subsets": [
+            "v1",
+            "v2"
+          ]
+        },
+        "constraint": {
+          "weights": {
+            "v1": 90,
+            "v2": 10
+          }
+        },
+        "source_resources": [],
+        "summary": "→ v1 90% / v2 10% · action=traffic_shifting"
+      },
+      "Sdp": {
+        "tuple_id": "default.reviews.traffic_shifting",
+        "function_type": "traffic_shifting",
+        "plane": "data_plane",
+        "predicate": {},
+        "action": {
+          "type": "traffic_shifting"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "reviews",
+          "subsets": [
+            "v1",
+            "v2"
+          ]
+        },
+        "constraint": {
+          "weights": {
+            "v1": 80,
+            "v2": 20
+          }
+        },
+        "source_resources": [],
+        "summary": "→ v1 80% / v2 20% · action=traffic_shifting"
+      },
+      "Srt": {
+        "tuple_id": "runtime.case_001",
+        "function_type": "traffic_split",
+        "plane": "runtime",
+        "predicate": {
+          "path": "/reviews/1",
+          "subset": "v1"
+        },
+        "action": {
+          "type": "observe"
+        },
+        "scope": {
+          "service": "reviews",
+          "source": "productpage",
+          "subsets": [
+            "v1"
+          ]
+        },
+        "constraint": {
+          "weights": {
+            "v1": 51,
+            "v2": 49
+          }
+        },
+        "summary": "用例 case_001 未通过 · 期望 {'weights': {'v1': 80, 'v2': 20}} · 实测 {'weights': {'v1': 51, 'v2': 49}}",
+        "test_case_id": "case_001",
+        "verified": false,
+        "expected": {
+          "weights": {
+            "v1": 80,
+            "v2": 20
+          }
+        },
+        "actual": {
+          "weights": {
+            "v1": 51,
+            "v2": 49
+          }
+        }
+      },
+      "root_cause": "以下维度验证失败: weight",
+      "suggestions": [
+        "检查DestinationRule中的subset定义",
+        "验证流量权重配置是否正确",
+        "确保有足够的请求量进行统计验证",
+        "查看详细日志: case_001"
+      ],
+      "impact_scope": [
+        "reviews"
+      ],
+      "affected_policies": [
+        "policy_0001"
+      ],
+      "static_expectation": {
+        "weights": {
+          "v1": 80,
+          "v2": 20
+        }
+      },
+      "dynamic_observation": {
+        "weights": {
+          "v1": 51,
+          "v2": 49
+        }
+      },
+      "details": {}
+    },
+    {
+      "id": "inc_deviation_case_002",
+      "inconsistency_type": "behavior_deviation",
+      "type": "behavior_deviation",
+      "severity": "high",
+      "description": "测试 case_002 的实际行为与策略 reviews 定义不一致",
+      "layer": "layer2",
+      "layer_name": "第二层 · 服务关系",
+      "resource_kind": "VirtualService",
+      "resource_name": "reviews",
+      "resource_namespace": "default",
+      "affected_services": [
+        "reviews"
+      ],
+      "affected_subsets": [
+        "v1",
+        "v2"
+      ],
+      "function_type": "routing",
+      "alignment_status": "mismatched",
+      "Sdecl": {
+        "tuple_id": "default.reviews.routing.0",
+        "function_type": "routing",
+        "plane": "control_plane",
+        "predicate": {
+          "uri": {
+            "prefix": "/"
+          }
+        },
+        "action": {
+          "type": "route"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "reviews",
+          "subsets": [
+            "v1",
+            "v2"
+          ]
+        },
+        "constraint": {
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1",
+              "weight": 80
+            },
+            {
+              "host": "reviews",
+              "subset": "v2",
+              "weight": 20
+            }
+          ],
+          "weights": {
+            "v1": 80,
+            "v2": 20
+          }
+        },
+        "source_resources": [],
+        "summary": "match prefix=/ · → v1 80% / v2 20%"
+      },
+      "Sdp": {
+        "tuple_id": "default.reviews.routing.0",
+        "function_type": "routing",
+        "plane": "data_plane",
+        "predicate": {
+          "uri": {
+            "prefix": "/"
+          }
+        },
+        "action": {
+          "type": "route"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "reviews",
+          "subsets": [
+            "v1",
+            "v2"
+          ]
+        },
+        "constraint": {
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1",
+              "weight": 50
+            },
+            {
+              "host": "reviews",
+              "subset": "v2",
+              "weight": 50
+            }
+          ],
+          "weights": {
+            "v1": 50,
+            "v2": 50
+          }
+        },
+        "source_resources": [],
+        "summary": "match prefix=/ · → v1 50% / v2 50%"
+      },
+      "Srt": {
+        "tuple_id": "runtime.case_002",
+        "function_type": "routing",
+        "plane": "runtime",
+        "predicate": {
+          "path": "/reviews/1",
+          "header": "end-user=jason",
+          "subset": "v2"
+        },
+        "action": {
+          "type": "observe"
+        },
+        "scope": {
+          "service": "reviews",
+          "source": "productpage",
+          "subsets": [
+            "v2"
+          ]
+        },
+        "constraint": {
+          "destination": "reviews/v1"
+        },
+        "summary": "用例 case_002 未通过 · 期望 {'destination': 'reviews/v2'} · 实测 {'destination': 'reviews/v1'}",
+        "test_case_id": "case_002",
+        "verified": false,
+        "expected": {
+          "destination": "reviews/v2"
+        },
+        "actual": {
+          "destination": "reviews/v1"
+        }
+      },
+      "root_cause": "以下维度验证失败: route",
+      "suggestions": [
+        "检查VirtualService的匹配条件是否正确",
+        "确认目标服务和端口配置",
+        "查看详细日志: case_002"
+      ],
+      "impact_scope": [
+        "reviews"
+      ],
+      "affected_policies": [
+        "policy_0005"
+      ],
+      "static_expectation": {
+        "destination": "reviews/v2"
+      },
+      "dynamic_observation": {
+        "destination": "reviews/v1"
+      },
+      "details": {}
+    },
+    {
+      "id": "inc_conflict_reviews_traffic_split",
+      "inconsistency_type": "policy_conflict",
+      "type": "policy_conflict",
+      "severity": "high",
+      "description": "服务 reviews 配置了多个流量分配策略，可能导致行为不确定",
+      "layer": "layer3",
+      "layer_name": "第三层 · 配置资源",
+      "resource_kind": "DestinationRule",
+      "resource_name": null,
+      "resource_namespace": "default",
+      "affected_services": [
+        "reviews"
+      ],
+      "affected_subsets": [
+        "v1",
+        "v2"
+      ],
+      "function_type": "traffic_shifting",
+      "alignment_status": "partial_matched",
+      "Sdecl": {
+        "tuple_id": "default.reviews.traffic_shifting",
+        "function_type": "traffic_shifting",
+        "plane": "control_plane",
+        "predicate": {},
+        "action": {
+          "type": "traffic_shifting"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "reviews",
+          "subsets": [
+            "v1",
+            "v2"
+          ]
+        },
+        "constraint": {
+          "weights": {
+            "v1": 90,
+            "v2": 10
+          }
+        },
+        "source_resources": [],
+        "summary": "→ v1 90% / v2 10% · action=traffic_shifting"
+      },
+      "Sdp": {
+        "tuple_id": "default.reviews.traffic_shifting",
+        "function_type": "traffic_shifting",
+        "plane": "data_plane",
+        "predicate": {},
+        "action": {
+          "type": "traffic_shifting"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "reviews",
+          "subsets": [
+            "v1",
+            "v2"
+          ]
+        },
+        "constraint": {
+          "weights": {
+            "v1": 80,
+            "v2": 20
+          }
+        },
+        "source_resources": [],
+        "summary": "→ v1 80% / v2 20% · action=traffic_shifting"
+      },
+      "Srt": null,
+      "root_cause": "重复的流量分配配置",
+      "suggestions": [
+        "合并或删除冗余的流量分配策略",
+        "确保只有一个DestinationRule定义流量权重"
+      ],
+      "impact_scope": [
+        "reviews"
+      ],
+      "affected_policies": [
+        "policy_0001",
+        "policy_0002"
+      ],
+      "static_expectation": {},
+      "dynamic_observation": {},
+      "details": {}
+    },
+    {
+      "id": "inc_align_3_reviews_traffic_shifting",
+      "inconsistency_type": "partial_matched",
+      "type": "partial_matched",
+      "severity": "medium",
+      "description": "reviews 流量分割部分匹配：v2 权重偏差 10%，仍超出容差 τ=0.1 的边缘",
+      "layer": "layer1",
+      "layer_name": "第一层 · 控制面 / 数据面全局",
+      "resource_kind": "DestinationRule",
+      "resource_name": "reviews",
+      "resource_namespace": "default",
+      "affected_services": [
+        "reviews"
+      ],
+      "affected_subsets": [
+        "v1",
+        "v2"
+      ],
+      "function_type": "traffic_shifting",
+      "alignment_status": "partial_matched",
+      "Sdecl": {
+        "tuple_id": "default.reviews.traffic_shifting",
+        "function_type": "traffic_shifting",
+        "plane": "control_plane",
+        "predicate": {},
+        "action": {
+          "type": "traffic_shifting"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "reviews",
+          "subsets": [
+            "v1",
+            "v2"
+          ]
+        },
+        "constraint": {
+          "weights": {
+            "v1": 90,
+            "v2": 10
+          }
+        },
+        "source_resources": [],
+        "summary": "→ v1 90% / v2 10% · action=traffic_shifting"
+      },
+      "Sdp": {
+        "tuple_id": "default.reviews.traffic_shifting",
+        "function_type": "traffic_shifting",
+        "plane": "data_plane",
+        "predicate": {},
+        "action": {
+          "type": "traffic_shifting"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "reviews",
+          "subsets": [
+            "v1",
+            "v2"
+          ]
+        },
+        "constraint": {
+          "weights": {
+            "v1": 80,
+            "v2": 20
+          }
+        },
+        "source_resources": [],
+        "summary": "→ v1 80% / v2 20% · action=traffic_shifting"
+      },
+      "Srt": {
+        "tuple_id": "runtime.case_001",
+        "function_type": "traffic_split",
+        "plane": "runtime",
+        "predicate": {
+          "path": "/reviews/1",
+          "subset": "v1"
+        },
+        "action": {
+          "type": "observe"
+        },
+        "scope": {
+          "service": "reviews",
+          "source": "productpage",
+          "subsets": [
+            "v1"
+          ]
+        },
+        "constraint": {
+          "weights": {
+            "v1": 51,
+            "v2": 49
+          }
+        },
+        "summary": "用例 case_001 未通过 · 期望 {'weights': {'v1': 80, 'v2': 20}} · 实测 {'weights': {'v1': 51, 'v2': 49}}",
+        "test_case_id": "case_001",
+        "verified": false,
+        "expected": {
+          "weights": {
+            "v1": 80,
+            "v2": 20
+          }
+        },
+        "actual": {
+          "weights": {
+            "v1": 51,
+            "v2": 49
+          }
+        }
+      },
+      "root_cause": "控制面 Sdecl 与数据面 Sdp 对齐状态为 partial_matched",
+      "suggestions": [
+        "对照 Sdecl 与 Sdp 的 predicate / action / constraint",
+        "确认 istiod 已将最新配置下发到 sidecar"
+      ],
+      "impact_scope": [
+        "reviews",
+        "v1",
+        "v2"
+      ],
+      "affected_policies": [],
+      "static_expectation": {
+        "alignment_status": "partial_matched",
+        "control": {
+          "v1": 90,
+          "v2": 10
+        }
+      },
+      "dynamic_observation": {
+        "data": {
+          "v1": 80,
+          "v2": 20
+        }
+      },
+      "details": {
+        "differences": [
+          {
+            "kind": "numeric",
+            "description": "reviews 流量分割部分匹配：v2 权重偏差 10%，仍超出容差 τ=0.1 的边缘",
+            "control": {
+              "v1": 90,
+              "v2": 10
+            },
+            "data": {
+              "v1": 80,
+              "v2": 20
+            }
+          }
+        ],
+        "pair_key": "default.reviews.traffic_shifting"
+      }
+    },
+    {
+      "id": "inc_conflict_3_gateway_selector_empty",
+      "inconsistency_type": "gateway_selector_empty",
+      "type": "gateway_selector_empty",
+      "severity": "medium",
+      "description": "Gateway 'empty-selector-gateway' 未设置 selector，无法绑定到 ingress/gateway workload",
+      "layer": "layer3",
+      "layer_name": "第三层 · 配置资源",
+      "resource_kind": "Gateway",
+      "resource_name": "empty-selector-gateway",
+      "resource_namespace": "default",
+      "affected_services": [],
+      "affected_subsets": [],
+      "function_type": null,
+      "alignment_status": null,
+      "Sdecl": {
+        "tuple_id": "decl.Gateway.empty-selector-gateway",
+        "function_type": "routing",
+        "plane": "control_plane",
+        "predicate": {},
+        "action": {
+          "type": "gateway_selector_empty"
+        },
+        "scope": {
+          "namespace": "default"
+        },
+        "constraint": {
+          "gateway": "empty-selector-gateway",
+          "namespace": "default"
+        },
+        "source_resources": [],
+        "summary": "action=gateway_selector_empty"
+      },
+      "Sdp": null,
+      "Srt": null,
+      "root_cause": "跨资源引用或选择器组合后语义破裂",
+      "suggestions": [
+        "核对 VirtualService 引用的 Gateway / subset 是否真实存在",
+        "合并重复匹配条件或冲突的 Gateway selector"
+      ],
+      "impact_scope": [],
+      "affected_policies": [],
+      "static_expectation": {},
+      "dynamic_observation": {},
+      "details": {
+        "type": "gateway_selector_empty",
+        "severity": "medium",
+        "gateway": "empty-selector-gateway",
+        "namespace": "default",
+        "description": "Gateway 'empty-selector-gateway' 未设置 selector，无法绑定到 ingress/gateway workload"
+      }
+    },
+    {
+      "id": "inc_policy_unverified_policy_0003",
+      "inconsistency_type": "policy_not_verified",
+      "type": "policy_not_verified",
+      "severity": "medium",
+      "description": "策略 ratings-timeout 未被动态测试验证",
+      "layer": "layer2",
+      "layer_name": "第二层 · 服务关系",
+      "resource_kind": "VirtualService",
+      "resource_name": "ratings",
+      "resource_namespace": "default",
+      "affected_services": [
+        "ratings"
+      ],
+      "affected_subsets": [
+        "v1"
+      ],
+      "function_type": "timeout",
+      "alignment_status": "mismatched",
+      "Sdecl": {
+        "tuple_id": "default.ratings.timeout",
+        "function_type": "timeout",
+        "plane": "control_plane",
+        "predicate": {},
+        "action": {
+          "type": "timeout"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "ratings",
+          "subsets": [
+            "v1"
+          ]
+        },
+        "constraint": {
+          "timeout": "1s",
+          "timeout_seconds": 1
+        },
+        "source_resources": [],
+        "summary": "action=timeout · timeout=1s · timeout_seconds=1"
+      },
+      "Sdp": {
+        "tuple_id": "default.ratings.timeout",
+        "function_type": "timeout",
+        "plane": "data_plane",
+        "predicate": {},
+        "action": {
+          "type": "timeout"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "ratings",
+          "subsets": [
+            "v1"
+          ]
+        },
+        "constraint": {
+          "timeout": "5s",
+          "timeout_seconds": 5
+        },
+        "source_resources": [],
+        "summary": "action=timeout · timeout=5s · timeout_seconds=5"
+      },
+      "Srt": null,
+      "root_cause": "缺少对应的测试用例",
+      "suggestions": [
+        "为 ratings-timeout 添加动态测试用例",
+        "确认策略是否真正生效"
+      ],
+      "impact_scope": [
+        "ratings"
+      ],
+      "affected_policies": [
+        "policy_0003"
+      ],
+      "static_expectation": {
+        "policy": "ratings-timeout",
+        "type": "timeout"
+      },
+      "dynamic_observation": {
+        "tests": 0,
+        "status": "no_test_coverage"
+      },
+      "details": {}
+    },
+    {
+      "id": "inc_scope_policy_0001",
+      "inconsistency_type": "scope_mismatch",
+      "type": "scope_mismatch",
+      "severity": "medium",
+      "description": "策略 reviews-split-primary 的部分作用范围未被测试覆盖",
+      "layer": "layer2",
+      "layer_name": "第二层 · 服务关系",
+      "resource_kind": "DestinationRule",
+      "resource_name": "reviews",
+      "resource_namespace": "default",
+      "affected_services": [
+        "reviews"
+      ],
+      "affected_subsets": [
+        "v2",
+        "v3"
+      ],
+      "function_type": "traffic_shifting",
+      "alignment_status": "partial_matched",
+      "Sdecl": {
+        "tuple_id": "default.reviews.traffic_shifting",
+        "function_type": "traffic_shifting",
+        "plane": "control_plane",
+        "predicate": {},
+        "action": {
+          "type": "traffic_shifting"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "reviews",
+          "subsets": [
+            "v1",
+            "v2"
+          ]
+        },
+        "constraint": {
+          "weights": {
+            "v1": 90,
+            "v2": 10
+          }
+        },
+        "source_resources": [],
+        "summary": "→ v1 90% / v2 10% · action=traffic_shifting"
+      },
+      "Sdp": {
+        "tuple_id": "default.reviews.traffic_shifting",
+        "function_type": "traffic_shifting",
+        "plane": "data_plane",
+        "predicate": {},
+        "action": {
+          "type": "traffic_shifting"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "reviews",
+          "subsets": [
+            "v1",
+            "v2"
+          ]
+        },
+        "constraint": {
+          "weights": {
+            "v1": 80,
+            "v2": 20
+          }
+        },
+        "source_resources": [],
+        "summary": "→ v1 80% / v2 20% · action=traffic_shifting"
+      },
+      "Srt": null,
+      "root_cause": "测试覆盖不完整",
+      "suggestions": [
+        "添加针对子集 {'v2', 'v3'} 的测试用例",
+        "确认这些子集是否真实存在"
+      ],
+      "impact_scope": [
+        "v2",
+        "v3"
+      ],
+      "affected_policies": [
+        "policy_0001"
+      ],
+      "static_expectation": {
+        "applies_to": [
+          "v2",
+          "v1",
+          "v3"
+        ]
+      },
+      "dynamic_observation": {
+        "tested": [
+          "v1"
+        ],
+        "missing": [
+          "v2",
+          "v3"
+        ]
+      },
+      "details": {}
+    },
+    {
+      "id": "inc_scope_policy_0002",
+      "inconsistency_type": "scope_mismatch",
+      "type": "scope_mismatch",
+      "severity": "medium",
+      "description": "策略 reviews-split-canary 的部分作用范围未被测试覆盖",
+      "layer": "layer2",
+      "layer_name": "第二层 · 服务关系",
+      "resource_kind": "DestinationRule",
+      "resource_name": "reviews",
+      "resource_namespace": "default",
+      "affected_services": [
+        "reviews"
+      ],
+      "affected_subsets": [
+        "v2"
+      ],
+      "function_type": "traffic_shifting",
+      "alignment_status": "partial_matched",
+      "Sdecl": {
+        "tuple_id": "default.reviews.traffic_shifting",
+        "function_type": "traffic_shifting",
+        "plane": "control_plane",
+        "predicate": {},
+        "action": {
+          "type": "traffic_shifting"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "reviews",
+          "subsets": [
+            "v1",
+            "v2"
+          ]
+        },
+        "constraint": {
+          "weights": {
+            "v1": 90,
+            "v2": 10
+          }
+        },
+        "source_resources": [],
+        "summary": "→ v1 90% / v2 10% · action=traffic_shifting"
+      },
+      "Sdp": {
+        "tuple_id": "default.reviews.traffic_shifting",
+        "function_type": "traffic_shifting",
+        "plane": "data_plane",
+        "predicate": {},
+        "action": {
+          "type": "traffic_shifting"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "reviews",
+          "subsets": [
+            "v1",
+            "v2"
+          ]
+        },
+        "constraint": {
+          "weights": {
+            "v1": 80,
+            "v2": 20
+          }
+        },
+        "source_resources": [],
+        "summary": "→ v1 80% / v2 20% · action=traffic_shifting"
+      },
+      "Srt": null,
+      "root_cause": "测试覆盖不完整",
+      "suggestions": [
+        "添加针对子集 {'v2'} 的测试用例",
+        "确认这些子集是否真实存在"
+      ],
+      "impact_scope": [
+        "v2"
+      ],
+      "affected_policies": [
+        "policy_0002"
+      ],
+      "static_expectation": {
+        "applies_to": [
+          "v2",
+          "v1"
+        ]
+      },
+      "dynamic_observation": {
+        "tested": [
+          "v1"
+        ],
+        "missing": [
+          "v2"
+        ]
+      },
+      "details": {}
+    },
+    {
+      "id": "inc_scope_policy_0004",
+      "inconsistency_type": "scope_mismatch",
+      "type": "scope_mismatch",
+      "severity": "medium",
+      "description": "策略 ratings-cb 的部分作用范围未被测试覆盖",
+      "layer": "layer2",
+      "layer_name": "第二层 · 服务关系",
+      "resource_kind": "DestinationRule",
+      "resource_name": "ratings",
+      "resource_namespace": "default",
+      "affected_services": [
+        "ratings"
+      ],
+      "affected_subsets": [
+        "v1"
+      ],
+      "function_type": "circuit_breaker",
+      "alignment_status": "mismatched",
+      "Sdecl": {
+        "tuple_id": "default.ratings.cb",
+        "function_type": "circuit_breaker",
+        "plane": "control_plane",
+        "predicate": {},
+        "action": {
+          "type": "circuit_breaker"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "ratings",
+          "subsets": [
+            "v1"
+          ]
+        },
+        "constraint": {
+          "consecutive_errors": 5,
+          "max_connections": 100
+        },
+        "source_resources": [],
+        "summary": "action=circuit_breaker · max_connections=100 · consecutive_errors=5"
+      },
+      "Sdp": {
+        "tuple_id": "default.ratings.cb",
+        "function_type": "circuit_breaker",
+        "plane": "data_plane",
+        "predicate": {},
+        "action": {
+          "type": "circuit_breaker"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "ratings",
+          "subsets": [
+            "v1"
+          ]
+        },
+        "constraint": {
+          "consecutive_errors": 2,
+          "max_connections": 100
+        },
+        "source_resources": [],
+        "summary": "action=circuit_breaker · max_connections=100 · consecutive_errors=2"
+      },
+      "Srt": null,
+      "root_cause": "测试覆盖不完整",
+      "suggestions": [
+        "添加针对子集 {'v1'} 的测试用例",
+        "确认这些子集是否真实存在"
+      ],
+      "impact_scope": [
+        "v1"
+      ],
+      "affected_policies": [
+        "policy_0004"
+      ],
+      "static_expectation": {
+        "applies_to": [
+          "v1"
+        ]
+      },
+      "dynamic_observation": {
+        "tested": [],
+        "missing": [
+          "v1"
+        ]
+      },
+      "details": {}
+    },
+    {
+      "id": "inc_scope_policy_0005",
+      "inconsistency_type": "scope_mismatch",
+      "type": "scope_mismatch",
+      "severity": "medium",
+      "description": "策略 reviews 的部分作用范围未被测试覆盖",
+      "layer": "layer2",
+      "layer_name": "第二层 · 服务关系",
+      "resource_kind": "VirtualService",
+      "resource_name": "reviews",
+      "resource_namespace": "default",
+      "affected_services": [
+        "reviews"
+      ],
+      "affected_subsets": [
+        "v1"
+      ],
+      "function_type": "routing",
+      "alignment_status": "mismatched",
+      "Sdecl": {
+        "tuple_id": "default.reviews.routing.0",
+        "function_type": "routing",
+        "plane": "control_plane",
+        "predicate": {
+          "uri": {
+            "prefix": "/"
+          }
+        },
+        "action": {
+          "type": "route"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "reviews",
+          "subsets": [
+            "v1",
+            "v2"
+          ]
+        },
+        "constraint": {
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1",
+              "weight": 80
+            },
+            {
+              "host": "reviews",
+              "subset": "v2",
+              "weight": 20
+            }
+          ],
+          "weights": {
+            "v1": 80,
+            "v2": 20
+          }
+        },
+        "source_resources": [],
+        "summary": "match prefix=/ · → v1 80% / v2 20%"
+      },
+      "Sdp": {
+        "tuple_id": "default.reviews.routing.0",
+        "function_type": "routing",
+        "plane": "data_plane",
+        "predicate": {
+          "uri": {
+            "prefix": "/"
+          }
+        },
+        "action": {
+          "type": "route"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "reviews",
+          "subsets": [
+            "v1",
+            "v2"
+          ]
+        },
+        "constraint": {
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1",
+              "weight": 50
+            },
+            {
+              "host": "reviews",
+              "subset": "v2",
+              "weight": 50
+            }
+          ],
+          "weights": {
+            "v1": 50,
+            "v2": 50
+          }
+        },
+        "source_resources": [],
+        "summary": "match prefix=/ · → v1 50% / v2 50%"
+      },
+      "Srt": null,
+      "root_cause": "测试覆盖不完整",
+      "suggestions": [
+        "添加针对子集 {'v1'} 的测试用例",
+        "确认这些子集是否真实存在"
+      ],
+      "impact_scope": [
+        "v1"
+      ],
+      "affected_policies": [
+        "policy_0005"
+      ],
+      "static_expectation": {
+        "applies_to": [
+          "v2",
+          "v1"
+        ]
+      },
+      "dynamic_observation": {
+        "tested": [
+          "v2"
+        ],
+        "missing": [
+          "v1"
+        ]
+      },
+      "details": {}
+    }
+  ],
+  "records": [
+    {
+      "id": "inc_deviation_case_003",
+      "inconsistency_type": "behavior_deviation",
+      "type": "behavior_deviation",
+      "severity": "critical",
+      "description": "测试 case_003 的实际行为与策略 ratings-cb 定义不一致",
+      "layer": "layer2",
+      "layer_name": "第二层 · 服务关系",
+      "resource_kind": "DestinationRule",
+      "resource_name": "ratings",
+      "resource_namespace": "default",
+      "affected_services": [
+        "ratings"
+      ],
+      "affected_subsets": [
+        "v1"
+      ],
+      "function_type": "circuit_breaker",
+      "alignment_status": "mismatched",
+      "Sdecl": {
+        "tuple_id": "default.ratings.cb",
+        "function_type": "circuit_breaker",
+        "plane": "control_plane",
+        "predicate": {},
+        "action": {
+          "type": "circuit_breaker"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "ratings",
+          "subsets": [
+            "v1"
+          ]
+        },
+        "constraint": {
+          "consecutive_errors": 5,
+          "max_connections": 100
+        },
+        "source_resources": [],
+        "summary": "action=circuit_breaker · max_connections=100 · consecutive_errors=5"
+      },
+      "Sdp": {
+        "tuple_id": "default.ratings.cb",
+        "function_type": "circuit_breaker",
+        "plane": "data_plane",
+        "predicate": {},
+        "action": {
+          "type": "circuit_breaker"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "ratings",
+          "subsets": [
+            "v1"
+          ]
+        },
+        "constraint": {
+          "consecutive_errors": 2,
+          "max_connections": 100
+        },
+        "source_resources": [],
+        "summary": "action=circuit_breaker · max_connections=100 · consecutive_errors=2"
+      },
+      "Srt": {
+        "tuple_id": "runtime.case_003",
+        "function_type": "circuit_breaker",
+        "plane": "runtime",
+        "predicate": {
+          "fault": "5xx"
+        },
+        "action": {
+          "type": "observe"
+        },
+        "scope": {
+          "service": "ratings",
+          "source": "reviews"
+        },
+        "constraint": {
+          "open_after": 2,
+          "ejected": true
+        },
+        "summary": "用例 case_003 未通过 · 期望 {'open_after': 5} · 实测 {'open_after': 2, 'ejected': True}",
+        "test_case_id": "case_003",
+        "verified": false,
+        "expected": {
+          "open_after": 5
+        },
+        "actual": {
+          "open_after": 2,
+          "ejected": true
+        }
+      },
+      "root_cause": "以下维度验证失败: outlier",
+      "suggestions": [
+        "检查连接池和异常检测配置",
+        "确认触发条件是否达到",
+        "查看详细日志: case_003"
+      ],
+      "impact_scope": [
+        "ratings"
+      ],
+      "affected_policies": [
+        "policy_0004"
+      ],
+      "static_expectation": {
+        "open_after": 5
+      },
+      "dynamic_observation": {
+        "open_after": 2,
+        "ejected": true
+      },
+      "details": {}
+    },
+    {
+      "id": "inc_align_2_reviews_routing",
+      "inconsistency_type": "mismatched",
+      "type": "mismatched",
+      "severity": "high",
+      "description": "reviews 路由权重与数据面不一致：声明 v1 80% / v2 20%，Envoy 为 50% / 50%",
+      "layer": "layer1",
+      "layer_name": "第一层 · 控制面 / 数据面全局",
+      "resource_kind": "VirtualService",
+      "resource_name": "reviews",
+      "resource_namespace": "default",
+      "affected_services": [
+        "reviews"
+      ],
+      "affected_subsets": [
+        "v1",
+        "v2"
+      ],
+      "function_type": "routing",
+      "alignment_status": "mismatched",
+      "Sdecl": {
+        "tuple_id": "default.reviews.routing.0",
+        "function_type": "routing",
+        "plane": "control_plane",
+        "predicate": {
+          "uri": {
+            "prefix": "/"
+          }
+        },
+        "action": {
+          "type": "route"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "reviews",
+          "subsets": [
+            "v1",
+            "v2"
+          ]
+        },
+        "constraint": {
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1",
+              "weight": 80
+            },
+            {
+              "host": "reviews",
+              "subset": "v2",
+              "weight": 20
+            }
+          ],
+          "weights": {
+            "v1": 80,
+            "v2": 20
+          }
+        },
+        "source_resources": [],
+        "summary": "match prefix=/ · → v1 80% / v2 20%"
+      },
+      "Sdp": {
+        "tuple_id": "default.reviews.routing.0",
+        "function_type": "routing",
+        "plane": "data_plane",
+        "predicate": {
+          "uri": {
+            "prefix": "/"
+          }
+        },
+        "action": {
+          "type": "route"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "reviews",
+          "subsets": [
+            "v1",
+            "v2"
+          ]
+        },
+        "constraint": {
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1",
+              "weight": 50
+            },
+            {
+              "host": "reviews",
+              "subset": "v2",
+              "weight": 50
+            }
+          ],
+          "weights": {
+            "v1": 50,
+            "v2": 50
+          }
+        },
+        "source_resources": [],
+        "summary": "match prefix=/ · → v1 50% / v2 50%"
+      },
+      "Srt": {
+        "tuple_id": "runtime.case_002",
+        "function_type": "routing",
+        "plane": "runtime",
+        "predicate": {
+          "path": "/reviews/1",
+          "header": "end-user=jason",
+          "subset": "v2"
+        },
+        "action": {
+          "type": "observe"
+        },
+        "scope": {
+          "service": "reviews",
+          "source": "productpage",
+          "subsets": [
+            "v2"
+          ]
+        },
+        "constraint": {
+          "destination": "reviews/v1"
+        },
+        "summary": "用例 case_002 未通过 · 期望 {'destination': 'reviews/v2'} · 实测 {'destination': 'reviews/v1'}",
+        "test_case_id": "case_002",
+        "verified": false,
+        "expected": {
+          "destination": "reviews/v2"
+        },
+        "actual": {
+          "destination": "reviews/v1"
+        }
+      },
+      "root_cause": "控制面 Sdecl 与数据面 Sdp 对齐状态为 mismatched",
+      "suggestions": [
+        "对照 Sdecl 与 Sdp 的 predicate / action / constraint",
+        "确认 istiod 已将最新配置下发到 sidecar"
+      ],
+      "impact_scope": [
+        "reviews",
+        "v1",
+        "v2"
+      ],
+      "affected_policies": [],
+      "static_expectation": {
+        "alignment_status": "mismatched",
+        "control": {
+          "v1": 80,
+          "v2": 20
+        }
+      },
+      "dynamic_observation": {
+        "data": {
+          "v1": 50,
+          "v2": 50
+        }
+      },
+      "details": {
+        "differences": [
+          {
+            "kind": "discrete",
+            "description": "reviews 路由权重与数据面不一致：声明 v1 80% / v2 20%，Envoy 为 50% / 50%",
+            "control": {
+              "v1": 80,
+              "v2": 20
+            },
+            "data": {
+              "v1": 50,
+              "v2": 50
+            }
+          }
+        ],
+        "pair_key": "default.reviews.routing"
+      }
+    },
+    {
+      "id": "inc_align_4_ratings_timeout",
+      "inconsistency_type": "timeout_mismatch",
+      "type": "timeout_mismatch",
+      "severity": "high",
+      "description": "ratings 超时不一致：VirtualService timeout=1s，Envoy route timeout=5s",
+      "layer": "layer1",
+      "layer_name": "第一层 · 控制面 / 数据面全局",
+      "resource_kind": "VirtualService",
+      "resource_name": "ratings",
+      "resource_namespace": "default",
+      "affected_services": [
+        "ratings"
+      ],
+      "affected_subsets": [
+        "v1"
+      ],
+      "function_type": "timeout",
+      "alignment_status": "mismatched",
+      "Sdecl": {
+        "tuple_id": "default.ratings.timeout",
+        "function_type": "timeout",
+        "plane": "control_plane",
+        "predicate": {},
+        "action": {
+          "type": "timeout"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "ratings",
+          "subsets": [
+            "v1"
+          ]
+        },
+        "constraint": {
+          "timeout": "1s",
+          "timeout_seconds": 1
+        },
+        "source_resources": [],
+        "summary": "action=timeout · timeout=1s · timeout_seconds=1"
+      },
+      "Sdp": {
+        "tuple_id": "default.ratings.timeout",
+        "function_type": "timeout",
+        "plane": "data_plane",
+        "predicate": {},
+        "action": {
+          "type": "timeout"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "ratings",
+          "subsets": [
+            "v1"
+          ]
+        },
+        "constraint": {
+          "timeout": "5s",
+          "timeout_seconds": 5
+        },
+        "source_resources": [],
+        "summary": "action=timeout · timeout=5s · timeout_seconds=5"
+      },
+      "Srt": null,
+      "root_cause": "控制面 Sdecl 与数据面 Sdp 对齐状态为 mismatched",
+      "suggestions": [
+        "对照 Sdecl 与 Sdp 的 predicate / action / constraint",
+        "确认 istiod 已将最新配置下发到 sidecar"
+      ],
+      "impact_scope": [
+        "ratings",
+        "v1"
+      ],
+      "affected_policies": [],
+      "static_expectation": {
+        "alignment_status": "mismatched",
+        "control": "1s"
+      },
+      "dynamic_observation": {
+        "data": "5s"
+      },
+      "details": {
+        "differences": [
+          {
+            "kind": "timeout",
+            "description": "ratings 超时不一致：VirtualService timeout=1s，Envoy route timeout=5s",
+            "control": "1s",
+            "data": "5s"
+          }
+        ],
+        "pair_key": "default.ratings.timeout"
+      }
+    },
+    {
+      "id": "inc_align_5_details_retry",
+      "inconsistency_type": "control_only",
+      "type": "control_only",
+      "severity": "high",
+      "description": "details 声明了重试策略，sidecar dump 中没有对应 retry_policy",
+      "layer": "layer1",
+      "layer_name": "第一层 · 控制面 / 数据面全局",
+      "resource_kind": "VirtualService",
+      "resource_name": "details",
+      "resource_namespace": "default",
+      "affected_services": [
+        "details"
+      ],
+      "affected_subsets": [],
+      "function_type": "retry",
+      "alignment_status": "control_only",
+      "Sdecl": {
+        "tuple_id": "default.details.retry",
+        "function_type": "retry",
+        "plane": "control_plane",
+        "predicate": {},
+        "action": {
+          "type": "retry"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "details"
+        },
+        "constraint": {
+          "attempts": 3,
+          "retry_on": "5xx"
+        },
+        "source_resources": [],
+        "summary": "action=retry · attempts=3 · retry_on=5xx"
+      },
+      "Sdp": null,
+      "Srt": null,
+      "root_cause": "控制面 Sdecl 与数据面 Sdp 对齐状态为 control_only",
+      "suggestions": [
+        "对照 Sdecl 与 Sdp 的 predicate / action / constraint",
+        "确认 istiod 已将最新配置下发到 sidecar"
+      ],
+      "impact_scope": [
+        "details"
+      ],
+      "affected_policies": [],
+      "static_expectation": {
+        "alignment_status": "control_only",
+        "control": null
+      },
+      "dynamic_observation": {
+        "data": null
+      },
+      "details": {
+        "differences": [
+          {
+            "kind": "missing",
+            "description": "details 声明了重试策略，sidecar dump 中没有对应 retry_policy"
+          }
+        ],
+        "pair_key": "default.details.retry"
+      }
+    },
+    {
+      "id": "inc_align_6_productpage_fault_injection",
+      "inconsistency_type": "data_only",
+      "type": "data_only",
+      "severity": "high",
+      "description": "productpage Envoy 存在 abort 故障注入，控制面 YAML 未声明",
+      "layer": "layer1",
+      "layer_name": "第一层 · 控制面 / 数据面全局",
+      "resource_kind": "VirtualService",
+      "resource_name": null,
+      "resource_namespace": "default",
+      "affected_services": [
+        "productpage"
+      ],
+      "affected_subsets": [],
+      "function_type": "fault_injection",
+      "alignment_status": "data_only",
+      "Sdecl": null,
+      "Sdp": {
+        "tuple_id": "default.productpage.fault",
+        "function_type": "fault_injection",
+        "plane": "data_plane",
+        "predicate": {
+          "uri": {
+            "prefix": "/productpage"
+          }
+        },
+        "action": {
+          "type": "abort"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "productpage"
+        },
+        "constraint": {
+          "abort_percent": 10,
+          "http_status": 503
+        },
+        "source_resources": [],
+        "summary": "match prefix=/productpage · action=abort · abort_percent=10"
+      },
+      "Srt": null,
+      "root_cause": "控制面 Sdecl 与数据面 Sdp 对齐状态为 data_only",
+      "suggestions": [
+        "对照 Sdecl 与 Sdp 的 predicate / action / constraint",
+        "确认 istiod 已将最新配置下发到 sidecar"
+      ],
+      "impact_scope": [
+        "productpage"
+      ],
+      "affected_policies": [],
+      "static_expectation": {
+        "alignment_status": "data_only",
+        "control": null
+      },
+      "dynamic_observation": {
+        "data": null
+      },
+      "details": {
+        "differences": [
+          {
+            "kind": "missing",
+            "description": "productpage Envoy 存在 abort 故障注入，控制面 YAML 未声明"
+          }
+        ],
+        "pair_key": "default.productpage.fault_injection"
+      }
+    },
+    {
+      "id": "inc_align_7_ratings_circuit_breaker",
+      "inconsistency_type": "mismatched",
+      "type": "mismatched",
+      "severity": "high",
+      "description": "ratings 熔断阈值不一致：声明 consecutive5xx=5，数据面为 2",
+      "layer": "layer1",
+      "layer_name": "第一层 · 控制面 / 数据面全局",
+      "resource_kind": "DestinationRule",
+      "resource_name": "ratings",
+      "resource_namespace": "default",
+      "affected_services": [
+        "ratings"
+      ],
+      "affected_subsets": [
+        "v1"
+      ],
+      "function_type": "circuit_breaker",
+      "alignment_status": "mismatched",
+      "Sdecl": {
+        "tuple_id": "default.ratings.cb",
+        "function_type": "circuit_breaker",
+        "plane": "control_plane",
+        "predicate": {},
+        "action": {
+          "type": "circuit_breaker"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "ratings",
+          "subsets": [
+            "v1"
+          ]
+        },
+        "constraint": {
+          "consecutive_errors": 5,
+          "max_connections": 100
+        },
+        "source_resources": [],
+        "summary": "action=circuit_breaker · max_connections=100 · consecutive_errors=5"
+      },
+      "Sdp": {
+        "tuple_id": "default.ratings.cb",
+        "function_type": "circuit_breaker",
+        "plane": "data_plane",
+        "predicate": {},
+        "action": {
+          "type": "circuit_breaker"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "ratings",
+          "subsets": [
+            "v1"
+          ]
+        },
+        "constraint": {
+          "consecutive_errors": 2,
+          "max_connections": 100
+        },
+        "source_resources": [],
+        "summary": "action=circuit_breaker · max_connections=100 · consecutive_errors=2"
+      },
+      "Srt": {
+        "tuple_id": "runtime.case_003",
+        "function_type": "circuit_breaker",
+        "plane": "runtime",
+        "predicate": {
+          "fault": "5xx"
+        },
+        "action": {
+          "type": "observe"
+        },
+        "scope": {
+          "service": "ratings",
+          "source": "reviews"
+        },
+        "constraint": {
+          "open_after": 2,
+          "ejected": true
+        },
+        "summary": "用例 case_003 未通过 · 期望 {'open_after': 5} · 实测 {'open_after': 2, 'ejected': True}",
+        "test_case_id": "case_003",
+        "verified": false,
+        "expected": {
+          "open_after": 5
+        },
+        "actual": {
+          "open_after": 2,
+          "ejected": true
+        }
+      },
+      "root_cause": "控制面 Sdecl 与数据面 Sdp 对齐状态为 mismatched",
+      "suggestions": [
+        "对照 Sdecl 与 Sdp 的 predicate / action / constraint",
+        "确认 istiod 已将最新配置下发到 sidecar"
+      ],
+      "impact_scope": [
+        "ratings",
+        "v1"
+      ],
+      "affected_policies": [],
+      "static_expectation": {
+        "alignment_status": "mismatched",
+        "control": 5
+      },
+      "dynamic_observation": {
+        "data": 2
+      },
+      "details": {
+        "differences": [
+          {
+            "kind": "discrete",
+            "description": "ratings 熔断阈值不一致：声明 consecutive5xx=5，数据面为 2",
+            "control": 5,
+            "data": 2
+          }
+        ],
+        "pair_key": "default.ratings.circuit_breaker"
+      }
+    },
+    {
+      "id": "inc_align_8_productpage_rate_limit",
+      "inconsistency_type": "control_only",
+      "type": "control_only",
+      "severity": "high",
+      "description": "productpage EnvoyFilter 限流已声明，数据面未看到 local_ratelimit 过滤器",
+      "layer": "layer1",
+      "layer_name": "第一层 · 控制面 / 数据面全局",
+      "resource_kind": "EnvoyFilter",
+      "resource_name": "productpage-ratelimit",
+      "resource_namespace": "default",
+      "affected_services": [
+        "productpage"
+      ],
+      "affected_subsets": [],
+      "function_type": "rate_limit",
+      "alignment_status": "control_only",
+      "Sdecl": {
+        "tuple_id": "default.productpage.rl",
+        "function_type": "rate_limit",
+        "plane": "control_plane",
+        "predicate": {},
+        "action": {
+          "type": "rate_limit"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "productpage"
+        },
+        "constraint": {
+          "requests_per_unit": 10,
+          "unit": "second"
+        },
+        "source_resources": [],
+        "summary": "action=rate_limit"
+      },
+      "Sdp": null,
+      "Srt": null,
+      "root_cause": "控制面 Sdecl 与数据面 Sdp 对齐状态为 control_only",
+      "suggestions": [
+        "对照 Sdecl 与 Sdp 的 predicate / action / constraint",
+        "确认 istiod 已将最新配置下发到 sidecar"
+      ],
+      "impact_scope": [
+        "productpage"
+      ],
+      "affected_policies": [],
+      "static_expectation": {
+        "alignment_status": "control_only",
+        "control": null
+      },
+      "dynamic_observation": {
+        "data": null
+      },
+      "details": {
+        "differences": [
+          {
+            "kind": "missing",
+            "description": "productpage EnvoyFilter 限流已声明，数据面未看到 local_ratelimit 过滤器"
+          }
+        ],
+        "pair_key": "default.productpage.rate_limit"
+      }
+    },
+    {
+      "id": "inc_conflict_1_missing_subset",
+      "inconsistency_type": "missing_subset",
+      "type": "missing_subset",
+      "severity": "high",
+      "description": "VirtualService 'reviews' 引用 subset 'v3'，但 DestinationRule 中 reviews 只定义了 ['v1', 'v2']",
+      "layer": "layer3",
+      "layer_name": "第三层 · 配置资源",
+      "resource_kind": "VirtualService",
+      "resource_name": "reviews",
+      "resource_namespace": "default",
+      "affected_services": [
+        "reviews"
+      ],
+      "affected_subsets": [
+        "v3"
+      ],
+      "function_type": "routing",
+      "alignment_status": null,
+      "Sdecl": {
+        "tuple_id": "decl.VirtualService.reviews",
+        "function_type": "routing",
+        "plane": "control_plane",
+        "predicate": {},
+        "action": {
+          "type": "missing_subset"
+        },
+        "scope": {
+          "service": "reviews",
+          "namespace": "default",
+          "subsets": [
+            "v3"
+          ]
+        },
+        "constraint": {
+          "virtualservice": "reviews",
+          "namespace": "default",
+          "service": "reviews",
+          "missing_subset": "v3",
+          "available_subsets": [
+            "v1",
+            "v2"
+          ]
+        },
+        "source_resources": [],
+        "summary": "action=missing_subset"
+      },
+      "Sdp": null,
+      "Srt": null,
+      "root_cause": "跨资源引用或选择器组合后语义破裂",
+      "suggestions": [
+        "核对 VirtualService 引用的 Gateway / subset 是否真实存在",
+        "合并重复匹配条件或冲突的 Gateway selector"
+      ],
+      "impact_scope": [
+        "reviews",
+        "v3"
+      ],
+      "affected_policies": [],
+      "static_expectation": {},
+      "dynamic_observation": {},
+      "details": {
+        "type": "missing_subset",
+        "severity": "high",
+        "virtualservice": "reviews",
+        "namespace": "default",
+        "service": "reviews",
+        "missing_subset": "v3",
+        "available_subsets": [
+          "v1",
+          "v2"
+        ],
+        "description": "VirtualService 'reviews' 引用 subset 'v3'，但 DestinationRule 中 reviews 只定义了 ['v1', 'v2']"
+      }
+    },
+    {
+      "id": "inc_conflict_2_gateway_unmatched",
+      "inconsistency_type": "gateway_unmatched",
+      "type": "gateway_unmatched",
+      "severity": "high",
+      "description": "VirtualService 'bookinfo' 绑定 Gateway 'missing-gateway'，但未找到对应 Gateway 资源",
+      "layer": "layer3",
+      "layer_name": "第三层 · 配置资源",
+      "resource_kind": "VirtualService",
+      "resource_name": "bookinfo",
+      "resource_namespace": "default",
+      "affected_services": [],
+      "affected_subsets": [],
+      "function_type": null,
+      "alignment_status": null,
+      "Sdecl": {
+        "tuple_id": "decl.VirtualService.bookinfo",
+        "function_type": "routing",
+        "plane": "control_plane",
+        "predicate": {},
+        "action": {
+          "type": "gateway_unmatched"
+        },
+        "scope": {
+          "namespace": "default"
+        },
+        "constraint": {
+          "virtualservice": "bookinfo",
+          "namespace": "default",
+          "gateway": "missing-gateway"
+        },
+        "source_resources": [],
+        "summary": "action=gateway_unmatched"
+      },
+      "Sdp": null,
+      "Srt": null,
+      "root_cause": "跨资源引用或选择器组合后语义破裂",
+      "suggestions": [
+        "核对 VirtualService 引用的 Gateway / subset 是否真实存在",
+        "合并重复匹配条件或冲突的 Gateway selector"
+      ],
+      "impact_scope": [],
+      "affected_policies": [],
+      "static_expectation": {},
+      "dynamic_observation": {},
+      "details": {
+        "type": "gateway_unmatched",
+        "severity": "high",
+        "virtualservice": "bookinfo",
+        "namespace": "default",
+        "gateway": "missing-gateway",
+        "description": "VirtualService 'bookinfo' 绑定 Gateway 'missing-gateway'，但未找到对应 Gateway 资源"
+      }
+    },
+    {
+      "id": "inc_conflict_4_gateway_selector_conflict",
+      "inconsistency_type": "gateway_selector_conflict",
+      "type": "gateway_selector_conflict",
+      "severity": "high",
+      "description": "多个 Gateway ['default/bookinfo-gateway', 'default/frontend-gateway'] 使用相同 selector {'istio': 'ingressgateway'}，入口选择器冲突",
+      "layer": "layer3",
+      "layer_name": "第三层 · 配置资源",
+      "resource_kind": "Gateway",
+      "resource_name": "default/bookinfo-gateway, default/frontend-gateway",
+      "resource_namespace": null,
+      "affected_services": [],
+      "affected_subsets": [],
+      "function_type": null,
+      "alignment_status": null,
+      "Sdecl": {
+        "tuple_id": "decl.Gateway.default/bookinfo-gateway, default/frontend-gateway",
+        "function_type": "routing",
+        "plane": "control_plane",
+        "predicate": {},
+        "action": {
+          "type": "gateway_selector_conflict"
+        },
+        "scope": {},
+        "constraint": {
+          "gateways": [
+            "default/bookinfo-gateway",
+            "default/frontend-gateway"
+          ],
+          "selector": {
+            "istio": "ingressgateway"
+          }
+        },
+        "source_resources": [],
+        "summary": "action=gateway_selector_conflict"
+      },
+      "Sdp": null,
+      "Srt": null,
+      "root_cause": "跨资源引用或选择器组合后语义破裂",
+      "suggestions": [
+        "核对 VirtualService 引用的 Gateway / subset 是否真实存在",
+        "合并重复匹配条件或冲突的 Gateway selector"
+      ],
+      "impact_scope": [],
+      "affected_policies": [],
+      "static_expectation": {},
+      "dynamic_observation": {},
+      "details": {
+        "type": "gateway_selector_conflict",
+        "severity": "high",
+        "gateways": [
+          "default/bookinfo-gateway",
+          "default/frontend-gateway"
+        ],
+        "selector": {
+          "istio": "ingressgateway"
+        },
+        "description": "多个 Gateway ['default/bookinfo-gateway', 'default/frontend-gateway'] 使用相同 selector {'istio': 'ingressgateway'}，入口选择器冲突"
+      }
+    },
+    {
+      "id": "inc_conflict_5_route_priority_conflict",
+      "inconsistency_type": "route_priority_conflict",
+      "type": "route_priority_conflict",
+      "severity": "high",
+      "description": "VirtualService 'reviews' 第 0 与第 1 条 HTTP 规则匹配条件相同，优先级冲突",
+      "layer": "layer3",
+      "layer_name": "第三层 · 配置资源",
+      "resource_kind": "VirtualService",
+      "resource_name": "reviews",
+      "resource_namespace": "default",
+      "affected_services": [],
+      "affected_subsets": [],
+      "function_type": "routing",
+      "alignment_status": null,
+      "Sdecl": {
+        "tuple_id": "decl.VirtualService.reviews",
+        "function_type": "routing",
+        "plane": "control_plane",
+        "predicate": {},
+        "action": {
+          "type": "route_priority_conflict"
+        },
+        "scope": {
+          "namespace": "default"
+        },
+        "constraint": {
+          "virtualservice": "reviews",
+          "namespace": "default",
+          "rules": [
+            0,
+            1
+          ]
+        },
+        "source_resources": [],
+        "summary": "action=route_priority_conflict"
+      },
+      "Sdp": null,
+      "Srt": null,
+      "root_cause": "跨资源引用或选择器组合后语义破裂",
+      "suggestions": [
+        "核对 VirtualService 引用的 Gateway / subset 是否真实存在",
+        "合并重复匹配条件或冲突的 Gateway selector"
+      ],
+      "impact_scope": [],
+      "affected_policies": [],
+      "static_expectation": {},
+      "dynamic_observation": {},
+      "details": {
+        "type": "route_priority_conflict",
+        "severity": "high",
+        "virtualservice": "reviews",
+        "namespace": "default",
+        "rules": [
+          0,
+          1
+        ],
+        "description": "VirtualService 'reviews' 第 0 与第 1 条 HTTP 规则匹配条件相同，优先级冲突"
+      }
+    },
+    {
+      "id": "inc_deviation_case_001",
+      "inconsistency_type": "traffic_split_drift",
+      "type": "traffic_split_drift",
+      "severity": "high",
+      "description": "测试 case_001 的实际行为与策略 reviews-split-primary 定义不一致",
+      "layer": "layer2",
+      "layer_name": "第二层 · 服务关系",
+      "resource_kind": "DestinationRule",
+      "resource_name": "reviews",
+      "resource_namespace": "default",
+      "affected_services": [
+        "reviews"
+      ],
+      "affected_subsets": [
+        "v1",
+        "v2"
+      ],
+      "function_type": "traffic_shifting",
+      "alignment_status": "partial_matched",
+      "Sdecl": {
+        "tuple_id": "default.reviews.traffic_shifting",
+        "function_type": "traffic_shifting",
+        "plane": "control_plane",
+        "predicate": {},
+        "action": {
+          "type": "traffic_shifting"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "reviews",
+          "subsets": [
+            "v1",
+            "v2"
+          ]
+        },
+        "constraint": {
+          "weights": {
+            "v1": 90,
+            "v2": 10
+          }
+        },
+        "source_resources": [],
+        "summary": "→ v1 90% / v2 10% · action=traffic_shifting"
+      },
+      "Sdp": {
+        "tuple_id": "default.reviews.traffic_shifting",
+        "function_type": "traffic_shifting",
+        "plane": "data_plane",
+        "predicate": {},
+        "action": {
+          "type": "traffic_shifting"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "reviews",
+          "subsets": [
+            "v1",
+            "v2"
+          ]
+        },
+        "constraint": {
+          "weights": {
+            "v1": 80,
+            "v2": 20
+          }
+        },
+        "source_resources": [],
+        "summary": "→ v1 80% / v2 20% · action=traffic_shifting"
+      },
+      "Srt": {
+        "tuple_id": "runtime.case_001",
+        "function_type": "traffic_split",
+        "plane": "runtime",
+        "predicate": {
+          "path": "/reviews/1",
+          "subset": "v1"
+        },
+        "action": {
+          "type": "observe"
+        },
+        "scope": {
+          "service": "reviews",
+          "source": "productpage",
+          "subsets": [
+            "v1"
+          ]
+        },
+        "constraint": {
+          "weights": {
+            "v1": 51,
+            "v2": 49
+          }
+        },
+        "summary": "用例 case_001 未通过 · 期望 {'weights': {'v1': 80, 'v2': 20}} · 实测 {'weights': {'v1': 51, 'v2': 49}}",
+        "test_case_id": "case_001",
+        "verified": false,
+        "expected": {
+          "weights": {
+            "v1": 80,
+            "v2": 20
+          }
+        },
+        "actual": {
+          "weights": {
+            "v1": 51,
+            "v2": 49
+          }
+        }
+      },
+      "root_cause": "以下维度验证失败: weight",
+      "suggestions": [
+        "检查DestinationRule中的subset定义",
+        "验证流量权重配置是否正确",
+        "确保有足够的请求量进行统计验证",
+        "查看详细日志: case_001"
+      ],
+      "impact_scope": [
+        "reviews"
+      ],
+      "affected_policies": [
+        "policy_0001"
+      ],
+      "static_expectation": {
+        "weights": {
+          "v1": 80,
+          "v2": 20
+        }
+      },
+      "dynamic_observation": {
+        "weights": {
+          "v1": 51,
+          "v2": 49
+        }
+      },
+      "details": {}
+    },
+    {
+      "id": "inc_deviation_case_002",
+      "inconsistency_type": "behavior_deviation",
+      "type": "behavior_deviation",
+      "severity": "high",
+      "description": "测试 case_002 的实际行为与策略 reviews 定义不一致",
+      "layer": "layer2",
+      "layer_name": "第二层 · 服务关系",
+      "resource_kind": "VirtualService",
+      "resource_name": "reviews",
+      "resource_namespace": "default",
+      "affected_services": [
+        "reviews"
+      ],
+      "affected_subsets": [
+        "v1",
+        "v2"
+      ],
+      "function_type": "routing",
+      "alignment_status": "mismatched",
+      "Sdecl": {
+        "tuple_id": "default.reviews.routing.0",
+        "function_type": "routing",
+        "plane": "control_plane",
+        "predicate": {
+          "uri": {
+            "prefix": "/"
+          }
+        },
+        "action": {
+          "type": "route"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "reviews",
+          "subsets": [
+            "v1",
+            "v2"
+          ]
+        },
+        "constraint": {
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1",
+              "weight": 80
+            },
+            {
+              "host": "reviews",
+              "subset": "v2",
+              "weight": 20
+            }
+          ],
+          "weights": {
+            "v1": 80,
+            "v2": 20
+          }
+        },
+        "source_resources": [],
+        "summary": "match prefix=/ · → v1 80% / v2 20%"
+      },
+      "Sdp": {
+        "tuple_id": "default.reviews.routing.0",
+        "function_type": "routing",
+        "plane": "data_plane",
+        "predicate": {
+          "uri": {
+            "prefix": "/"
+          }
+        },
+        "action": {
+          "type": "route"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "reviews",
+          "subsets": [
+            "v1",
+            "v2"
+          ]
+        },
+        "constraint": {
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1",
+              "weight": 50
+            },
+            {
+              "host": "reviews",
+              "subset": "v2",
+              "weight": 50
+            }
+          ],
+          "weights": {
+            "v1": 50,
+            "v2": 50
+          }
+        },
+        "source_resources": [],
+        "summary": "match prefix=/ · → v1 50% / v2 50%"
+      },
+      "Srt": {
+        "tuple_id": "runtime.case_002",
+        "function_type": "routing",
+        "plane": "runtime",
+        "predicate": {
+          "path": "/reviews/1",
+          "header": "end-user=jason",
+          "subset": "v2"
+        },
+        "action": {
+          "type": "observe"
+        },
+        "scope": {
+          "service": "reviews",
+          "source": "productpage",
+          "subsets": [
+            "v2"
+          ]
+        },
+        "constraint": {
+          "destination": "reviews/v1"
+        },
+        "summary": "用例 case_002 未通过 · 期望 {'destination': 'reviews/v2'} · 实测 {'destination': 'reviews/v1'}",
+        "test_case_id": "case_002",
+        "verified": false,
+        "expected": {
+          "destination": "reviews/v2"
+        },
+        "actual": {
+          "destination": "reviews/v1"
+        }
+      },
+      "root_cause": "以下维度验证失败: route",
+      "suggestions": [
+        "检查VirtualService的匹配条件是否正确",
+        "确认目标服务和端口配置",
+        "查看详细日志: case_002"
+      ],
+      "impact_scope": [
+        "reviews"
+      ],
+      "affected_policies": [
+        "policy_0005"
+      ],
+      "static_expectation": {
+        "destination": "reviews/v2"
+      },
+      "dynamic_observation": {
+        "destination": "reviews/v1"
+      },
+      "details": {}
+    },
+    {
+      "id": "inc_conflict_reviews_traffic_split",
+      "inconsistency_type": "policy_conflict",
+      "type": "policy_conflict",
+      "severity": "high",
+      "description": "服务 reviews 配置了多个流量分配策略，可能导致行为不确定",
+      "layer": "layer3",
+      "layer_name": "第三层 · 配置资源",
+      "resource_kind": "DestinationRule",
+      "resource_name": null,
+      "resource_namespace": "default",
+      "affected_services": [
+        "reviews"
+      ],
+      "affected_subsets": [
+        "v1",
+        "v2"
+      ],
+      "function_type": "traffic_shifting",
+      "alignment_status": "partial_matched",
+      "Sdecl": {
+        "tuple_id": "default.reviews.traffic_shifting",
+        "function_type": "traffic_shifting",
+        "plane": "control_plane",
+        "predicate": {},
+        "action": {
+          "type": "traffic_shifting"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "reviews",
+          "subsets": [
+            "v1",
+            "v2"
+          ]
+        },
+        "constraint": {
+          "weights": {
+            "v1": 90,
+            "v2": 10
+          }
+        },
+        "source_resources": [],
+        "summary": "→ v1 90% / v2 10% · action=traffic_shifting"
+      },
+      "Sdp": {
+        "tuple_id": "default.reviews.traffic_shifting",
+        "function_type": "traffic_shifting",
+        "plane": "data_plane",
+        "predicate": {},
+        "action": {
+          "type": "traffic_shifting"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "reviews",
+          "subsets": [
+            "v1",
+            "v2"
+          ]
+        },
+        "constraint": {
+          "weights": {
+            "v1": 80,
+            "v2": 20
+          }
+        },
+        "source_resources": [],
+        "summary": "→ v1 80% / v2 20% · action=traffic_shifting"
+      },
+      "Srt": null,
+      "root_cause": "重复的流量分配配置",
+      "suggestions": [
+        "合并或删除冗余的流量分配策略",
+        "确保只有一个DestinationRule定义流量权重"
+      ],
+      "impact_scope": [
+        "reviews"
+      ],
+      "affected_policies": [
+        "policy_0001",
+        "policy_0002"
+      ],
+      "static_expectation": {},
+      "dynamic_observation": {},
+      "details": {}
+    },
+    {
+      "id": "inc_align_3_reviews_traffic_shifting",
+      "inconsistency_type": "partial_matched",
+      "type": "partial_matched",
+      "severity": "medium",
+      "description": "reviews 流量分割部分匹配：v2 权重偏差 10%，仍超出容差 τ=0.1 的边缘",
+      "layer": "layer1",
+      "layer_name": "第一层 · 控制面 / 数据面全局",
+      "resource_kind": "DestinationRule",
+      "resource_name": "reviews",
+      "resource_namespace": "default",
+      "affected_services": [
+        "reviews"
+      ],
+      "affected_subsets": [
+        "v1",
+        "v2"
+      ],
+      "function_type": "traffic_shifting",
+      "alignment_status": "partial_matched",
+      "Sdecl": {
+        "tuple_id": "default.reviews.traffic_shifting",
+        "function_type": "traffic_shifting",
+        "plane": "control_plane",
+        "predicate": {},
+        "action": {
+          "type": "traffic_shifting"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "reviews",
+          "subsets": [
+            "v1",
+            "v2"
+          ]
+        },
+        "constraint": {
+          "weights": {
+            "v1": 90,
+            "v2": 10
+          }
+        },
+        "source_resources": [],
+        "summary": "→ v1 90% / v2 10% · action=traffic_shifting"
+      },
+      "Sdp": {
+        "tuple_id": "default.reviews.traffic_shifting",
+        "function_type": "traffic_shifting",
+        "plane": "data_plane",
+        "predicate": {},
+        "action": {
+          "type": "traffic_shifting"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "reviews",
+          "subsets": [
+            "v1",
+            "v2"
+          ]
+        },
+        "constraint": {
+          "weights": {
+            "v1": 80,
+            "v2": 20
+          }
+        },
+        "source_resources": [],
+        "summary": "→ v1 80% / v2 20% · action=traffic_shifting"
+      },
+      "Srt": {
+        "tuple_id": "runtime.case_001",
+        "function_type": "traffic_split",
+        "plane": "runtime",
+        "predicate": {
+          "path": "/reviews/1",
+          "subset": "v1"
+        },
+        "action": {
+          "type": "observe"
+        },
+        "scope": {
+          "service": "reviews",
+          "source": "productpage",
+          "subsets": [
+            "v1"
+          ]
+        },
+        "constraint": {
+          "weights": {
+            "v1": 51,
+            "v2": 49
+          }
+        },
+        "summary": "用例 case_001 未通过 · 期望 {'weights': {'v1': 80, 'v2': 20}} · 实测 {'weights': {'v1': 51, 'v2': 49}}",
+        "test_case_id": "case_001",
+        "verified": false,
+        "expected": {
+          "weights": {
+            "v1": 80,
+            "v2": 20
+          }
+        },
+        "actual": {
+          "weights": {
+            "v1": 51,
+            "v2": 49
+          }
+        }
+      },
+      "root_cause": "控制面 Sdecl 与数据面 Sdp 对齐状态为 partial_matched",
+      "suggestions": [
+        "对照 Sdecl 与 Sdp 的 predicate / action / constraint",
+        "确认 istiod 已将最新配置下发到 sidecar"
+      ],
+      "impact_scope": [
+        "reviews",
+        "v1",
+        "v2"
+      ],
+      "affected_policies": [],
+      "static_expectation": {
+        "alignment_status": "partial_matched",
+        "control": {
+          "v1": 90,
+          "v2": 10
+        }
+      },
+      "dynamic_observation": {
+        "data": {
+          "v1": 80,
+          "v2": 20
+        }
+      },
+      "details": {
+        "differences": [
+          {
+            "kind": "numeric",
+            "description": "reviews 流量分割部分匹配：v2 权重偏差 10%，仍超出容差 τ=0.1 的边缘",
+            "control": {
+              "v1": 90,
+              "v2": 10
+            },
+            "data": {
+              "v1": 80,
+              "v2": 20
+            }
+          }
+        ],
+        "pair_key": "default.reviews.traffic_shifting"
+      }
+    },
+    {
+      "id": "inc_conflict_3_gateway_selector_empty",
+      "inconsistency_type": "gateway_selector_empty",
+      "type": "gateway_selector_empty",
+      "severity": "medium",
+      "description": "Gateway 'empty-selector-gateway' 未设置 selector，无法绑定到 ingress/gateway workload",
+      "layer": "layer3",
+      "layer_name": "第三层 · 配置资源",
+      "resource_kind": "Gateway",
+      "resource_name": "empty-selector-gateway",
+      "resource_namespace": "default",
+      "affected_services": [],
+      "affected_subsets": [],
+      "function_type": null,
+      "alignment_status": null,
+      "Sdecl": {
+        "tuple_id": "decl.Gateway.empty-selector-gateway",
+        "function_type": "routing",
+        "plane": "control_plane",
+        "predicate": {},
+        "action": {
+          "type": "gateway_selector_empty"
+        },
+        "scope": {
+          "namespace": "default"
+        },
+        "constraint": {
+          "gateway": "empty-selector-gateway",
+          "namespace": "default"
+        },
+        "source_resources": [],
+        "summary": "action=gateway_selector_empty"
+      },
+      "Sdp": null,
+      "Srt": null,
+      "root_cause": "跨资源引用或选择器组合后语义破裂",
+      "suggestions": [
+        "核对 VirtualService 引用的 Gateway / subset 是否真实存在",
+        "合并重复匹配条件或冲突的 Gateway selector"
+      ],
+      "impact_scope": [],
+      "affected_policies": [],
+      "static_expectation": {},
+      "dynamic_observation": {},
+      "details": {
+        "type": "gateway_selector_empty",
+        "severity": "medium",
+        "gateway": "empty-selector-gateway",
+        "namespace": "default",
+        "description": "Gateway 'empty-selector-gateway' 未设置 selector，无法绑定到 ingress/gateway workload"
+      }
+    },
+    {
+      "id": "inc_policy_unverified_policy_0003",
+      "inconsistency_type": "policy_not_verified",
+      "type": "policy_not_verified",
+      "severity": "medium",
+      "description": "策略 ratings-timeout 未被动态测试验证",
+      "layer": "layer2",
+      "layer_name": "第二层 · 服务关系",
+      "resource_kind": "VirtualService",
+      "resource_name": "ratings",
+      "resource_namespace": "default",
+      "affected_services": [
+        "ratings"
+      ],
+      "affected_subsets": [
+        "v1"
+      ],
+      "function_type": "timeout",
+      "alignment_status": "mismatched",
+      "Sdecl": {
+        "tuple_id": "default.ratings.timeout",
+        "function_type": "timeout",
+        "plane": "control_plane",
+        "predicate": {},
+        "action": {
+          "type": "timeout"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "ratings",
+          "subsets": [
+            "v1"
+          ]
+        },
+        "constraint": {
+          "timeout": "1s",
+          "timeout_seconds": 1
+        },
+        "source_resources": [],
+        "summary": "action=timeout · timeout=1s · timeout_seconds=1"
+      },
+      "Sdp": {
+        "tuple_id": "default.ratings.timeout",
+        "function_type": "timeout",
+        "plane": "data_plane",
+        "predicate": {},
+        "action": {
+          "type": "timeout"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "ratings",
+          "subsets": [
+            "v1"
+          ]
+        },
+        "constraint": {
+          "timeout": "5s",
+          "timeout_seconds": 5
+        },
+        "source_resources": [],
+        "summary": "action=timeout · timeout=5s · timeout_seconds=5"
+      },
+      "Srt": null,
+      "root_cause": "缺少对应的测试用例",
+      "suggestions": [
+        "为 ratings-timeout 添加动态测试用例",
+        "确认策略是否真正生效"
+      ],
+      "impact_scope": [
+        "ratings"
+      ],
+      "affected_policies": [
+        "policy_0003"
+      ],
+      "static_expectation": {
+        "policy": "ratings-timeout",
+        "type": "timeout"
+      },
+      "dynamic_observation": {
+        "tests": 0,
+        "status": "no_test_coverage"
+      },
+      "details": {}
+    },
+    {
+      "id": "inc_scope_policy_0001",
+      "inconsistency_type": "scope_mismatch",
+      "type": "scope_mismatch",
+      "severity": "medium",
+      "description": "策略 reviews-split-primary 的部分作用范围未被测试覆盖",
+      "layer": "layer2",
+      "layer_name": "第二层 · 服务关系",
+      "resource_kind": "DestinationRule",
+      "resource_name": "reviews",
+      "resource_namespace": "default",
+      "affected_services": [
+        "reviews"
+      ],
+      "affected_subsets": [
+        "v2",
+        "v3"
+      ],
+      "function_type": "traffic_shifting",
+      "alignment_status": "partial_matched",
+      "Sdecl": {
+        "tuple_id": "default.reviews.traffic_shifting",
+        "function_type": "traffic_shifting",
+        "plane": "control_plane",
+        "predicate": {},
+        "action": {
+          "type": "traffic_shifting"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "reviews",
+          "subsets": [
+            "v1",
+            "v2"
+          ]
+        },
+        "constraint": {
+          "weights": {
+            "v1": 90,
+            "v2": 10
+          }
+        },
+        "source_resources": [],
+        "summary": "→ v1 90% / v2 10% · action=traffic_shifting"
+      },
+      "Sdp": {
+        "tuple_id": "default.reviews.traffic_shifting",
+        "function_type": "traffic_shifting",
+        "plane": "data_plane",
+        "predicate": {},
+        "action": {
+          "type": "traffic_shifting"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "reviews",
+          "subsets": [
+            "v1",
+            "v2"
+          ]
+        },
+        "constraint": {
+          "weights": {
+            "v1": 80,
+            "v2": 20
+          }
+        },
+        "source_resources": [],
+        "summary": "→ v1 80% / v2 20% · action=traffic_shifting"
+      },
+      "Srt": null,
+      "root_cause": "测试覆盖不完整",
+      "suggestions": [
+        "添加针对子集 {'v2', 'v3'} 的测试用例",
+        "确认这些子集是否真实存在"
+      ],
+      "impact_scope": [
+        "v2",
+        "v3"
+      ],
+      "affected_policies": [
+        "policy_0001"
+      ],
+      "static_expectation": {
+        "applies_to": [
+          "v2",
+          "v1",
+          "v3"
+        ]
+      },
+      "dynamic_observation": {
+        "tested": [
+          "v1"
+        ],
+        "missing": [
+          "v2",
+          "v3"
+        ]
+      },
+      "details": {}
+    },
+    {
+      "id": "inc_scope_policy_0002",
+      "inconsistency_type": "scope_mismatch",
+      "type": "scope_mismatch",
+      "severity": "medium",
+      "description": "策略 reviews-split-canary 的部分作用范围未被测试覆盖",
+      "layer": "layer2",
+      "layer_name": "第二层 · 服务关系",
+      "resource_kind": "DestinationRule",
+      "resource_name": "reviews",
+      "resource_namespace": "default",
+      "affected_services": [
+        "reviews"
+      ],
+      "affected_subsets": [
+        "v2"
+      ],
+      "function_type": "traffic_shifting",
+      "alignment_status": "partial_matched",
+      "Sdecl": {
+        "tuple_id": "default.reviews.traffic_shifting",
+        "function_type": "traffic_shifting",
+        "plane": "control_plane",
+        "predicate": {},
+        "action": {
+          "type": "traffic_shifting"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "reviews",
+          "subsets": [
+            "v1",
+            "v2"
+          ]
+        },
+        "constraint": {
+          "weights": {
+            "v1": 90,
+            "v2": 10
+          }
+        },
+        "source_resources": [],
+        "summary": "→ v1 90% / v2 10% · action=traffic_shifting"
+      },
+      "Sdp": {
+        "tuple_id": "default.reviews.traffic_shifting",
+        "function_type": "traffic_shifting",
+        "plane": "data_plane",
+        "predicate": {},
+        "action": {
+          "type": "traffic_shifting"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "reviews",
+          "subsets": [
+            "v1",
+            "v2"
+          ]
+        },
+        "constraint": {
+          "weights": {
+            "v1": 80,
+            "v2": 20
+          }
+        },
+        "source_resources": [],
+        "summary": "→ v1 80% / v2 20% · action=traffic_shifting"
+      },
+      "Srt": null,
+      "root_cause": "测试覆盖不完整",
+      "suggestions": [
+        "添加针对子集 {'v2'} 的测试用例",
+        "确认这些子集是否真实存在"
+      ],
+      "impact_scope": [
+        "v2"
+      ],
+      "affected_policies": [
+        "policy_0002"
+      ],
+      "static_expectation": {
+        "applies_to": [
+          "v2",
+          "v1"
+        ]
+      },
+      "dynamic_observation": {
+        "tested": [
+          "v1"
+        ],
+        "missing": [
+          "v2"
+        ]
+      },
+      "details": {}
+    },
+    {
+      "id": "inc_scope_policy_0004",
+      "inconsistency_type": "scope_mismatch",
+      "type": "scope_mismatch",
+      "severity": "medium",
+      "description": "策略 ratings-cb 的部分作用范围未被测试覆盖",
+      "layer": "layer2",
+      "layer_name": "第二层 · 服务关系",
+      "resource_kind": "DestinationRule",
+      "resource_name": "ratings",
+      "resource_namespace": "default",
+      "affected_services": [
+        "ratings"
+      ],
+      "affected_subsets": [
+        "v1"
+      ],
+      "function_type": "circuit_breaker",
+      "alignment_status": "mismatched",
+      "Sdecl": {
+        "tuple_id": "default.ratings.cb",
+        "function_type": "circuit_breaker",
+        "plane": "control_plane",
+        "predicate": {},
+        "action": {
+          "type": "circuit_breaker"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "ratings",
+          "subsets": [
+            "v1"
+          ]
+        },
+        "constraint": {
+          "consecutive_errors": 5,
+          "max_connections": 100
+        },
+        "source_resources": [],
+        "summary": "action=circuit_breaker · max_connections=100 · consecutive_errors=5"
+      },
+      "Sdp": {
+        "tuple_id": "default.ratings.cb",
+        "function_type": "circuit_breaker",
+        "plane": "data_plane",
+        "predicate": {},
+        "action": {
+          "type": "circuit_breaker"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "ratings",
+          "subsets": [
+            "v1"
+          ]
+        },
+        "constraint": {
+          "consecutive_errors": 2,
+          "max_connections": 100
+        },
+        "source_resources": [],
+        "summary": "action=circuit_breaker · max_connections=100 · consecutive_errors=2"
+      },
+      "Srt": null,
+      "root_cause": "测试覆盖不完整",
+      "suggestions": [
+        "添加针对子集 {'v1'} 的测试用例",
+        "确认这些子集是否真实存在"
+      ],
+      "impact_scope": [
+        "v1"
+      ],
+      "affected_policies": [
+        "policy_0004"
+      ],
+      "static_expectation": {
+        "applies_to": [
+          "v1"
+        ]
+      },
+      "dynamic_observation": {
+        "tested": [],
+        "missing": [
+          "v1"
+        ]
+      },
+      "details": {}
+    },
+    {
+      "id": "inc_scope_policy_0005",
+      "inconsistency_type": "scope_mismatch",
+      "type": "scope_mismatch",
+      "severity": "medium",
+      "description": "策略 reviews 的部分作用范围未被测试覆盖",
+      "layer": "layer2",
+      "layer_name": "第二层 · 服务关系",
+      "resource_kind": "VirtualService",
+      "resource_name": "reviews",
+      "resource_namespace": "default",
+      "affected_services": [
+        "reviews"
+      ],
+      "affected_subsets": [
+        "v1"
+      ],
+      "function_type": "routing",
+      "alignment_status": "mismatched",
+      "Sdecl": {
+        "tuple_id": "default.reviews.routing.0",
+        "function_type": "routing",
+        "plane": "control_plane",
+        "predicate": {
+          "uri": {
+            "prefix": "/"
+          }
+        },
+        "action": {
+          "type": "route"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "reviews",
+          "subsets": [
+            "v1",
+            "v2"
+          ]
+        },
+        "constraint": {
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1",
+              "weight": 80
+            },
+            {
+              "host": "reviews",
+              "subset": "v2",
+              "weight": 20
+            }
+          ],
+          "weights": {
+            "v1": 80,
+            "v2": 20
+          }
+        },
+        "source_resources": [],
+        "summary": "match prefix=/ · → v1 80% / v2 20%"
+      },
+      "Sdp": {
+        "tuple_id": "default.reviews.routing.0",
+        "function_type": "routing",
+        "plane": "data_plane",
+        "predicate": {
+          "uri": {
+            "prefix": "/"
+          }
+        },
+        "action": {
+          "type": "route"
+        },
+        "scope": {
+          "namespace": "default",
+          "service": "reviews",
+          "subsets": [
+            "v1",
+            "v2"
+          ]
+        },
+        "constraint": {
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1",
+              "weight": 50
+            },
+            {
+              "host": "reviews",
+              "subset": "v2",
+              "weight": 50
+            }
+          ],
+          "weights": {
+            "v1": 50,
+            "v2": 50
+          }
+        },
+        "source_resources": [],
+        "summary": "match prefix=/ · → v1 50% / v2 50%"
+      },
+      "Srt": null,
+      "root_cause": "测试覆盖不完整",
+      "suggestions": [
+        "添加针对子集 {'v1'} 的测试用例",
+        "确认这些子集是否真实存在"
+      ],
+      "impact_scope": [
+        "v1"
+      ],
+      "affected_policies": [
+        "policy_0005"
+      ],
+      "static_expectation": {
+        "applies_to": [
+          "v2",
+          "v1"
+        ]
+      },
+      "dynamic_observation": {
+        "tested": [
+          "v2"
+        ],
+        "missing": [
+          "v1"
+        ]
+      },
+      "details": {}
+    }
+  ],
+  "recommendations": [
+    "🔴 存在关键问题，建议立即修复以避免服务中断",
+    "⚠️ 发现 1 个未验证的策略，建议添加对应的动态测试用例以确保策略生效",
+    "⚠️ 发现 4 个作用范围问题，建议检查策略配置的子集定义和测试覆盖",
+    "❌ 发现 3 个行为偏差，建议检查配置与实际运行时行为的差异",
+    "⚠️ 发现 1 个策略冲突，建议合并或删除冗余配置",
+    "⚠️ 一致性率较低（< 50%），建议进行全面的配置审查和测试",
+    "⚠️ 控制平面和数据平面存在 13 个不一致，建议检查配置同步状态"
+  ],
+  "metadata": {
+    "layers": [
+      {
+        "id": "layer1",
+        "name": "第一层 · 控制面 / 数据面全局",
+        "what": "比较同一功能在声明式配置 Sdecl 与 Envoy 数据面 Sdp 上是否对齐。不看运行时流量，只看控制面 YAML 与 sidecar dump 投影出的语义元组。",
+        "checks": [
+          {
+            "type": "control_only",
+            "name": "仅控制面",
+            "desc": "YAML 声明了策略，Envoy dump 中没有对应语义（Pilot 未下发或 sidecar 未同步）。"
+          },
+          {
+            "type": "data_only",
+            "name": "仅数据面",
+            "desc": "Envoy 存在规则，控制面未声明（残留配置或手工注入）。"
+          },
+          {
+            "type": "mismatched",
+            "name": "平面语义不匹配",
+            "desc": "两侧都有配置，但 predicate / action / constraint 不一致。"
+          },
+          {
+            "type": "partial_matched",
+            "name": "部分匹配",
+            "desc": "功能存在于两侧，部分字段对齐、部分超出容差 τ。"
+          },
+          {
+            "type": "timeout_mismatch",
+            "name": "超时不一致",
+            "desc": "控制面与数据面的 timeout 约束不同。"
+          }
+        ]
+      },
+      {
+        "id": "layer2",
+        "name": "第二层 · 服务关系",
+        "what": "在服务 / subset 关系上核对路由、流量分割、重试、超时、熔断是否按 Sdecl 生效。Srt 来自动态测试的实测行为；流量分割可同时对比期望权重与观测权重。",
+        "checks": [
+          {
+            "type": "behavior_deviation",
+            "name": "运行时行为偏差",
+            "desc": "动态测试未通过：实测 Srt 与声明 Sdecl（及数据面 Sdp）不一致。"
+          },
+          {
+            "type": "traffic_split_drift",
+            "name": "流量分割漂移",
+            "desc": "期望 subset 权重与运行时观测权重超出容差。"
+          },
+          {
+            "type": "scope_mismatch",
+            "name": "作用范围未覆盖",
+            "desc": "策略声明的 subset 未被测试覆盖，无法确认运行时是否生效。"
+          },
+          {
+            "type": "policy_not_verified",
+            "name": "策略未被验证",
+            "desc": "存在声明式策略，但没有对应的动态测试用例。"
+          }
+        ]
+      },
+      {
+        "id": "layer3",
+        "name": "第三层 · 配置资源",
+        "what": "检查 VS / DR / Gateway / EnvoyFilter 等资源之间的引用是否闭合。单资源合法、组合后语义破裂的问题落在这一层（例如 VS 引用了不存在的 subset）。",
+        "checks": [
+          {
+            "type": "missing_subset",
+            "name": "缺失 subset",
+            "desc": "VirtualService 引用的 subset 在 DestinationRule 中未定义。"
+          },
+          {
+            "type": "gateway_unmatched",
+            "name": "Gateway 未匹配",
+            "desc": "VirtualService 绑定的 Gateway 在集群中不存在。"
+          },
+          {
+            "type": "gateway_selector_empty",
+            "name": "Gateway selector 为空",
+            "desc": "Gateway 未设置 selector，无法绑定 ingress workload。"
+          },
+          {
+            "type": "gateway_selector_conflict",
+            "name": "Gateway selector 冲突",
+            "desc": "多个 Gateway 使用相同 selector，入口选择不确定。"
+          },
+          {
+            "type": "route_priority_conflict",
+            "name": "路由优先级冲突",
+            "desc": "同一 VirtualService 中两条 HTTP 规则匹配条件相同。"
+          },
+          {
+            "type": "policy_conflict",
+            "name": "策略冲突",
+            "desc": "同一服务上存在多条互相覆盖的流量分配策略。"
+          }
+        ]
+      }
+    ],
+    "checks_performed": [
+      {
+        "layer": "layer1",
+        "layer_name": "第一层 · 控制面 / 数据面全局",
+        "type": "control_only",
+        "name": "仅控制面",
+        "description": "YAML 声明了策略，Envoy dump 中没有对应语义（Pilot 未下发或 sidecar 未同步）。"
+      },
+      {
+        "layer": "layer1",
+        "layer_name": "第一层 · 控制面 / 数据面全局",
+        "type": "data_only",
+        "name": "仅数据面",
+        "description": "Envoy 存在规则，控制面未声明（残留配置或手工注入）。"
+      },
+      {
+        "layer": "layer1",
+        "layer_name": "第一层 · 控制面 / 数据面全局",
+        "type": "mismatched",
+        "name": "平面语义不匹配",
+        "description": "两侧都有配置，但 predicate / action / constraint 不一致。"
+      },
+      {
+        "layer": "layer1",
+        "layer_name": "第一层 · 控制面 / 数据面全局",
+        "type": "partial_matched",
+        "name": "部分匹配",
+        "description": "功能存在于两侧，部分字段对齐、部分超出容差 τ。"
+      },
+      {
+        "layer": "layer1",
+        "layer_name": "第一层 · 控制面 / 数据面全局",
+        "type": "timeout_mismatch",
+        "name": "超时不一致",
+        "description": "控制面与数据面的 timeout 约束不同。"
+      },
+      {
+        "layer": "layer2",
+        "layer_name": "第二层 · 服务关系",
+        "type": "behavior_deviation",
+        "name": "运行时行为偏差",
+        "description": "动态测试未通过：实测 Srt 与声明 Sdecl（及数据面 Sdp）不一致。"
+      },
+      {
+        "layer": "layer2",
+        "layer_name": "第二层 · 服务关系",
+        "type": "traffic_split_drift",
+        "name": "流量分割漂移",
+        "description": "期望 subset 权重与运行时观测权重超出容差。"
+      },
+      {
+        "layer": "layer2",
+        "layer_name": "第二层 · 服务关系",
+        "type": "scope_mismatch",
+        "name": "作用范围未覆盖",
+        "description": "策略声明的 subset 未被测试覆盖，无法确认运行时是否生效。"
+      },
+      {
+        "layer": "layer2",
+        "layer_name": "第二层 · 服务关系",
+        "type": "policy_not_verified",
+        "name": "策略未被验证",
+        "description": "存在声明式策略，但没有对应的动态测试用例。"
+      },
+      {
+        "layer": "layer3",
+        "layer_name": "第三层 · 配置资源",
+        "type": "missing_subset",
+        "name": "缺失 subset",
+        "description": "VirtualService 引用的 subset 在 DestinationRule 中未定义。"
+      },
+      {
+        "layer": "layer3",
+        "layer_name": "第三层 · 配置资源",
+        "type": "gateway_unmatched",
+        "name": "Gateway 未匹配",
+        "description": "VirtualService 绑定的 Gateway 在集群中不存在。"
+      },
+      {
+        "layer": "layer3",
+        "layer_name": "第三层 · 配置资源",
+        "type": "gateway_selector_empty",
+        "name": "Gateway selector 为空",
+        "description": "Gateway 未设置 selector，无法绑定 ingress workload。"
+      },
+      {
+        "layer": "layer3",
+        "layer_name": "第三层 · 配置资源",
+        "type": "gateway_selector_conflict",
+        "name": "Gateway selector 冲突",
+        "description": "多个 Gateway 使用相同 selector，入口选择不确定。"
+      },
+      {
+        "layer": "layer3",
+        "layer_name": "第三层 · 配置资源",
+        "type": "route_priority_conflict",
+        "name": "路由优先级冲突",
+        "description": "同一 VirtualService 中两条 HTTP 规则匹配条件相同。"
+      },
+      {
+        "layer": "layer3",
+        "layer_name": "第三层 · 配置资源",
+        "type": "policy_conflict",
+        "name": "策略冲突",
+        "description": "同一服务上存在多条互相覆盖的流量分配策略。"
+      }
+    ]
+  }
+}

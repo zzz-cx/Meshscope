@@ -4,3 +4,7 @@ __pycache__/
 *.pyc
 .understand-anything/
 web_endpoints.json
+*.db
+results/meshscope.db
+results/meshscope.db-wal
+results/meshscope.db-shm

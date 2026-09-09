@@ -1,0 +1,290 @@
+{
+  "start_time": "2025-11-05T00:01:26.686405",
+  "app_name": "bookinfo",
+  "namespace": "default",
+  "scopes": [
+    3
+  ],
+  "iterations": 2,
+  "events": [
+    {
+      "event_id": "44edc889-799c-41a2-a829-c83f1c5c44e7",
+      "scope": 3,
+      "config_items": [
+        {
+          "type": "VirtualService",
+          "name": "productpage",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "productpage",
+              "namespace": "default",
+              "resourceVersion": "2883363"
+            },
+            "spec": {
+              "hosts": [
+                "productpage"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "productpage",
+                        "subset": "v1"
+                      },
+                      "weight": 70
+                    },
+                    {
+                      "destination": {
+                        "host": "productpage",
+                        "subset": "v2"
+                      },
+                      "weight": 30
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "reviews",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "reviews",
+              "namespace": "default",
+              "resourceVersion": "2883366"
+            },
+            "spec": {
+              "hosts": [
+                "reviews"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "reviews",
+                        "subset": "v1"
+                      },
+                      "weight": 50
+                    },
+                    {
+                      "destination": {
+                        "host": "reviews",
+                        "subset": "v2"
+                      },
+                      "weight": 50
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "ratings",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "ratings",
+              "namespace": "default",
+              "resourceVersion": "2883373"
+            },
+            "spec": {
+              "hosts": [
+                "ratings"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "ratings",
+                        "subset": "v1"
+                      },
+                      "weight": 30
+                    },
+                    {
+                      "destination": {
+                        "host": "ratings",
+                        "subset": "v2"
+                      },
+                      "weight": 70
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "change_time": 1762272103.1256201,
+      "detection_time": 1762272104.8048275,
+      "success": true,
+      "error": null,
+      "policy_states": {
+        "static_consistent": "fully-consistent",
+        "dynamic_consistent": "fully-consistent"
+      },
+      "timing_metrics": {
+        "change_detection_time": 1.679,
+        "parsing_time": 0.125,
+        "dependency_update_time": 0.0,
+        "validation_time": 0.22,
+        "visualization_time": 0.021,
+        "total_time": 0.366
+      }
+    },
+    {
+      "event_id": "d4bab1ab-2490-4cc3-8a49-2ed5adff4fdd",
+      "scope": 3,
+      "config_items": [
+        {
+          "type": "VirtualService",
+          "name": "productpage",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "productpage",
+              "namespace": "default",
+              "resourceVersion": "2883622"
+            },
+            "spec": {
+              "hosts": [
+                "productpage"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "productpage",
+                        "subset": "v1"
+                      },
+                      "weight": 70
+                    },
+                    {
+                      "destination": {
+                        "host": "productpage",
+                        "subset": "v2"
+                      },
+                      "weight": 30
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "reviews",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "reviews",
+              "namespace": "default",
+              "resourceVersion": "2883626"
+            },
+            "spec": {
+              "hosts": [
+                "reviews"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "reviews",
+                        "subset": "v1"
+                      },
+                      "weight": 50
+                    },
+                    {
+                      "destination": {
+                        "host": "reviews",
+                        "subset": "v2"
+                      },
+                      "weight": 50
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "ratings",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "ratings",
+              "namespace": "default",
+              "resourceVersion": "2883634"
+            },
+            "spec": {
+              "hosts": [
+                "ratings"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "ratings",
+                        "subset": "v1"
+                      },
+                      "weight": 30
+                    },
+                    {
+                      "destination": {
+                        "host": "ratings",
+                        "subset": "v2"
+                      },
+                      "weight": 70
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "change_time": 1762272114.6788723,
+      "detection_time": 1762272116.2927263,
+      "success": true,
+      "error": null,
+      "policy_states": {
+        "static_consistent": "fully-consistent",
+        "dynamic_consistent": "fully-consistent"
+      },
+      "timing_metrics": {
+        "change_detection_time": 1.614,
+        "parsing_time": 0.115,
+        "dependency_update_time": 0.0,
+        "validation_time": 0.228,
+        "visualization_time": 0.011,
+        "total_time": 0.354
+      }
+    }
+  ],
+  "end_time": "2025-11-05T00:02:02.193681"
+}

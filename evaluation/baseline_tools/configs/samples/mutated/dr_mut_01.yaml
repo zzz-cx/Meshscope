@@ -1,0 +1,33 @@
+# 变异配置2：熔断器参数过于激进
+# 通过mutation生成：将连续错误数从5改为1
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: reviews-circuit-breaker-mutated
+  namespace: default
+spec:
+  host: reviews.default.svc.cluster.local
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 1  # 变异：连接数过少
+      http:
+        http1MaxPendingRequests: 1  # 变异：待处理请求数过少
+        maxRequestsPerConnection: 2
+        h2UpgradePolicy: UPGRADE
+    outlierDetection:
+      consecutive5xxErrors: 1  # 变异：连续错误数过少，正常应该是5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+      minHealthPercent: 30
+  subsets:
+  - labels:
+      version: v1
+    name: v1
+  - labels:
+      version: v2
+    name: v2
+  - labels:
+      version: v3
+    name: v3

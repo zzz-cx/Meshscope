@@ -1,0 +1,330 @@
+{
+  "experiment_start": "2025-11-09T22:37:26.581209",
+  "experiment_end": "2025-11-09T22:42:07.597355",
+  "namespace": "default",
+  "steps": [
+    5,
+    10,
+    15,
+    20
+  ],
+  "records": [
+    {
+      "target_features": 5,
+      "static_duration": 8.438,
+      "dynamic_duration": 69.885,
+      "total_duration": 78.411,
+      "success": true,
+      "timestamp": "2025-11-09T22:37:34.134985",
+      "result_file": "results\\e2e_validation\\e2e_result_20251109_223852.json"
+    },
+    {
+      "target_features": 10,
+      "static_duration": 8.34,
+      "dynamic_duration": 55.745,
+      "total_duration": 64.165,
+      "success": true,
+      "timestamp": "2025-11-09T22:38:55.330547",
+      "result_file": "results\\e2e_validation\\e2e_result_20251109_223959.json"
+    },
+    {
+      "target_features": 15,
+      "static_duration": 3.459,
+      "dynamic_duration": 55.308,
+      "total_duration": 58.837,
+      "success": true,
+      "timestamp": "2025-11-09T22:40:07.376035",
+      "result_file": "results\\e2e_validation\\e2e_result_20251109_224106.json"
+    },
+    {
+      "target_features": 20,
+      "static_duration": 8.32,
+      "dynamic_duration": 49.473,
+      "total_duration": 57.887,
+      "success": true,
+      "timestamp": "2025-11-09T22:41:09.596360",
+      "result_file": "results\\e2e_validation\\e2e_result_20251109_224207.json"
+    }
+  ],
+  "analysis": {
+    "trend": "non_linear",
+    "details": {
+      "dynamic_durations": [
+        69.885,
+        55.745,
+        55.308,
+        49.473
+      ],
+      "diffs": [
+        -14.140000000000008,
+        -0.4369999999999976,
+        -5.835000000000001
+      ],
+      "avg_diff": -6.804000000000002,
+      "std_dev": 5.636031286877913,
+      "relative_std": 0.8283408710872886
+    }
+  },
+  "features": [
+    {
+      "feature_id": 1,
+      "type": "traffic_shifting",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-traffic-1",
+      "service": "reviews",
+      "metadata": {
+        "header": "end-user",
+        "header_value": "boo-exp-1",
+        "weights": [
+          51,
+          49
+        ]
+      }
+    },
+    {
+      "feature_id": 2,
+      "type": "traffic_shifting",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-traffic-2",
+      "service": "reviews",
+      "metadata": {
+        "header": "end-user",
+        "header_value": "boo-exp-2",
+        "weights": [
+          64,
+          36
+        ]
+      }
+    },
+    {
+      "feature_id": 3,
+      "type": "traffic_shifting",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-traffic-3",
+      "service": "reviews",
+      "metadata": {
+        "header": "end-user",
+        "header_value": "boo-exp-3",
+        "weights": [
+          64,
+          36
+        ]
+      }
+    },
+    {
+      "feature_id": 4,
+      "type": "routing",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-routing-4",
+      "service": "productpage",
+      "metadata": {
+        "match_prefix": "/feature-bookinfo-routing-4"
+      }
+    },
+    {
+      "feature_id": 5,
+      "type": "routing",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-routing-5",
+      "service": "productpage",
+      "metadata": {
+        "match_prefix": "/feature-bookinfo-routing-5"
+      }
+    },
+    {
+      "feature_id": 6,
+      "type": "circuit_breaker",
+      "resource_kind": "DestinationRule",
+      "resource_name": "feature-cb-6",
+      "service": "ratings",
+      "metadata": {
+        "max_pending": 1,
+        "interval": "5s",
+        "base_ejection_time": "5s"
+      }
+    },
+    {
+      "feature_id": 7,
+      "type": "traffic_shifting",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-traffic-7",
+      "service": "reviews",
+      "metadata": {
+        "header": "end-user",
+        "header_value": "boo-exp-7",
+        "weights": [
+          52,
+          48
+        ]
+      }
+    },
+    {
+      "feature_id": 8,
+      "type": "traffic_shifting",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-traffic-8",
+      "service": "reviews",
+      "metadata": {
+        "header": "end-user",
+        "header_value": "boo-exp-8",
+        "weights": [
+          54,
+          46
+        ]
+      }
+    },
+    {
+      "feature_id": 9,
+      "type": "circuit_breaker",
+      "resource_kind": "DestinationRule",
+      "resource_name": "feature-cb-9",
+      "service": "reviews",
+      "metadata": {
+        "max_pending": 6,
+        "interval": "5s",
+        "base_ejection_time": "5s"
+      }
+    },
+    {
+      "feature_id": 10,
+      "type": "traffic_shifting",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-traffic-10",
+      "service": "reviews",
+      "metadata": {
+        "header": "end-user",
+        "header_value": "boo-exp-10",
+        "weights": [
+          53,
+          47
+        ]
+      }
+    },
+    {
+      "feature_id": 11,
+      "type": "routing",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-routing-11",
+      "service": "productpage",
+      "metadata": {
+        "match_prefix": "/feature-bookinfo-routing-11"
+      }
+    },
+    {
+      "feature_id": 12,
+      "type": "routing",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-routing-12",
+      "service": "productpage",
+      "metadata": {
+        "match_prefix": "/feature-bookinfo-routing-12"
+      }
+    },
+    {
+      "feature_id": 13,
+      "type": "traffic_shifting",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-traffic-13",
+      "service": "reviews",
+      "metadata": {
+        "header": "end-user",
+        "header_value": "boo-exp-13",
+        "weights": [
+          45,
+          55
+        ]
+      }
+    },
+    {
+      "feature_id": 14,
+      "type": "circuit_breaker",
+      "resource_kind": "DestinationRule",
+      "resource_name": "feature-cb-14",
+      "service": "reviews",
+      "metadata": {
+        "max_pending": 8,
+        "interval": "5s",
+        "base_ejection_time": "7s"
+      }
+    },
+    {
+      "feature_id": 15,
+      "type": "rate_limit",
+      "resource_kind": "EnvoyFilter",
+      "resource_name": "feature-rl-15",
+      "service": "reviews",
+      "metadata": {
+        "max_tokens": 26,
+        "tokens_per_fill": 22,
+        "fill_interval": "4s"
+      }
+    },
+    {
+      "feature_id": 16,
+      "type": "traffic_shifting",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-traffic-16",
+      "service": "reviews",
+      "metadata": {
+        "header": "end-user",
+        "header_value": "boo-exp-16",
+        "weights": [
+          65,
+          35
+        ]
+      }
+    },
+    {
+      "feature_id": 17,
+      "type": "traffic_shifting",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-traffic-17",
+      "service": "reviews",
+      "metadata": {
+        "header": "end-user",
+        "header_value": "boo-exp-17",
+        "weights": [
+          77,
+          23
+        ]
+      }
+    },
+    {
+      "feature_id": 18,
+      "type": "routing",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-routing-18",
+      "service": "details",
+      "metadata": {
+        "match_prefix": "/feature-bookinfo-routing-18"
+      }
+    },
+    {
+      "feature_id": 19,
+      "type": "rate_limit",
+      "resource_kind": "EnvoyFilter",
+      "resource_name": "feature-rl-19",
+      "service": "productpage",
+      "metadata": {
+        "max_tokens": 21,
+        "tokens_per_fill": 21,
+        "fill_interval": "2s"
+      }
+    },
+    {
+      "feature_id": 20,
+      "type": "traffic_shifting",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-traffic-20",
+      "service": "reviews",
+      "metadata": {
+        "header": "end-user",
+        "header_value": "boo-exp-20",
+        "weights": [
+          50,
+          50
+        ]
+      }
+    }
+  ]
+}

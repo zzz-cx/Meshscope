@@ -1,0 +1,66 @@
+# 有效性评估环境配置
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: effectiveness-eval-config
+  namespace: istio-system
+data:
+  # 集群配置
+  cluster_config: |
+    kubernetes_version: "v1.25+"
+    istio_version: "1.18+"
+    nodes: 3
+    cpu_per_node: "4 cores"
+    memory_per_node: "8Gi"
+    
+  # 测试应用配置  
+  test_apps: |
+    - name: bookinfo
+      namespace: default
+      services: ["productpage", "details", "reviews", "ratings"]
+      versions:
+        productpage: ["v1"]
+        details: ["v1"] 
+        reviews: ["v1", "v2", "v3"]
+        ratings: ["v1"]
+    
+    - name: online-boutique
+      namespace: test
+      services: ["frontend", "cartservice", "productcatalogservice", "currencyservice"]
+      
+  # 监控配置
+  monitoring: |
+    prometheus:
+      enabled: true
+      retention: "24h"
+      scrape_interval: "15s"
+    jaeger:
+      enabled: true
+      sampling_rate: 1.0
+    grafana:
+      enabled: true
+      
+  # 负载测试配置
+  load_testing: |
+    tools: ["apache-bench", "wrk", "fortio"]
+    default_duration: "5m"
+    default_qps: 10
+    max_qps: 1000
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ssh-credentials
+  namespace: istio-system
+type: Opaque
+data:
+  # Base64编码的SSH凭据
+  # 注意：实际使用时应该从环境变量或密钥管理系统读取
+  # 示例值（请替换为实际值）：
+  # host: ${SSH_HOST}  # Base64编码的主机地址
+  # username: ${SSH_USER}  # Base64编码的用户名
+  # password: ${SSH_PASSWORD}  # Base64编码的密码
+  host: MTkyLjE2OC45Mi4xMzE=  # ${SSH_HOST} - 示例值，请替换
+  username: cm9vdA==  # ${SSH_USER:-root} - 示例值，请替换
+  password: MTIzNDU2Nzg=  # ${SSH_PASSWORD} - 示例值，请替换

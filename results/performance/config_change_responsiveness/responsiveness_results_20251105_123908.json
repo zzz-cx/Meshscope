@@ -1,0 +1,1906 @@
+{
+  "start_time": "2025-11-05T12:36:12.025940",
+  "app_name": "bookinfo",
+  "namespace": "default",
+  "scopes": [
+    5,
+    10
+  ],
+  "iterations": 3,
+  "events": [
+    {
+      "event_id": "4d7931a0-75df-4b8e-8856-0b53681384d7",
+      "scope": 5,
+      "config_items": [
+        {
+          "type": "VirtualService",
+          "name": "productpage",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "productpage",
+              "namespace": "default",
+              "resourceVersion": "2900769"
+            },
+            "spec": {
+              "hosts": [
+                "productpage"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "productpage",
+                        "subset": "v1"
+                      },
+                      "weight": 70
+                    },
+                    {
+                      "destination": {
+                        "host": "productpage",
+                        "subset": "v2"
+                      },
+                      "weight": 30
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "reviews",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "reviews",
+              "namespace": "default",
+              "resourceVersion": "2900772"
+            },
+            "spec": {
+              "hosts": [
+                "reviews"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "reviews",
+                        "subset": "v1"
+                      },
+                      "weight": 50
+                    },
+                    {
+                      "destination": {
+                        "host": "reviews",
+                        "subset": "v2"
+                      },
+                      "weight": 50
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "ratings",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "ratings",
+              "namespace": "default",
+              "resourceVersion": "2900764"
+            },
+            "spec": {
+              "hosts": [
+                "ratings"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "ratings",
+                        "subset": "v1"
+                      },
+                      "weight": 30
+                    },
+                    {
+                      "destination": {
+                        "host": "ratings",
+                        "subset": "v2"
+                      },
+                      "weight": 70
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "details",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "details",
+              "namespace": "default",
+              "resourceVersion": "2900765"
+            },
+            "spec": {
+              "hosts": [
+                "details"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "details",
+                        "subset": "v1"
+                      },
+                      "weight": 80
+                    },
+                    {
+                      "destination": {
+                        "host": "details",
+                        "subset": "v2"
+                      },
+                      "weight": 20
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "productpage",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "productpage",
+              "namespace": "default",
+              "resourceVersion": "2900969"
+            },
+            "spec": {
+              "hosts": [
+                "productpage"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "productpage",
+                        "subset": "v1"
+                      },
+                      "weight": 20
+                    },
+                    {
+                      "destination": {
+                        "host": "productpage",
+                        "subset": "v2"
+                      },
+                      "weight": 80
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "change_time": 1762317384.747106,
+      "detection_time": 1762317387.3213396,
+      "success": true,
+      "error": null,
+      "policy_states": {
+        "static_consistent": "fully-consistent",
+        "dynamic_consistent": "fully-consistent"
+      },
+      "timing_metrics": {
+        "apply_time": 4.992,
+        "change_detection_time": 2.574,
+        "parsing_time": 0.101,
+        "dependency_update_time": 0.0,
+        "validation_time": 0.133,
+        "visualization_time": 0.011,
+        "total_time": 0.246
+      }
+    },
+    {
+      "event_id": "9604404d-7136-4008-bf1f-0779b1cf01f1",
+      "scope": 5,
+      "config_items": [
+        {
+          "type": "VirtualService",
+          "name": "productpage",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "productpage",
+              "namespace": "default",
+              "resourceVersion": "2900984"
+            },
+            "spec": {
+              "hosts": [
+                "productpage"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "productpage",
+                        "subset": "v1"
+                      },
+                      "weight": 70
+                    },
+                    {
+                      "destination": {
+                        "host": "productpage",
+                        "subset": "v2"
+                      },
+                      "weight": 30
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "reviews",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "reviews",
+              "namespace": "default",
+              "resourceVersion": "2900971"
+            },
+            "spec": {
+              "hosts": [
+                "reviews"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "reviews",
+                        "subset": "v1"
+                      },
+                      "weight": 50
+                    },
+                    {
+                      "destination": {
+                        "host": "reviews",
+                        "subset": "v2"
+                      },
+                      "weight": 50
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "ratings",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "ratings",
+              "namespace": "default",
+              "resourceVersion": "2900972"
+            },
+            "spec": {
+              "hosts": [
+                "ratings"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "ratings",
+                        "subset": "v1"
+                      },
+                      "weight": 30
+                    },
+                    {
+                      "destination": {
+                        "host": "ratings",
+                        "subset": "v2"
+                      },
+                      "weight": 70
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "details",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "details",
+              "namespace": "default",
+              "resourceVersion": "2900978"
+            },
+            "spec": {
+              "hosts": [
+                "details"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "details",
+                        "subset": "v1"
+                      },
+                      "weight": 80
+                    },
+                    {
+                      "destination": {
+                        "host": "details",
+                        "subset": "v2"
+                      },
+                      "weight": 20
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "productpage",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "productpage",
+              "namespace": "default",
+              "resourceVersion": "2901012"
+            },
+            "spec": {
+              "hosts": [
+                "productpage"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "productpage",
+                        "subset": "v1"
+                      },
+                      "weight": 20
+                    },
+                    {
+                      "destination": {
+                        "host": "productpage",
+                        "subset": "v2"
+                      },
+                      "weight": 80
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "change_time": 1762317399.5931716,
+      "detection_time": 1762317402.080647,
+      "success": true,
+      "error": null,
+      "policy_states": {
+        "static_consistent": "fully-consistent",
+        "dynamic_consistent": "fully-consistent"
+      },
+      "timing_metrics": {
+        "apply_time": 4.874,
+        "change_detection_time": 2.487,
+        "parsing_time": 0.125,
+        "dependency_update_time": 0.0,
+        "validation_time": 0.137,
+        "visualization_time": 0.011,
+        "total_time": 0.273
+      }
+    },
+    {
+      "event_id": "b61fca2e-242c-42a8-8720-6064dbadb387",
+      "scope": 5,
+      "config_items": [
+        {
+          "type": "VirtualService",
+          "name": "productpage",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "productpage",
+              "namespace": "default",
+              "resourceVersion": "2901028"
+            },
+            "spec": {
+              "hosts": [
+                "productpage"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "productpage",
+                        "subset": "v1"
+                      },
+                      "weight": 70
+                    },
+                    {
+                      "destination": {
+                        "host": "productpage",
+                        "subset": "v2"
+                      },
+                      "weight": 30
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "reviews",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "reviews",
+              "namespace": "default",
+              "resourceVersion": "2901015"
+            },
+            "spec": {
+              "hosts": [
+                "reviews"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "reviews",
+                        "subset": "v1"
+                      },
+                      "weight": 50
+                    },
+                    {
+                      "destination": {
+                        "host": "reviews",
+                        "subset": "v2"
+                      },
+                      "weight": 50
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "ratings",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "ratings",
+              "namespace": "default",
+              "resourceVersion": "2901020"
+            },
+            "spec": {
+              "hosts": [
+                "ratings"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "ratings",
+                        "subset": "v1"
+                      },
+                      "weight": 30
+                    },
+                    {
+                      "destination": {
+                        "host": "ratings",
+                        "subset": "v2"
+                      },
+                      "weight": 70
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "details",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "details",
+              "namespace": "default",
+              "resourceVersion": "2901023"
+            },
+            "spec": {
+              "hosts": [
+                "details"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "details",
+                        "subset": "v1"
+                      },
+                      "weight": 80
+                    },
+                    {
+                      "destination": {
+                        "host": "details",
+                        "subset": "v2"
+                      },
+                      "weight": 20
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "productpage",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "productpage",
+              "namespace": "default",
+              "resourceVersion": "2901083"
+            },
+            "spec": {
+              "hosts": [
+                "productpage"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "productpage",
+                        "subset": "v1"
+                      },
+                      "weight": 20
+                    },
+                    {
+                      "destination": {
+                        "host": "productpage",
+                        "subset": "v2"
+                      },
+                      "weight": 80
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "change_time": 1762317424.475585,
+      "detection_time": 1762317427.039505,
+      "success": true,
+      "error": null,
+      "policy_states": {
+        "static_consistent": "fully-consistent",
+        "dynamic_consistent": "fully-consistent"
+      },
+      "timing_metrics": {
+        "apply_time": 4.892,
+        "change_detection_time": 2.564,
+        "parsing_time": 0.113,
+        "dependency_update_time": 0.0,
+        "validation_time": 0.153,
+        "visualization_time": 0.011,
+        "total_time": 0.277
+      }
+    },
+    {
+      "event_id": "eb4a5e42-d07f-4905-bdc3-09c5c78269bd",
+      "scope": 10,
+      "config_items": [
+        {
+          "type": "VirtualService",
+          "name": "productpage",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "productpage",
+              "namespace": "default",
+              "resourceVersion": "2901101"
+            },
+            "spec": {
+              "hosts": [
+                "productpage"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "productpage",
+                        "subset": "v1"
+                      },
+                      "weight": 70
+                    },
+                    {
+                      "destination": {
+                        "host": "productpage",
+                        "subset": "v2"
+                      },
+                      "weight": 30
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "reviews",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "reviews",
+              "namespace": "default",
+              "resourceVersion": "2901087"
+            },
+            "spec": {
+              "hosts": [
+                "reviews"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "reviews",
+                        "subset": "v1"
+                      },
+                      "weight": 50
+                    },
+                    {
+                      "destination": {
+                        "host": "reviews",
+                        "subset": "v2"
+                      },
+                      "weight": 50
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "ratings",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "ratings",
+              "namespace": "default",
+              "resourceVersion": "2901093"
+            },
+            "spec": {
+              "hosts": [
+                "ratings"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "ratings",
+                        "subset": "v1"
+                      },
+                      "weight": 30
+                    },
+                    {
+                      "destination": {
+                        "host": "ratings",
+                        "subset": "v2"
+                      },
+                      "weight": 70
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "details",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "details",
+              "namespace": "default",
+              "resourceVersion": "2901097"
+            },
+            "spec": {
+              "hosts": [
+                "details"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "details",
+                        "subset": "v1"
+                      },
+                      "weight": 80
+                    },
+                    {
+                      "destination": {
+                        "host": "details",
+                        "subset": "v2"
+                      },
+                      "weight": 20
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "productpage",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "productpage",
+              "namespace": "default",
+              "resourceVersion": "2901166"
+            },
+            "spec": {
+              "hosts": [
+                "productpage"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "productpage",
+                        "subset": "v1"
+                      },
+                      "weight": 20
+                    },
+                    {
+                      "destination": {
+                        "host": "productpage",
+                        "subset": "v2"
+                      },
+                      "weight": 80
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "reviews",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "reviews",
+              "namespace": "default",
+              "resourceVersion": "2901168"
+            },
+            "spec": {
+              "hosts": [
+                "reviews"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "reviews",
+                        "subset": "v1"
+                      },
+                      "weight": 70
+                    },
+                    {
+                      "destination": {
+                        "host": "reviews",
+                        "subset": "v2"
+                      },
+                      "weight": 30
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "ratings",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "ratings",
+              "namespace": "default",
+              "resourceVersion": "2901171"
+            },
+            "spec": {
+              "hosts": [
+                "ratings"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "ratings",
+                        "subset": "v1"
+                      },
+                      "weight": 50
+                    },
+                    {
+                      "destination": {
+                        "host": "ratings",
+                        "subset": "v2"
+                      },
+                      "weight": 50
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "details",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "details",
+              "namespace": "default",
+              "resourceVersion": "2901174"
+            },
+            "spec": {
+              "hosts": [
+                "details"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "details",
+                        "subset": "v1"
+                      },
+                      "weight": 30
+                    },
+                    {
+                      "destination": {
+                        "host": "details",
+                        "subset": "v2"
+                      },
+                      "weight": 70
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "productpage",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "productpage",
+              "namespace": "default",
+              "resourceVersion": "2901179"
+            },
+            "spec": {
+              "hosts": [
+                "productpage"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "productpage",
+                        "subset": "v1"
+                      },
+                      "weight": 80
+                    },
+                    {
+                      "destination": {
+                        "host": "productpage",
+                        "subset": "v2"
+                      },
+                      "weight": 20
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "reviews",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "reviews",
+              "namespace": "default",
+              "resourceVersion": "2901185"
+            },
+            "spec": {
+              "hosts": [
+                "reviews"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "reviews",
+                        "subset": "v1"
+                      },
+                      "weight": 20
+                    },
+                    {
+                      "destination": {
+                        "host": "reviews",
+                        "subset": "v2"
+                      },
+                      "weight": 80
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "change_time": 1762317457.1163461,
+      "detection_time": 1762317462.0031302,
+      "success": true,
+      "error": null,
+      "policy_states": {
+        "static_consistent": "fully-consistent",
+        "dynamic_consistent": "fully-consistent"
+      },
+      "timing_metrics": {
+        "apply_time": 10.318,
+        "change_detection_time": 4.887,
+        "parsing_time": 0.105,
+        "dependency_update_time": 0.0,
+        "validation_time": 0.164,
+        "visualization_time": 0.011,
+        "total_time": 0.281
+      }
+    },
+    {
+      "event_id": "1ecca878-d22e-44ed-bc18-4473ebc0959b",
+      "scope": 10,
+      "config_items": [
+        {
+          "type": "VirtualService",
+          "name": "productpage",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "productpage",
+              "namespace": "default",
+              "resourceVersion": "2901195"
+            },
+            "spec": {
+              "hosts": [
+                "productpage"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "productpage",
+                        "subset": "v1"
+                      },
+                      "weight": 70
+                    },
+                    {
+                      "destination": {
+                        "host": "productpage",
+                        "subset": "v2"
+                      },
+                      "weight": 30
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "reviews",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "reviews",
+              "namespace": "default",
+              "resourceVersion": "2901199"
+            },
+            "spec": {
+              "hosts": [
+                "reviews"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "reviews",
+                        "subset": "v1"
+                      },
+                      "weight": 50
+                    },
+                    {
+                      "destination": {
+                        "host": "reviews",
+                        "subset": "v2"
+                      },
+                      "weight": 50
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "ratings",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "ratings",
+              "namespace": "default",
+              "resourceVersion": "2901187"
+            },
+            "spec": {
+              "hosts": [
+                "ratings"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "ratings",
+                        "subset": "v1"
+                      },
+                      "weight": 30
+                    },
+                    {
+                      "destination": {
+                        "host": "ratings",
+                        "subset": "v2"
+                      },
+                      "weight": 70
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "details",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "details",
+              "namespace": "default",
+              "resourceVersion": "2901192"
+            },
+            "spec": {
+              "hosts": [
+                "details"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "details",
+                        "subset": "v1"
+                      },
+                      "weight": 80
+                    },
+                    {
+                      "destination": {
+                        "host": "details",
+                        "subset": "v2"
+                      },
+                      "weight": 20
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "productpage",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "productpage",
+              "namespace": "default",
+              "resourceVersion": "2901240"
+            },
+            "spec": {
+              "hosts": [
+                "productpage"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "productpage",
+                        "subset": "v1"
+                      },
+                      "weight": 20
+                    },
+                    {
+                      "destination": {
+                        "host": "productpage",
+                        "subset": "v2"
+                      },
+                      "weight": 80
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "reviews",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "reviews",
+              "namespace": "default",
+              "resourceVersion": "2901243"
+            },
+            "spec": {
+              "hosts": [
+                "reviews"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "reviews",
+                        "subset": "v1"
+                      },
+                      "weight": 70
+                    },
+                    {
+                      "destination": {
+                        "host": "reviews",
+                        "subset": "v2"
+                      },
+                      "weight": 30
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "ratings",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "ratings",
+              "namespace": "default",
+              "resourceVersion": "2901276"
+            },
+            "spec": {
+              "hosts": [
+                "ratings"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "ratings",
+                        "subset": "v1"
+                      },
+                      "weight": 50
+                    },
+                    {
+                      "destination": {
+                        "host": "ratings",
+                        "subset": "v2"
+                      },
+                      "weight": 50
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "details",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "details",
+              "namespace": "default",
+              "resourceVersion": "2901280"
+            },
+            "spec": {
+              "hosts": [
+                "details"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "details",
+                        "subset": "v1"
+                      },
+                      "weight": 30
+                    },
+                    {
+                      "destination": {
+                        "host": "details",
+                        "subset": "v2"
+                      },
+                      "weight": 70
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "productpage",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "productpage",
+              "namespace": "default",
+              "resourceVersion": "2901285"
+            },
+            "spec": {
+              "hosts": [
+                "productpage"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "productpage",
+                        "subset": "v1"
+                      },
+                      "weight": 80
+                    },
+                    {
+                      "destination": {
+                        "host": "productpage",
+                        "subset": "v2"
+                      },
+                      "weight": 20
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "reviews",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "reviews",
+              "namespace": "default",
+              "resourceVersion": "2901318"
+            },
+            "spec": {
+              "hosts": [
+                "reviews"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "reviews",
+                        "subset": "v1"
+                      },
+                      "weight": 20
+                    },
+                    {
+                      "destination": {
+                        "host": "reviews",
+                        "subset": "v2"
+                      },
+                      "weight": 80
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "change_time": 1762317502.4461112,
+      "detection_time": 1762317507.606415,
+      "success": true,
+      "error": null,
+      "policy_states": {
+        "static_consistent": "fully-consistent",
+        "dynamic_consistent": "fully-consistent"
+      },
+      "timing_metrics": {
+        "apply_time": 30.368,
+        "change_detection_time": 5.16,
+        "parsing_time": 0.035,
+        "dependency_update_time": 0.0,
+        "validation_time": 0.043,
+        "visualization_time": 0.01,
+        "total_time": 0.088
+      }
+    },
+    {
+      "event_id": "8e59495d-fbd1-44e6-a285-7f5f292f305b",
+      "scope": 10,
+      "config_items": [
+        {
+          "type": "VirtualService",
+          "name": "productpage",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "productpage",
+              "namespace": "default",
+              "resourceVersion": "2901328"
+            },
+            "spec": {
+              "hosts": [
+                "productpage"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "productpage",
+                        "subset": "v1"
+                      },
+                      "weight": 70
+                    },
+                    {
+                      "destination": {
+                        "host": "productpage",
+                        "subset": "v2"
+                      },
+                      "weight": 30
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "reviews",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "reviews",
+              "namespace": "default",
+              "resourceVersion": "2901330"
+            },
+            "spec": {
+              "hosts": [
+                "reviews"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "reviews",
+                        "subset": "v1"
+                      },
+                      "weight": 50
+                    },
+                    {
+                      "destination": {
+                        "host": "reviews",
+                        "subset": "v2"
+                      },
+                      "weight": 50
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "ratings",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "ratings",
+              "namespace": "default",
+              "resourceVersion": "2901323"
+            },
+            "spec": {
+              "hosts": [
+                "ratings"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "ratings",
+                        "subset": "v1"
+                      },
+                      "weight": 30
+                    },
+                    {
+                      "destination": {
+                        "host": "ratings",
+                        "subset": "v2"
+                      },
+                      "weight": 70
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "details",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "details",
+              "namespace": "default",
+              "resourceVersion": "2901325"
+            },
+            "spec": {
+              "hosts": [
+                "details"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "details",
+                        "subset": "v1"
+                      },
+                      "weight": 80
+                    },
+                    {
+                      "destination": {
+                        "host": "details",
+                        "subset": "v2"
+                      },
+                      "weight": 20
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "productpage",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "productpage",
+              "namespace": "default",
+              "resourceVersion": "2901376"
+            },
+            "spec": {
+              "hosts": [
+                "productpage"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "productpage",
+                        "subset": "v1"
+                      },
+                      "weight": 20
+                    },
+                    {
+                      "destination": {
+                        "host": "productpage",
+                        "subset": "v2"
+                      },
+                      "weight": 80
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "reviews",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "reviews",
+              "namespace": "default",
+              "resourceVersion": "2901381"
+            },
+            "spec": {
+              "hosts": [
+                "reviews"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "reviews",
+                        "subset": "v1"
+                      },
+                      "weight": 70
+                    },
+                    {
+                      "destination": {
+                        "host": "reviews",
+                        "subset": "v2"
+                      },
+                      "weight": 30
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "ratings",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "ratings",
+              "namespace": "default",
+              "resourceVersion": "2901387"
+            },
+            "spec": {
+              "hosts": [
+                "ratings"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "ratings",
+                        "subset": "v1"
+                      },
+                      "weight": 50
+                    },
+                    {
+                      "destination": {
+                        "host": "ratings",
+                        "subset": "v2"
+                      },
+                      "weight": 50
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "details",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "details",
+              "namespace": "default",
+              "resourceVersion": "2901390"
+            },
+            "spec": {
+              "hosts": [
+                "details"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "details",
+                        "subset": "v1"
+                      },
+                      "weight": 30
+                    },
+                    {
+                      "destination": {
+                        "host": "details",
+                        "subset": "v2"
+                      },
+                      "weight": 70
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "productpage",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "productpage",
+              "namespace": "default",
+              "resourceVersion": "2901392"
+            },
+            "spec": {
+              "hosts": [
+                "productpage"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "productpage",
+                        "subset": "v1"
+                      },
+                      "weight": 80
+                    },
+                    {
+                      "destination": {
+                        "host": "productpage",
+                        "subset": "v2"
+                      },
+                      "weight": 20
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "VirtualService",
+          "name": "reviews",
+          "namespace": "default",
+          "config": {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+              "name": "reviews",
+              "namespace": "default",
+              "resourceVersion": "2901397"
+            },
+            "spec": {
+              "hosts": [
+                "reviews"
+              ],
+              "http": [
+                {
+                  "route": [
+                    {
+                      "destination": {
+                        "host": "reviews",
+                        "subset": "v1"
+                      },
+                      "weight": 20
+                    },
+                    {
+                      "destination": {
+                        "host": "reviews",
+                        "subset": "v2"
+                      },
+                      "weight": 80
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "change_time": 1762317538.1707644,
+      "detection_time": 1762317543.0036206,
+      "success": true,
+      "error": null,
+      "policy_states": {
+        "static_consistent": "fully-consistent",
+        "dynamic_consistent": "fully-consistent"
+      },
+      "timing_metrics": {
+        "apply_time": 20.729,
+        "change_detection_time": 4.833,
+        "parsing_time": 0.082,
+        "dependency_update_time": 0.0,
+        "validation_time": 0.119,
+        "visualization_time": 0.01,
+        "total_time": 0.213
+      }
+    }
+  ],
+  "end_time": "2025-11-05T12:39:08.639213"
+}

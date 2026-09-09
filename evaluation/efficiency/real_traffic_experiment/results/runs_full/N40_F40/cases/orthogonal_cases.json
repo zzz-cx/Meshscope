@@ -1,0 +1,282 @@
+{
+  "cases": [
+    {
+      "case_id": "ortho_type_circuit_breaker_f3",
+      "method": "orthogonal",
+      "feature_id": 3,
+      "feature_type": "circuit_breaker",
+      "service": "meshscope-svc-0033",
+      "branch_id": "cb_normal",
+      "path": "/s33/",
+      "headers": {},
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f3:cb_normal"
+      ]
+    },
+    {
+      "case_id": "ortho_type_rate_limit_f5",
+      "method": "orthogonal",
+      "feature_id": 5,
+      "feature_type": "rate_limit",
+      "service": "meshscope-svc-0012",
+      "branch_id": "rl_under_limit",
+      "path": "/s12/rl-5/",
+      "headers": {},
+      "repeat": 3,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f5:rl_under_limit"
+      ]
+    },
+    {
+      "case_id": "ortho_type_retry_f4",
+      "method": "orthogonal",
+      "feature_id": 4,
+      "feature_type": "retry",
+      "service": "meshscope-svc-0019",
+      "branch_id": "retry_ok",
+      "path": "/s19/retry-4/",
+      "headers": {},
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f4:retry_ok"
+      ]
+    },
+    {
+      "case_id": "ortho_type_routing_f1",
+      "method": "orthogonal",
+      "feature_id": 1,
+      "feature_type": "routing",
+      "service": "meshscope-svc-0010",
+      "branch_id": "routing_match",
+      "path": "/s10/route-1/",
+      "headers": {
+        "x-meshscope-route": "f1"
+      },
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": "v2",
+      "covered_branches": [
+        "f1:routing_match"
+      ]
+    },
+    {
+      "case_id": "ortho_type_traffic_shifting_f2",
+      "method": "orthogonal",
+      "feature_id": 2,
+      "feature_type": "traffic_shifting",
+      "service": "meshscope-svc-0032",
+      "branch_id": "split_sample",
+      "path": "/s32/split-2/",
+      "headers": {},
+      "repeat": 5,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f2:split_sample"
+      ]
+    },
+    {
+      "case_id": "ortho_sparse_f6",
+      "method": "orthogonal",
+      "feature_id": 6,
+      "feature_type": "routing",
+      "service": "meshscope-svc-0011",
+      "branch_id": "routing_match",
+      "path": "/s11/route-6/",
+      "headers": {
+        "x-meshscope-route": "f6"
+      },
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": "v2",
+      "covered_branches": [
+        "f6:routing_match"
+      ]
+    },
+    {
+      "case_id": "ortho_sparse_f7",
+      "method": "orthogonal",
+      "feature_id": 7,
+      "feature_type": "traffic_shifting",
+      "service": "meshscope-svc-0017",
+      "branch_id": "split_sample",
+      "path": "/s17/split-7/",
+      "headers": {},
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f7:split_sample"
+      ]
+    },
+    {
+      "case_id": "ortho_sparse_f8",
+      "method": "orthogonal",
+      "feature_id": 8,
+      "feature_type": "circuit_breaker",
+      "service": "meshscope-svc-0011",
+      "branch_id": "cb_normal",
+      "path": "/s11/",
+      "headers": {},
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f8:cb_normal"
+      ]
+    },
+    {
+      "case_id": "ortho_sparse_f9",
+      "method": "orthogonal",
+      "feature_id": 9,
+      "feature_type": "retry",
+      "service": "meshscope-svc-0003",
+      "branch_id": "retry_ok",
+      "path": "/s3/retry-9/",
+      "headers": {},
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f9:retry_ok"
+      ]
+    },
+    {
+      "case_id": "ortho_sparse_f10",
+      "method": "orthogonal",
+      "feature_id": 10,
+      "feature_type": "rate_limit",
+      "service": "meshscope-svc-0028",
+      "branch_id": "rl_under_limit",
+      "path": "/s28/rl-10/",
+      "headers": {},
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f10:rl_under_limit"
+      ]
+    },
+    {
+      "case_id": "ortho_sparse_f11",
+      "method": "orthogonal",
+      "feature_id": 11,
+      "feature_type": "routing",
+      "service": "meshscope-svc-0031",
+      "branch_id": "routing_match",
+      "path": "/s31/route-11/",
+      "headers": {
+        "x-meshscope-route": "f11"
+      },
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": "v2",
+      "covered_branches": [
+        "f11:routing_match"
+      ]
+    },
+    {
+      "case_id": "ortho_sparse_f12",
+      "method": "orthogonal",
+      "feature_id": 12,
+      "feature_type": "traffic_shifting",
+      "service": "meshscope-svc-0038",
+      "branch_id": "split_sample",
+      "path": "/s38/split-12/",
+      "headers": {},
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f12:split_sample"
+      ]
+    },
+    {
+      "case_id": "ortho_sparse_f13",
+      "method": "orthogonal",
+      "feature_id": 13,
+      "feature_type": "circuit_breaker",
+      "service": "meshscope-svc-0007",
+      "branch_id": "cb_normal",
+      "path": "/s7/",
+      "headers": {},
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f13:cb_normal"
+      ]
+    }
+  ],
+  "stats": {
+    "total_branches": 56,
+    "covered_branches": 13,
+    "coverage_pct": 23.21,
+    "num_cases": 13,
+    "uncovered": [
+      "f10:rl_burst",
+      "f11:routing_default",
+      "f14:retry_ok",
+      "f15:rl_burst",
+      "f15:rl_under_limit",
+      "f16:routing_default",
+      "f16:routing_match",
+      "f17:split_sample",
+      "f18:cb_normal",
+      "f19:retry_ok",
+      "f1:routing_default",
+      "f20:rl_burst",
+      "f20:rl_under_limit",
+      "f21:routing_default",
+      "f21:routing_match",
+      "f22:split_sample",
+      "f23:cb_normal",
+      "f24:retry_ok",
+      "f25:rl_burst",
+      "f25:rl_under_limit",
+      "f26:routing_default",
+      "f26:routing_match",
+      "f27:split_sample",
+      "f28:cb_normal",
+      "f29:retry_ok",
+      "f30:rl_burst",
+      "f30:rl_under_limit",
+      "f31:routing_default",
+      "f31:routing_match",
+      "f32:split_sample",
+      "f33:cb_normal",
+      "f34:retry_ok",
+      "f35:rl_burst",
+      "f35:rl_under_limit",
+      "f36:routing_default",
+      "f36:routing_match",
+      "f37:split_sample",
+      "f38:cb_normal",
+      "f39:retry_ok",
+      "f40:rl_burst",
+      "f40:rl_under_limit",
+      "f5:rl_burst",
+      "f6:routing_default"
+    ]
+  }
+}

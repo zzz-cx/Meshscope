@@ -72,9 +72,10 @@ class AlignedFunctionPair:
 class ModelAligner:
     """模型对齐器"""
     
-    def __init__(self, tau: float = 0.1):
+    def __init__(self, tau: float = 0.1, timeout_abs: float = 0.0):
         self.aligned_pairs: Dict[str, AlignedFunctionPair] = {}
         self.tau = tau
+        self.timeout_abs = timeout_abs
     
     def align(
         self,
@@ -181,7 +182,7 @@ class ModelAligner:
             dp_tuples = function_model_to_tuples(pair.data_plane_model)
         diffs: List[Dict[str, Any]] = []
         if len(cp_tuples) == 1 and len(dp_tuples) == 1:
-            diffs = compare_tuples(cp_tuples[0], dp_tuples[0], self.tau)
+            diffs = compare_tuples(cp_tuples[0], dp_tuples[0], self.tau, self.timeout_abs)
         else:
             dp_by_pred = {str(t.predicate): t for t in dp_tuples}
             used = set()
@@ -199,7 +200,7 @@ class ModelAligner:
                     })
                     continue
                 used.add(id(dt))
-                diffs.extend(compare_tuples(ct, dt, self.tau))
+                diffs.extend(compare_tuples(ct, dt, self.tau, self.timeout_abs))
             for dt in dp_tuples:
                 if id(dt) not in used and len(cp_tuples) != 1:
                     diffs.append({
@@ -276,6 +277,7 @@ class ModelAligner:
             'data_only': data_only,
             'match_rate': (matched + partial) / total if total > 0 else 0,
             'tau': self.tau,
+            'timeout_abs': self.timeout_abs,
         }
     
     def to_dict(self) -> Dict[str, Any]:

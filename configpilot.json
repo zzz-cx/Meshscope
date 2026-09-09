@@ -49,8 +49,27 @@
   "consistency": {
     "output_dir": "results/consistency",
     "visualization_output_dir": "results/visualization",
+    "database_path": "results/meshscope.db",
     "traffic_split_tolerance": 0.1,
-    "statistical_confidence": 0.95
+    "statistical_confidence": 0.95,
+    "alignment_tau": 0.1,
+    "timeout_tolerance_seconds": 0.5,
+    "min_split_requests": 30,
+    "min_severity": "info",
+    "check_layer1": true,
+    "check_layer2": true,
+    "check_layer3": true,
+    "report_unverified_policies": true,
+    "report_scope_gaps": true,
+    "report_partial_matched": true,
+    "check_routing": true,
+    "check_traffic_split": true,
+    "check_retry": true,
+    "check_timeout": true,
+    "check_circuit_breaker": true,
+    "check_rate_limit": true,
+    "check_fault_injection": true,
+    "check_orthogonal_minimize": true
   },
   "web": {
     "port": 8080,

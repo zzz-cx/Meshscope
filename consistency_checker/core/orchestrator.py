@@ -24,6 +24,7 @@ except Exception:  # pragma: no cover
     ThreeLayerGraphGenerator = None  # type: ignore
     _THREE_LAYER_AVAILABLE = False
 from consistency_checker.models.data_models import VerificationReport
+from consistency_checker.storage import get_store
 
 logger = logging.getLogger(__name__)
 
@@ -221,9 +222,15 @@ class Pipeline:
         )
         
         result = self.static_analyzer.analyze()
-        
-        # 保存结果
         self._save_intermediate_result("static_analysis", result)
+        artifact = result.get("artifact")
+        if artifact:
+            try:
+                get_store(self.config.database_path).save_artifact(
+                    "aligned_semantic", self._make_serializable(artifact)
+                )
+            except Exception as exc:
+                logger.warning("写入对齐产物到 SQLite 失败: %s", exc)
         
         logger.info(f"  ✓ 静态策略数量: {len(result['static_policies'])}")
         logger.info(f"  ✓ 服务节点数量: {len(result['service_nodes'])}")
@@ -260,7 +267,8 @@ class Pipeline:
         self.consistency_checker = ConsistencyChecker(
             static_policies=self.static_result['static_policies'],
             dynamic_behaviors=self.dynamic_result['dynamic_behaviors'],
-            tolerance=self.config.traffic_split_tolerance
+            tolerance=self.config.traffic_split_tolerance,
+            artifact=self.static_result.get("artifact") or {},
         )
         
         result = self.consistency_checker.check()
@@ -271,16 +279,7 @@ class Pipeline:
             "consistency_rate": result.consistency_rate,
             "total_policies": result.total_policies,
             "verified_policies": result.verified_policies,
-            "inconsistencies": [
-                {
-                    "id": inc.inconsistency_id,
-                    "type": inc.inconsistency_type,
-                    "severity": inc.severity.value,
-                    "description": inc.description,
-                    "affected_services": inc.affected_services
-                }
-                for inc in result.inconsistencies
-            ],
+            "inconsistencies": [inc.to_record() for inc in result.inconsistencies],
             "summary": result.summary
         })
         
@@ -324,6 +323,7 @@ class Pipeline:
         )
 
         # 4b. 生成三层空间配置依赖图（若模块存在）
+        three_layer_payload = None
         if _THREE_LAYER_AVAILABLE and ThreeLayerGraphGenerator is not None:
             logger.info("  🔹 生成三层空间配置依赖图...")
             three_layer_gen = ThreeLayerGraphGenerator.from_static_result(
@@ -332,6 +332,7 @@ class Pipeline:
                 namespace=self.namespace,
             )
             three_layer_gen.generate()
+            three_layer_payload = three_layer_gen.to_d3_json()
             three_layer_gen.save_to_file(
                 os.path.join(self.config.visualization_output_dir, f"{report.report_id}_three_layer_graph.json")
             )
@@ -345,38 +346,38 @@ class Pipeline:
             f"{report.report_id}_report.html"
         )
         report_generator.generate_html_report(html_path, graph_generator.get_graph_data())
+
+        store = get_store(self.config.database_path)
+        store.save_report(report.to_dict(), html_path=html_path)
+        store.save_graph(report.report_id, "topology", graph_generator.get_graph_data())
+        if three_layer_payload is not None:
+            store.save_graph(report.report_id, "three_layer", three_layer_payload)
+            store.save_graph("latest", "three_layer", three_layer_payload)
         
         logger.info(f"  ✓ 报告已保存")
+        logger.info(f"    - SQLite: {self.config.database_path}")
         logger.info(f"    - JSON: {self.config.consistency_output_dir}/{report.report_id}.json")
         logger.info(f"    - HTML: {html_path}")
         
         return report
     
     def _save_intermediate_result(self, stage: str, result: Dict[str, Any]):
-        """保存中间结果"""
-        output_dir = self.config.consistency_output_dir
-        os.makedirs(output_dir, exist_ok=True)
-        
-        filename = f"{stage}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        filepath = os.path.join(output_dir, filename)
-        
-        # 序列化处理
-        serializable_result = self._make_serializable(result)
-        
-        with open(filepath, 'w', encoding='utf-8') as f:
-            json.dump(serializable_result, f, indent=2, ensure_ascii=False)
-        
-        logger.debug(f"  保存中间结果: {filepath}")
+        """保存中间结果到 SQLite（不再堆积 timestamp JSON）。"""
+        try:
+            get_store(self.config.database_path).save_artifact(
+                stage, self._make_serializable(result)
+            )
+            logger.debug("  中间结果已写入 SQLite: %s", stage)
+        except Exception as exc:
+            logger.warning("中间结果写入 SQLite 失败 (%s): %s", stage, exc)
     
     def _save_final_report(self, report: VerificationReport):
-        """保存最终报告"""
+        """导出 JSON 副本；权威数据在 SQLite。"""
         output_dir = self.config.consistency_output_dir
         os.makedirs(output_dir, exist_ok=True)
-        
         filepath = os.path.join(output_dir, f"{report.report_id}.json")
-        
         with open(filepath, 'w', encoding='utf-8') as f:
-            json.dump(report.to_dict(), f, indent=2, ensure_ascii=False)
+            json.dump(report.to_dict(), f, indent=2, ensure_ascii=False, default=str)
     
     def _make_serializable(self, obj: Any) -> Any:
         """将对象转换为可序列化的格式"""

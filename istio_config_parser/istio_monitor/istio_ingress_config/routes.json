@@ -1,0 +1,190 @@
+[
+  {
+    "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+    "name": "http.8080",
+    "virtualHosts": [
+      {
+        "name": "*:8080",
+        "domains": [
+          "*"
+        ],
+        "routes": [
+          {
+            "match": {
+              "path": "/productpage",
+              "case_sensitive": true
+            },
+            "route": {
+              "cluster": "outbound|9080||productpage.default.svc.cluster.local",
+              "timeout": "0s",
+              "retry_policy": {
+                "retry_on": "connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes",
+                "num_retries": 2,
+                "retry_host_predicate": [
+                  {
+                    "name": "envoy.retry_host_predicates.previous_hosts",
+                    "typed_config": {
+                      "@type": "type.googleapis.com/envoy.extensions.retry.host.previous_hosts.v3.PreviousHostsPredicate"
+                    }
+                  }
+                ],
+                "host_selection_retry_max_attempts": "5"
+              },
+              "max_grpc_timeout": "0s"
+            },
+            "metadata": {
+              "filter_metadata": {
+                "istio": {
+                  "config": "/apis/networking.istio.io/v1/namespaces/default/virtual-service/bookinfo"
+                }
+              }
+            },
+            "decorator": {
+              "operation": "productpage.default.svc.cluster.local:9080/productpage"
+            }
+          },
+          {
+            "match": {
+              "prefix": "/static",
+              "case_sensitive": true
+            },
+            "route": {
+              "cluster": "outbound|9080||productpage.default.svc.cluster.local",
+              "timeout": "0s",
+              "retry_policy": {
+                "retry_on": "connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes",
+                "num_retries": 2,
+                "retry_host_predicate": [
+                  {
+                    "name": "envoy.retry_host_predicates.previous_hosts",
+                    "typed_config": {
+                      "@type": "type.googleapis.com/envoy.extensions.retry.host.previous_hosts.v3.PreviousHostsPredicate"
+                    }
+                  }
+                ],
+                "host_selection_retry_max_attempts": "5"
+              },
+              "max_grpc_timeout": "0s"
+            },
+            "metadata": {
+              "filter_metadata": {
+                "istio": {
+                  "config": "/apis/networking.istio.io/v1/namespaces/default/virtual-service/bookinfo"
+                }
+              }
+            },
+            "decorator": {
+              "operation": "productpage.default.svc.cluster.local:9080/static*"
+            }
+          },
+          {
+            "match": {
+              "path": "/login",
+              "case_sensitive": true
+            },
+            "route": {
+              "cluster": "outbound|9080||productpage.default.svc.cluster.local",
+              "timeout": "0s",
+              "retry_policy": {
+                "retry_on": "connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes",
+                "num_retries": 2,
+                "retry_host_predicate": [
+                  {
+                    "name": "envoy.retry_host_predicates.previous_hosts",
+                    "typed_config": {
+                      "@type": "type.googleapis.com/envoy.extensions.retry.host.previous_hosts.v3.PreviousHostsPredicate"
+                    }
+                  }
+                ],
+                "host_selection_retry_max_attempts": "5"
+              },
+              "max_grpc_timeout": "0s"
+            },
+            "metadata": {
+              "filter_metadata": {
+                "istio": {
+                  "config": "/apis/networking.istio.io/v1/namespaces/default/virtual-service/bookinfo"
+                }
+              }
+            },
+            "decorator": {
+              "operation": "productpage.default.svc.cluster.local:9080/login"
+            }
+          },
+          {
+            "match": {
+              "path": "/logout",
+              "case_sensitive": true
+            },
+            "route": {
+              "cluster": "outbound|9080||productpage.default.svc.cluster.local",
+              "timeout": "0s",
+              "retry_policy": {
+                "retry_on": "connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes",
+                "num_retries": 2,
+                "retry_host_predicate": [
+                  {
+                    "name": "envoy.retry_host_predicates.previous_hosts",
+                    "typed_config": {
+                      "@type": "type.googleapis.com/envoy.extensions.retry.host.previous_hosts.v3.PreviousHostsPredicate"
+                    }
+                  }
+                ],
+                "host_selection_retry_max_attempts": "5"
+              },
+              "max_grpc_timeout": "0s"
+            },
+            "metadata": {
+              "filter_metadata": {
+                "istio": {
+                  "config": "/apis/networking.istio.io/v1/namespaces/default/virtual-service/bookinfo"
+                }
+              }
+            },
+            "decorator": {
+              "operation": "productpage.default.svc.cluster.local:9080/logout"
+            }
+          },
+          {
+            "match": {
+              "prefix": "/api/v1/products",
+              "case_sensitive": true
+            },
+            "route": {
+              "cluster": "outbound|9080||productpage.default.svc.cluster.local",
+              "timeout": "0s",
+              "retry_policy": {
+                "retry_on": "connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes",
+                "num_retries": 2,
+                "retry_host_predicate": [
+                  {
+                    "name": "envoy.retry_host_predicates.previous_hosts",
+                    "typed_config": {
+                      "@type": "type.googleapis.com/envoy.extensions.retry.host.previous_hosts.v3.PreviousHostsPredicate"
+                    }
+                  }
+                ],
+                "host_selection_retry_max_attempts": "5"
+              },
+              "max_grpc_timeout": "0s"
+            },
+            "metadata": {
+              "filter_metadata": {
+                "istio": {
+                  "config": "/apis/networking.istio.io/v1/namespaces/default/virtual-service/bookinfo"
+                }
+              }
+            },
+            "decorator": {
+              "operation": "productpage.default.svc.cluster.local:9080/api/v1/products*"
+            }
+          }
+        ],
+        "include_request_attempt_count": true
+      }
+    ],
+    "validate_clusters": false,
+    "max_direct_response_body_size_bytes": 1048576,
+    "ignore_port_in_host_matching": true
+  }
+]

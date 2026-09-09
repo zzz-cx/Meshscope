@@ -1,0 +1,1221 @@
+{
+  "cases": [
+    {
+      "case_id": "exh_f1_routing_match",
+      "method": "exhaustive",
+      "feature_id": 1,
+      "feature_type": "routing",
+      "service": "meshscope-svc-0027",
+      "branch_id": "routing_match",
+      "path": "/s27/route-1/",
+      "headers": {
+        "x-meshscope-route": "f1"
+      },
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": "v2",
+      "covered_branches": [
+        "f1:routing_match"
+      ]
+    },
+    {
+      "case_id": "exh_f1_routing_default",
+      "method": "exhaustive",
+      "feature_id": 1,
+      "feature_type": "routing",
+      "service": "meshscope-svc-0027",
+      "branch_id": "routing_default",
+      "path": "/s27/route-1/",
+      "headers": {},
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": "v1",
+      "covered_branches": [
+        "f1:routing_default"
+      ]
+    },
+    {
+      "case_id": "exh_f2_split_sample",
+      "method": "exhaustive",
+      "feature_id": 2,
+      "feature_type": "traffic_shifting",
+      "service": "meshscope-svc-0034",
+      "branch_id": "split_sample",
+      "path": "/s34/split-2/",
+      "headers": {},
+      "repeat": 20,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f2:split_sample"
+      ]
+    },
+    {
+      "case_id": "exh_f3_cb_normal",
+      "method": "exhaustive",
+      "feature_id": 3,
+      "feature_type": "circuit_breaker",
+      "service": "meshscope-svc-0037",
+      "branch_id": "cb_normal",
+      "path": "/s37/",
+      "headers": {},
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f3:cb_normal"
+      ]
+    },
+    {
+      "case_id": "exh_f4_retry_ok",
+      "method": "exhaustive",
+      "feature_id": 4,
+      "feature_type": "retry",
+      "service": "meshscope-svc-0036",
+      "branch_id": "retry_ok",
+      "path": "/s36/retry-4/",
+      "headers": {},
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f4:retry_ok"
+      ]
+    },
+    {
+      "case_id": "exh_f5_rl_under_limit",
+      "method": "exhaustive",
+      "feature_id": 5,
+      "feature_type": "rate_limit",
+      "service": "meshscope-svc-0036",
+      "branch_id": "rl_under_limit",
+      "path": "/s36/rl-5/",
+      "headers": {},
+      "repeat": 3,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f5:rl_under_limit"
+      ]
+    },
+    {
+      "case_id": "exh_f5_rl_burst",
+      "method": "exhaustive",
+      "feature_id": 5,
+      "feature_type": "rate_limit",
+      "service": "meshscope-svc-0036",
+      "branch_id": "rl_burst",
+      "path": "/s36/rl-5/",
+      "headers": {},
+      "repeat": 20,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f5:rl_burst"
+      ]
+    },
+    {
+      "case_id": "exh_f6_routing_match",
+      "method": "exhaustive",
+      "feature_id": 6,
+      "feature_type": "routing",
+      "service": "meshscope-svc-0038",
+      "branch_id": "routing_match",
+      "path": "/s38/route-6/",
+      "headers": {
+        "x-meshscope-route": "f6"
+      },
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": "v2",
+      "covered_branches": [
+        "f6:routing_match"
+      ]
+    },
+    {
+      "case_id": "exh_f6_routing_default",
+      "method": "exhaustive",
+      "feature_id": 6,
+      "feature_type": "routing",
+      "service": "meshscope-svc-0038",
+      "branch_id": "routing_default",
+      "path": "/s38/route-6/",
+      "headers": {},
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": "v1",
+      "covered_branches": [
+        "f6:routing_default"
+      ]
+    },
+    {
+      "case_id": "exh_f7_split_sample",
+      "method": "exhaustive",
+      "feature_id": 7,
+      "feature_type": "traffic_shifting",
+      "service": "meshscope-svc-0018",
+      "branch_id": "split_sample",
+      "path": "/s18/split-7/",
+      "headers": {},
+      "repeat": 20,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f7:split_sample"
+      ]
+    },
+    {
+      "case_id": "exh_f8_cb_normal",
+      "method": "exhaustive",
+      "feature_id": 8,
+      "feature_type": "circuit_breaker",
+      "service": "meshscope-svc-0044",
+      "branch_id": "cb_normal",
+      "path": "/s44/",
+      "headers": {},
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f8:cb_normal"
+      ]
+    },
+    {
+      "case_id": "exh_f9_retry_ok",
+      "method": "exhaustive",
+      "feature_id": 9,
+      "feature_type": "retry",
+      "service": "meshscope-svc-0049",
+      "branch_id": "retry_ok",
+      "path": "/s49/retry-9/",
+      "headers": {},
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f9:retry_ok"
+      ]
+    },
+    {
+      "case_id": "exh_f10_rl_under_limit",
+      "method": "exhaustive",
+      "feature_id": 10,
+      "feature_type": "rate_limit",
+      "service": "meshscope-svc-0007",
+      "branch_id": "rl_under_limit",
+      "path": "/s7/rl-10/",
+      "headers": {},
+      "repeat": 3,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f10:rl_under_limit"
+      ]
+    },
+    {
+      "case_id": "exh_f10_rl_burst",
+      "method": "exhaustive",
+      "feature_id": 10,
+      "feature_type": "rate_limit",
+      "service": "meshscope-svc-0007",
+      "branch_id": "rl_burst",
+      "path": "/s7/rl-10/",
+      "headers": {},
+      "repeat": 20,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f10:rl_burst"
+      ]
+    },
+    {
+      "case_id": "exh_f11_routing_match",
+      "method": "exhaustive",
+      "feature_id": 11,
+      "feature_type": "routing",
+      "service": "meshscope-svc-0037",
+      "branch_id": "routing_match",
+      "path": "/s37/route-11/",
+      "headers": {
+        "x-meshscope-route": "f11"
+      },
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": "v2",
+      "covered_branches": [
+        "f11:routing_match"
+      ]
+    },
+    {
+      "case_id": "exh_f11_routing_default",
+      "method": "exhaustive",
+      "feature_id": 11,
+      "feature_type": "routing",
+      "service": "meshscope-svc-0037",
+      "branch_id": "routing_default",
+      "path": "/s37/route-11/",
+      "headers": {},
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": "v1",
+      "covered_branches": [
+        "f11:routing_default"
+      ]
+    },
+    {
+      "case_id": "exh_f12_split_sample",
+      "method": "exhaustive",
+      "feature_id": 12,
+      "feature_type": "traffic_shifting",
+      "service": "meshscope-svc-0034",
+      "branch_id": "split_sample",
+      "path": "/s34/split-12/",
+      "headers": {},
+      "repeat": 20,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f12:split_sample"
+      ]
+    },
+    {
+      "case_id": "exh_f13_cb_normal",
+      "method": "exhaustive",
+      "feature_id": 13,
+      "feature_type": "circuit_breaker",
+      "service": "meshscope-svc-0031",
+      "branch_id": "cb_normal",
+      "path": "/s31/",
+      "headers": {},
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f13:cb_normal"
+      ]
+    },
+    {
+      "case_id": "exh_f14_retry_ok",
+      "method": "exhaustive",
+      "feature_id": 14,
+      "feature_type": "retry",
+      "service": "meshscope-svc-0011",
+      "branch_id": "retry_ok",
+      "path": "/s11/retry-14/",
+      "headers": {},
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f14:retry_ok"
+      ]
+    },
+    {
+      "case_id": "exh_f15_rl_under_limit",
+      "method": "exhaustive",
+      "feature_id": 15,
+      "feature_type": "rate_limit",
+      "service": "meshscope-svc-0005",
+      "branch_id": "rl_under_limit",
+      "path": "/s5/rl-15/",
+      "headers": {},
+      "repeat": 3,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f15:rl_under_limit"
+      ]
+    },
+    {
+      "case_id": "exh_f15_rl_burst",
+      "method": "exhaustive",
+      "feature_id": 15,
+      "feature_type": "rate_limit",
+      "service": "meshscope-svc-0005",
+      "branch_id": "rl_burst",
+      "path": "/s5/rl-15/",
+      "headers": {},
+      "repeat": 20,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f15:rl_burst"
+      ]
+    },
+    {
+      "case_id": "exh_f16_routing_match",
+      "method": "exhaustive",
+      "feature_id": 16,
+      "feature_type": "routing",
+      "service": "meshscope-svc-0037",
+      "branch_id": "routing_match",
+      "path": "/s37/route-16/",
+      "headers": {
+        "x-meshscope-route": "f16"
+      },
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": "v2",
+      "covered_branches": [
+        "f16:routing_match"
+      ]
+    },
+    {
+      "case_id": "exh_f16_routing_default",
+      "method": "exhaustive",
+      "feature_id": 16,
+      "feature_type": "routing",
+      "service": "meshscope-svc-0037",
+      "branch_id": "routing_default",
+      "path": "/s37/route-16/",
+      "headers": {},
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": "v1",
+      "covered_branches": [
+        "f16:routing_default"
+      ]
+    },
+    {
+      "case_id": "exh_f17_split_sample",
+      "method": "exhaustive",
+      "feature_id": 17,
+      "feature_type": "traffic_shifting",
+      "service": "meshscope-svc-0043",
+      "branch_id": "split_sample",
+      "path": "/s43/split-17/",
+      "headers": {},
+      "repeat": 20,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f17:split_sample"
+      ]
+    },
+    {
+      "case_id": "exh_f18_cb_normal",
+      "method": "exhaustive",
+      "feature_id": 18,
+      "feature_type": "circuit_breaker",
+      "service": "meshscope-svc-0041",
+      "branch_id": "cb_normal",
+      "path": "/s41/",
+      "headers": {},
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f18:cb_normal"
+      ]
+    },
+    {
+      "case_id": "exh_f19_retry_ok",
+      "method": "exhaustive",
+      "feature_id": 19,
+      "feature_type": "retry",
+      "service": "meshscope-svc-0022",
+      "branch_id": "retry_ok",
+      "path": "/s22/retry-19/",
+      "headers": {},
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f19:retry_ok"
+      ]
+    },
+    {
+      "case_id": "exh_f20_rl_under_limit",
+      "method": "exhaustive",
+      "feature_id": 20,
+      "feature_type": "rate_limit",
+      "service": "meshscope-svc-0004",
+      "branch_id": "rl_under_limit",
+      "path": "/s4/rl-20/",
+      "headers": {},
+      "repeat": 3,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f20:rl_under_limit"
+      ]
+    },
+    {
+      "case_id": "exh_f20_rl_burst",
+      "method": "exhaustive",
+      "feature_id": 20,
+      "feature_type": "rate_limit",
+      "service": "meshscope-svc-0004",
+      "branch_id": "rl_burst",
+      "path": "/s4/rl-20/",
+      "headers": {},
+      "repeat": 20,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f20:rl_burst"
+      ]
+    },
+    {
+      "case_id": "exh_f21_routing_match",
+      "method": "exhaustive",
+      "feature_id": 21,
+      "feature_type": "routing",
+      "service": "meshscope-svc-0003",
+      "branch_id": "routing_match",
+      "path": "/s3/route-21/",
+      "headers": {
+        "x-meshscope-route": "f21"
+      },
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": "v2",
+      "covered_branches": [
+        "f21:routing_match"
+      ]
+    },
+    {
+      "case_id": "exh_f21_routing_default",
+      "method": "exhaustive",
+      "feature_id": 21,
+      "feature_type": "routing",
+      "service": "meshscope-svc-0003",
+      "branch_id": "routing_default",
+      "path": "/s3/route-21/",
+      "headers": {},
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": "v1",
+      "covered_branches": [
+        "f21:routing_default"
+      ]
+    },
+    {
+      "case_id": "exh_f22_split_sample",
+      "method": "exhaustive",
+      "feature_id": 22,
+      "feature_type": "traffic_shifting",
+      "service": "meshscope-svc-0002",
+      "branch_id": "split_sample",
+      "path": "/s2/split-22/",
+      "headers": {},
+      "repeat": 20,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f22:split_sample"
+      ]
+    },
+    {
+      "case_id": "exh_f23_cb_normal",
+      "method": "exhaustive",
+      "feature_id": 23,
+      "feature_type": "circuit_breaker",
+      "service": "meshscope-svc-0042",
+      "branch_id": "cb_normal",
+      "path": "/s42/",
+      "headers": {},
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f23:cb_normal"
+      ]
+    },
+    {
+      "case_id": "exh_f24_retry_ok",
+      "method": "exhaustive",
+      "feature_id": 24,
+      "feature_type": "retry",
+      "service": "meshscope-svc-0041",
+      "branch_id": "retry_ok",
+      "path": "/s41/retry-24/",
+      "headers": {},
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f24:retry_ok"
+      ]
+    },
+    {
+      "case_id": "exh_f25_rl_under_limit",
+      "method": "exhaustive",
+      "feature_id": 25,
+      "feature_type": "rate_limit",
+      "service": "meshscope-svc-0011",
+      "branch_id": "rl_under_limit",
+      "path": "/s11/rl-25/",
+      "headers": {},
+      "repeat": 3,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f25:rl_under_limit"
+      ]
+    },
+    {
+      "case_id": "exh_f25_rl_burst",
+      "method": "exhaustive",
+      "feature_id": 25,
+      "feature_type": "rate_limit",
+      "service": "meshscope-svc-0011",
+      "branch_id": "rl_burst",
+      "path": "/s11/rl-25/",
+      "headers": {},
+      "repeat": 20,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f25:rl_burst"
+      ]
+    },
+    {
+      "case_id": "exh_f26_routing_match",
+      "method": "exhaustive",
+      "feature_id": 26,
+      "feature_type": "routing",
+      "service": "meshscope-svc-0038",
+      "branch_id": "routing_match",
+      "path": "/s38/route-26/",
+      "headers": {
+        "x-meshscope-route": "f26"
+      },
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": "v2",
+      "covered_branches": [
+        "f26:routing_match"
+      ]
+    },
+    {
+      "case_id": "exh_f26_routing_default",
+      "method": "exhaustive",
+      "feature_id": 26,
+      "feature_type": "routing",
+      "service": "meshscope-svc-0038",
+      "branch_id": "routing_default",
+      "path": "/s38/route-26/",
+      "headers": {},
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": "v1",
+      "covered_branches": [
+        "f26:routing_default"
+      ]
+    },
+    {
+      "case_id": "exh_f27_split_sample",
+      "method": "exhaustive",
+      "feature_id": 27,
+      "feature_type": "traffic_shifting",
+      "service": "meshscope-svc-0011",
+      "branch_id": "split_sample",
+      "path": "/s11/split-27/",
+      "headers": {},
+      "repeat": 20,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f27:split_sample"
+      ]
+    },
+    {
+      "case_id": "exh_f28_cb_normal",
+      "method": "exhaustive",
+      "feature_id": 28,
+      "feature_type": "circuit_breaker",
+      "service": "meshscope-svc-0039",
+      "branch_id": "cb_normal",
+      "path": "/s39/",
+      "headers": {},
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f28:cb_normal"
+      ]
+    },
+    {
+      "case_id": "exh_f29_retry_ok",
+      "method": "exhaustive",
+      "feature_id": 29,
+      "feature_type": "retry",
+      "service": "meshscope-svc-0040",
+      "branch_id": "retry_ok",
+      "path": "/s40/retry-29/",
+      "headers": {},
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f29:retry_ok"
+      ]
+    },
+    {
+      "case_id": "exh_f30_rl_under_limit",
+      "method": "exhaustive",
+      "feature_id": 30,
+      "feature_type": "rate_limit",
+      "service": "meshscope-svc-0011",
+      "branch_id": "rl_under_limit",
+      "path": "/s11/rl-30/",
+      "headers": {},
+      "repeat": 3,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f30:rl_under_limit"
+      ]
+    },
+    {
+      "case_id": "exh_f30_rl_burst",
+      "method": "exhaustive",
+      "feature_id": 30,
+      "feature_type": "rate_limit",
+      "service": "meshscope-svc-0011",
+      "branch_id": "rl_burst",
+      "path": "/s11/rl-30/",
+      "headers": {},
+      "repeat": 20,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f30:rl_burst"
+      ]
+    },
+    {
+      "case_id": "exh_f31_routing_match",
+      "method": "exhaustive",
+      "feature_id": 31,
+      "feature_type": "routing",
+      "service": "meshscope-svc-0047",
+      "branch_id": "routing_match",
+      "path": "/s47/route-31/",
+      "headers": {
+        "x-meshscope-route": "f31"
+      },
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": "v2",
+      "covered_branches": [
+        "f31:routing_match"
+      ]
+    },
+    {
+      "case_id": "exh_f31_routing_default",
+      "method": "exhaustive",
+      "feature_id": 31,
+      "feature_type": "routing",
+      "service": "meshscope-svc-0047",
+      "branch_id": "routing_default",
+      "path": "/s47/route-31/",
+      "headers": {},
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": "v1",
+      "covered_branches": [
+        "f31:routing_default"
+      ]
+    },
+    {
+      "case_id": "exh_f32_split_sample",
+      "method": "exhaustive",
+      "feature_id": 32,
+      "feature_type": "traffic_shifting",
+      "service": "meshscope-svc-0027",
+      "branch_id": "split_sample",
+      "path": "/s27/split-32/",
+      "headers": {},
+      "repeat": 20,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f32:split_sample"
+      ]
+    },
+    {
+      "case_id": "exh_f33_cb_normal",
+      "method": "exhaustive",
+      "feature_id": 33,
+      "feature_type": "circuit_breaker",
+      "service": "meshscope-svc-0031",
+      "branch_id": "cb_normal",
+      "path": "/s31/",
+      "headers": {},
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f33:cb_normal"
+      ]
+    },
+    {
+      "case_id": "exh_f34_retry_ok",
+      "method": "exhaustive",
+      "feature_id": 34,
+      "feature_type": "retry",
+      "service": "meshscope-svc-0048",
+      "branch_id": "retry_ok",
+      "path": "/s48/retry-34/",
+      "headers": {},
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f34:retry_ok"
+      ]
+    },
+    {
+      "case_id": "exh_f35_rl_under_limit",
+      "method": "exhaustive",
+      "feature_id": 35,
+      "feature_type": "rate_limit",
+      "service": "meshscope-svc-0044",
+      "branch_id": "rl_under_limit",
+      "path": "/s44/rl-35/",
+      "headers": {},
+      "repeat": 3,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f35:rl_under_limit"
+      ]
+    },
+    {
+      "case_id": "exh_f35_rl_burst",
+      "method": "exhaustive",
+      "feature_id": 35,
+      "feature_type": "rate_limit",
+      "service": "meshscope-svc-0044",
+      "branch_id": "rl_burst",
+      "path": "/s44/rl-35/",
+      "headers": {},
+      "repeat": 20,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f35:rl_burst"
+      ]
+    },
+    {
+      "case_id": "exh_f36_routing_match",
+      "method": "exhaustive",
+      "feature_id": 36,
+      "feature_type": "routing",
+      "service": "meshscope-svc-0050",
+      "branch_id": "routing_match",
+      "path": "/s50/route-36/",
+      "headers": {
+        "x-meshscope-route": "f36"
+      },
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": "v2",
+      "covered_branches": [
+        "f36:routing_match"
+      ]
+    },
+    {
+      "case_id": "exh_f36_routing_default",
+      "method": "exhaustive",
+      "feature_id": 36,
+      "feature_type": "routing",
+      "service": "meshscope-svc-0050",
+      "branch_id": "routing_default",
+      "path": "/s50/route-36/",
+      "headers": {},
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": "v1",
+      "covered_branches": [
+        "f36:routing_default"
+      ]
+    },
+    {
+      "case_id": "exh_f37_split_sample",
+      "method": "exhaustive",
+      "feature_id": 37,
+      "feature_type": "traffic_shifting",
+      "service": "meshscope-svc-0011",
+      "branch_id": "split_sample",
+      "path": "/s11/split-37/",
+      "headers": {},
+      "repeat": 20,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f37:split_sample"
+      ]
+    },
+    {
+      "case_id": "exh_f38_cb_normal",
+      "method": "exhaustive",
+      "feature_id": 38,
+      "feature_type": "circuit_breaker",
+      "service": "meshscope-svc-0046",
+      "branch_id": "cb_normal",
+      "path": "/s46/",
+      "headers": {},
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f38:cb_normal"
+      ]
+    },
+    {
+      "case_id": "exh_f39_retry_ok",
+      "method": "exhaustive",
+      "feature_id": 39,
+      "feature_type": "retry",
+      "service": "meshscope-svc-0008",
+      "branch_id": "retry_ok",
+      "path": "/s8/retry-39/",
+      "headers": {},
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f39:retry_ok"
+      ]
+    },
+    {
+      "case_id": "exh_f40_rl_under_limit",
+      "method": "exhaustive",
+      "feature_id": 40,
+      "feature_type": "rate_limit",
+      "service": "meshscope-svc-0044",
+      "branch_id": "rl_under_limit",
+      "path": "/s44/rl-40/",
+      "headers": {},
+      "repeat": 3,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f40:rl_under_limit"
+      ]
+    },
+    {
+      "case_id": "exh_f40_rl_burst",
+      "method": "exhaustive",
+      "feature_id": 40,
+      "feature_type": "rate_limit",
+      "service": "meshscope-svc-0044",
+      "branch_id": "rl_burst",
+      "path": "/s44/rl-40/",
+      "headers": {},
+      "repeat": 20,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f40:rl_burst"
+      ]
+    },
+    {
+      "case_id": "exh_f41_routing_match",
+      "method": "exhaustive",
+      "feature_id": 41,
+      "feature_type": "routing",
+      "service": "meshscope-svc-0010",
+      "branch_id": "routing_match",
+      "path": "/s10/route-41/",
+      "headers": {
+        "x-meshscope-route": "f41"
+      },
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": "v2",
+      "covered_branches": [
+        "f41:routing_match"
+      ]
+    },
+    {
+      "case_id": "exh_f41_routing_default",
+      "method": "exhaustive",
+      "feature_id": 41,
+      "feature_type": "routing",
+      "service": "meshscope-svc-0010",
+      "branch_id": "routing_default",
+      "path": "/s10/route-41/",
+      "headers": {},
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": "v1",
+      "covered_branches": [
+        "f41:routing_default"
+      ]
+    },
+    {
+      "case_id": "exh_f42_split_sample",
+      "method": "exhaustive",
+      "feature_id": 42,
+      "feature_type": "traffic_shifting",
+      "service": "meshscope-svc-0030",
+      "branch_id": "split_sample",
+      "path": "/s30/split-42/",
+      "headers": {},
+      "repeat": 20,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f42:split_sample"
+      ]
+    },
+    {
+      "case_id": "exh_f43_cb_normal",
+      "method": "exhaustive",
+      "feature_id": 43,
+      "feature_type": "circuit_breaker",
+      "service": "meshscope-svc-0005",
+      "branch_id": "cb_normal",
+      "path": "/s5/",
+      "headers": {},
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f43:cb_normal"
+      ]
+    },
+    {
+      "case_id": "exh_f44_retry_ok",
+      "method": "exhaustive",
+      "feature_id": 44,
+      "feature_type": "retry",
+      "service": "meshscope-svc-0028",
+      "branch_id": "retry_ok",
+      "path": "/s28/retry-44/",
+      "headers": {},
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f44:retry_ok"
+      ]
+    },
+    {
+      "case_id": "exh_f45_rl_under_limit",
+      "method": "exhaustive",
+      "feature_id": 45,
+      "feature_type": "rate_limit",
+      "service": "meshscope-svc-0024",
+      "branch_id": "rl_under_limit",
+      "path": "/s24/rl-45/",
+      "headers": {},
+      "repeat": 3,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f45:rl_under_limit"
+      ]
+    },
+    {
+      "case_id": "exh_f45_rl_burst",
+      "method": "exhaustive",
+      "feature_id": 45,
+      "feature_type": "rate_limit",
+      "service": "meshscope-svc-0024",
+      "branch_id": "rl_burst",
+      "path": "/s24/rl-45/",
+      "headers": {},
+      "repeat": 20,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f45:rl_burst"
+      ]
+    },
+    {
+      "case_id": "exh_f46_routing_match",
+      "method": "exhaustive",
+      "feature_id": 46,
+      "feature_type": "routing",
+      "service": "meshscope-svc-0027",
+      "branch_id": "routing_match",
+      "path": "/s27/route-46/",
+      "headers": {
+        "x-meshscope-route": "f46"
+      },
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": "v2",
+      "covered_branches": [
+        "f46:routing_match"
+      ]
+    },
+    {
+      "case_id": "exh_f46_routing_default",
+      "method": "exhaustive",
+      "feature_id": 46,
+      "feature_type": "routing",
+      "service": "meshscope-svc-0027",
+      "branch_id": "routing_default",
+      "path": "/s27/route-46/",
+      "headers": {},
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": "v1",
+      "covered_branches": [
+        "f46:routing_default"
+      ]
+    },
+    {
+      "case_id": "exh_f47_split_sample",
+      "method": "exhaustive",
+      "feature_id": 47,
+      "feature_type": "traffic_shifting",
+      "service": "meshscope-svc-0003",
+      "branch_id": "split_sample",
+      "path": "/s3/split-47/",
+      "headers": {},
+      "repeat": 20,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f47:split_sample"
+      ]
+    },
+    {
+      "case_id": "exh_f48_cb_normal",
+      "method": "exhaustive",
+      "feature_id": 48,
+      "feature_type": "circuit_breaker",
+      "service": "meshscope-svc-0018",
+      "branch_id": "cb_normal",
+      "path": "/s18/",
+      "headers": {},
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f48:cb_normal"
+      ]
+    },
+    {
+      "case_id": "exh_f49_retry_ok",
+      "method": "exhaustive",
+      "feature_id": 49,
+      "feature_type": "retry",
+      "service": "meshscope-svc-0011",
+      "branch_id": "retry_ok",
+      "path": "/s11/retry-49/",
+      "headers": {},
+      "repeat": 1,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f49:retry_ok"
+      ]
+    },
+    {
+      "case_id": "exh_f50_rl_under_limit",
+      "method": "exhaustive",
+      "feature_id": 50,
+      "feature_type": "rate_limit",
+      "service": "meshscope-svc-0045",
+      "branch_id": "rl_under_limit",
+      "path": "/s45/rl-50/",
+      "headers": {},
+      "repeat": 3,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f50:rl_under_limit"
+      ]
+    },
+    {
+      "case_id": "exh_f50_rl_burst",
+      "method": "exhaustive",
+      "feature_id": 50,
+      "feature_type": "rate_limit",
+      "service": "meshscope-svc-0045",
+      "branch_id": "rl_burst",
+      "path": "/s45/rl-50/",
+      "headers": {},
+      "repeat": 20,
+      "expect_status": 200,
+      "expect_status_any": null,
+      "expect_subset": null,
+      "covered_branches": [
+        "f50:rl_burst"
+      ]
+    }
+  ],
+  "stats": {
+    "total_branches": 70,
+    "covered_branches": 70,
+    "coverage_pct": 100.0,
+    "num_cases": 70,
+    "uncovered": []
+  }
+}

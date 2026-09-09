@@ -1,0 +1,51 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: istio-route-weights-sum-100
+spec:
+  validationFailureAction: Enforce
+  background: false
+  rules:
+  - name: weights-sum-100
+    match:
+      any:
+      - resources:
+          kinds:
+          - VirtualService
+    validate:
+      message: "VirtualService route weights must sum to 100 when multiple routes are present"
+      foreach:
+      - list: "request.object.spec.http[]"
+        preconditions:
+          all:
+          - key: "{{ length(element.route || `[]`) }}"
+            operator: GreaterThanOrEquals
+            value: 2
+        deny:
+          conditions:
+            any:
+            - key: "{{ sum(element.route[].weight || `[]`) }}"
+              operator: NotEquals
+              value: 100
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: istio-forbid-dr-tls-disable-with-strict
+spec:
+  validationFailureAction: Enforce
+  background: false
+  rules:
+  - name: no-disable-tls
+    match:
+      any:
+      - resources:
+          kinds:
+          - DestinationRule
+    validate:
+      message: "DestinationRule should not set trafficPolicy.tls.mode=DISABLE"
+      pattern:
+        spec:
+          =(trafficPolicy):
+            =(tls):
+              =(mode): "!DISABLE"

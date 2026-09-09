@@ -1,0 +1,74 @@
+{
+  "checkmark": {
+    "F1": {
+      "label": "Missing subset definition",
+      "S-Istio-offline": true,
+      "S-Ours": true,
+      "D-Ours": false,
+      "H-Ours": true
+    },
+    "F2": {
+      "label": "Authorization conflict",
+      "S-Istio-offline": true,
+      "S-Ours": true,
+      "D-Ours": false,
+      "H-Ours": true
+    },
+    "F3": {
+      "label": "Inconsistent mTLS mode",
+      "S-Istio-offline": false,
+      "S-Ours": true,
+      "D-Ours": true,
+      "H-Ours": true
+    },
+    "F4": {
+      "label": "Timeout mismatch",
+      "S-Istio-offline": false,
+      "S-Ours": true,
+      "D-Ours": true,
+      "H-Ours": true
+    },
+    "F5": {
+      "label": "Traffic split drift",
+      "S-Istio-offline": false,
+      "S-Ours": true,
+      "D-Ours": true,
+      "H-Ours": true
+    },
+    "F6": {
+      "label": "Retry omission in runtime",
+      "S-Istio-offline": false,
+      "S-Ours": false,
+      "D-Ours": true,
+      "H-Ours": true
+    },
+    "F7": {
+      "label": "Circuit breaker ineffective",
+      "S-Istio-offline": false,
+      "S-Ours": true,
+      "D-Ours": true,
+      "H-Ours": true
+    },
+    "F8": {
+      "label": "Partial timeout propagation",
+      "S-Istio-offline": false,
+      "S-Ours": false,
+      "D-Ours": true,
+      "H-Ours": true
+    },
+    "F9": {
+      "label": "Incorrect routing dependency",
+      "S-Istio-offline": false,
+      "S-Ours": true,
+      "D-Ours": false,
+      "H-Ours": true
+    },
+    "F10": {
+      "label": "Runtime policy enforcement gap",
+      "S-Istio-offline": false,
+      "S-Ours": false,
+      "D-Ours": true,
+      "H-Ours": true
+    }
+  }
+}

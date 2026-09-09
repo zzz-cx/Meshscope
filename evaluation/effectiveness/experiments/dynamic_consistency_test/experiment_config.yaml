@@ -1,0 +1,330 @@
+# 动态一致性检验实验配置
+
+experiment:
+  name: "Dynamic Consistency Verification"
+  version: "1.0"
+  description: "验证系统运行时检测配置与行为不一致性的能力"
+
+# 实验环境配置
+environment:
+  target_system: "istio_consistency_checker"
+  analysis_mode: "dynamic"
+  cluster_config:
+    namespace: "default"
+    test_app: "bookinfo"  # bookinfo 或 online-boutique
+    ingress_url: "http://192.168.92.131:30476/productpage"
+  
+  # 监控组件配置
+  monitoring:
+    prometheus:
+      enabled: true
+      url: "http://prometheus:9090"
+      scrape_interval: "15s"
+    jaeger:
+      enabled: true
+      url: "http://jaeger:16686"
+      sampling_rate: 1.0
+    envoy_logs:
+      enabled: true
+      format: "json"
+      level: "info"
+
+# 测试场景配置
+test_scenarios:
+  # 流量分发异常检测场景
+  traffic_split_anomaly:
+    name: "流量分发异常检测"
+    description: "检测实际流量分配与VirtualService配置的偏差"
+    duration: "10m"
+    config_files:
+      - "configs/traffic_split/reviews_vs_70_30.yaml"
+      - "configs/traffic_split/reviews_dr.yaml"
+    
+    # 流量生成配置
+    traffic_generation:
+      qps: 10
+      duration: "8m"
+      concurrent_users: 5
+      target_endpoint: "/productpage"
+    
+    # 异常注入配置
+    anomaly_injection:
+      type: "envoy_config_override"
+      method: "manual_route_modification"
+      target_distribution: [50, 50]  # 实际修改为50:50而非配置的70:30
+      injection_delay: "2m"  # 2分钟后注入异常
+    
+    # 预期检测结果
+    expected_detection:
+      should_detect: true
+      detection_threshold: "deviation > 15%"
+      detection_time_limit: "5m"
+      issue_type: "traffic_distribution_anomaly"
+
+  # 故障注入失效检测场景  
+  fault_injection_failure:
+    name: "故障注入失效检测"
+    description: "检测配置的故障注入策略是否实际生效"
+    duration: "8m"
+    config_files:
+      - "configs/fault_injection/productpage_fault_vs.yaml"
+    
+    traffic_generation:
+      qps: 5
+      duration: "6m"
+      target_endpoint: "/productpage"
+    
+    anomaly_injection:
+      type: "fault_injection_disable"
+      method: "envoy_filter_removal"
+      injection_delay: "2m"
+    
+    expected_detection:
+      should_detect: true
+      detection_indicators:
+        - "expected_delay_percentage: 30%"
+        - "actual_delay_percentage: 0%"
+        - "expected_abort_percentage: 10%"
+        - "actual_abort_percentage: 0%"
+
+  # 限流策略失效检测场景
+  rate_limiting_failure:
+    name: "限流策略失效检测"
+    description: "检测限流配置是否按预期工作"
+    duration: "6m"
+    config_files:
+      - "configs/rate_limiting/adservice_ratelimit.yaml"
+    
+    traffic_generation:
+      qps: 20  # 超过限制的QPS
+      duration: "4m"
+      target_service: "adservice"
+    
+    anomaly_injection:
+      type: "rate_limit_bypass"
+      method: "envoy_filter_disable"
+      injection_delay: "1m"
+    
+    expected_detection:
+      should_detect: true
+      detection_indicators:
+        - "expected_429_rate: > 50%"
+        - "actual_429_rate: 0%"
+
+  # 重试策略异常检测场景
+  retry_policy_anomaly:
+    name: "重试策略异常检测"
+    description: "检测重试策略配置与实际重试行为的一致性"
+    duration: "8m"
+    config_files:
+      - "configs/retry/productpage_retry_vs.yaml"
+    
+    traffic_generation:
+      qps: 3
+      duration: "6m"
+      target_endpoint: "/productpage"
+    
+    # 模拟后端服务故障
+    backend_fault_injection:
+      target_service: "details"
+      fault_type: "abort"
+      fault_percentage: 50
+      fault_status: 503
+    
+    anomaly_injection:
+      type: "retry_disable"
+      method: "virtualservice_modification"
+      injection_delay: "2m"
+    
+    expected_detection:
+      should_detect: true
+      detection_indicators:
+        - "configured_retry_attempts: 3"
+        - "actual_retry_attempts: 0"
+        - "success_rate_improvement: 0%"
+
+  # 熔断器状态异常检测场景
+  circuit_breaker_anomaly:
+    name: "熔断器状态异常检测"
+    description: "检测熔断器是否按配置条件正确触发"
+    duration: "10m"
+    config_files:
+      - "configs/circuit_breaker/reviews_dr_circuit_breaker.yaml"
+    
+    traffic_generation:
+      qps: 15
+      duration: "8m"
+      concurrent_users: 20
+      target_endpoint: "/productpage"
+    
+    # 模拟高错误率场景
+    backend_fault_injection:
+      target_service: "reviews"
+      fault_type: "abort"
+      fault_percentage: 80
+      fault_status: 500
+    
+    anomaly_injection:
+      type: "circuit_breaker_disable"
+      method: "destination_rule_modification"
+      injection_delay: "3m"
+    
+    expected_detection:
+      should_detect: true
+      detection_indicators:
+        - "consecutive_errors_threshold: 5"
+        - "expected_ejection_events: > 0"
+        - "actual_ejection_events: 0"
+
+  # 超时策略失效检测场景
+  timeout_policy_failure:
+    name: "超时策略失效检测"
+    description: "检测超时配置是否按预期工作"
+    duration: "6m"
+    config_files:
+      - "configs/timeout/productpage_timeout_vs.yaml"
+    
+    traffic_generation:
+      qps: 2
+      duration: "4m"
+      target_endpoint: "/productpage"
+    
+    # 模拟后端服务慢响应
+    backend_fault_injection:
+      target_service: "details"
+      fault_type: "delay"
+      fault_percentage: 100
+      fault_delay: "5s"  # 超过3s超时配置
+    
+    anomaly_injection:
+      type: "timeout_disable"
+      method: "virtualservice_modification"
+      injection_delay: "1m"
+    
+    expected_detection:
+      should_detect: true
+      detection_indicators:
+        - "configured_timeout: 3s"
+        - "actual_response_times: > 3s"
+        - "timeout_triggered: false"
+
+# 数据收集配置
+data_collection:
+  # Prometheus指标收集
+  prometheus_metrics:
+    - "istio_requests_total"
+    - "istio_request_duration_milliseconds"
+    - "istio_request_bytes"
+    - "istio_response_bytes"
+    - "envoy_cluster_upstream_rq_retry"
+    - "envoy_cluster_upstream_rq_timeout"
+    - "envoy_http_ratelimit_rate_limited"
+  
+  # Envoy访问日志字段
+  envoy_access_logs:
+    - "start_time"
+    - "method"
+    - "path"
+    - "response_code"
+    - "response_flags"
+    - "bytes_received"
+    - "bytes_sent"
+    - "duration"
+    - "upstream_service_time"
+    - "x_forwarded_for"
+    - "user_agent"
+    - "request_id"
+    - "authority"
+    - "upstream_host"
+  
+  # Jaeger trace采样
+  jaeger_tracing:
+    sampling_rate: 1.0
+    max_traces_per_scenario: 1000
+    trace_fields:
+      - "trace_id"
+      - "span_id"
+      - "operation_name"
+      - "start_time"
+      - "duration"
+      - "tags"
+      - "logs"
+
+# 分析配置
+analysis:
+  # 行为分析参数
+  behavior_analysis:
+    statistical_window: "1m"
+    confidence_level: 0.95
+    anomaly_threshold: 0.15  # 15%偏差阈值
+    min_samples: 50
+  
+  # 检测算法配置
+  detection_algorithms:
+    traffic_distribution:
+      method: "chi_square_test"
+      significance_level: 0.05
+    
+    fault_injection:
+      method: "ratio_comparison"
+      tolerance: 0.05
+    
+    rate_limiting:
+      method: "threshold_violation"
+      violation_threshold: 0.8
+    
+    retry_behavior:
+      method: "retry_pattern_analysis"
+      expected_pattern_match: 0.9
+    
+    circuit_breaker:
+      method: "state_transition_analysis"
+      state_consistency_check: true
+    
+    timeout_behavior:
+      method: "response_time_analysis"
+      timeout_violation_threshold: 0.1
+
+# 输出配置
+output:
+  report_format: "json"
+  include_raw_data: false
+  generate_visualizations: true
+  
+  # 报告内容配置
+  report_sections:
+    - "executive_summary"
+    - "scenario_results"
+    - "anomaly_analysis"
+    - "detection_performance"
+    - "recommendations"
+  
+  # 可视化配置
+  visualizations:
+    - "traffic_distribution_chart"
+    - "response_time_histogram"
+    - "error_rate_timeline"
+    - "detection_timeline"
+    - "behavior_comparison_chart"
+
+# 验证标准
+validation_criteria:
+  # 检测性能要求
+  detection_performance:
+    min_detection_rate: 0.85
+    max_false_positive_rate: 0.10
+    max_detection_latency: "5m"
+    min_confidence_score: 0.8
+  
+  # 系统性能要求
+  system_performance:
+    max_monitoring_overhead: "5%"
+    max_memory_usage: "2GB"
+    max_cpu_usage: "20%"
+    max_network_overhead: "10%"
+  
+  # 数据质量要求
+  data_quality:
+    min_data_completeness: 0.95
+    max_data_loss_rate: 0.01
+    min_sampling_accuracy: 0.99

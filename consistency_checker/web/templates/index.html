@@ -33,13 +33,14 @@
     <main class="main">
       <section id="page-overview" class="page active">
         <h1>总览</h1>
-        <p class="lead">采集控制面与数据面配置，做静态语义分析、正交动态验证，并在三层图上定位不一致。</p>
+        <p class="lead">采集控制面与数据面配置，做静态语义分析、正交动态验证，并在三层图上定位不一致。检验结果写入 SQLite，JSON / HTML 仍可导出。</p>
         <div class="cards">
           <div class="card"><h3>报告数量</h3><div class="num" id="stat-reports">-</div></div>
+          <div class="card"><h3>检验记录</h3><div class="num" id="stat-findings">-</div></div>
           <div class="card"><h3>最新一致性率</h3><div class="num" id="stat-rate">-</div></div>
           <div class="card"><h3>最新状态</h3><div class="num" id="stat-status">-</div></div>
-          <div class="card"><h3>命名空间</h3><div class="num" id="stat-ns">{{ namespace }}</div></div>
         </div>
+        <p class="lead" id="storage-summary">存储：SQLite</p>
         <div class="panel">
           <div class="panel-head">
             <h2>运行时配置</h2>
@@ -49,7 +50,7 @@
               <button class="btn secondary" type="button" id="conn-refresh-overview">重新检测</button>
             </div>
           </div>
-          <p class="lead" id="conn-summary" style="margin-top:10px">启动时读取 configpilot.json。下面改的是集群、可观测地址和一致性容差，保存后写回同一文件，不必重启。</p>
+          <p class="lead" id="conn-summary" style="margin-top:10px">启动时读取 configpilot.json。下面改的是集群、可观测地址和一致性判定参数，保存后写回同一文件，不必重启。</p>
           <div class="ep-grid" id="endpoint-fields"></div>
           <div id="endpoint-status" class="status"></div>
           <div class="conn-grid" id="conn-overview"></div>
@@ -118,7 +119,7 @@
 
       <section id="page-consistency" class="page">
         <h1>一致性验证</h1>
-        <p class="lead">checker 只消费静态对齐产物与动态结果，生成三层图定位资源和受影响服务。请先跑静态，再跑动态。</p>
+        <p class="lead">按三层对照声明、数据面和运行时。点开一条记录可看 Sdecl / Sdp / Srt 的字段差异；JSON 与独立 HTML 仍可导出。</p>
         <div class="panel">
           <label>命名空间</label>
           <input id="consistency-namespace" value="{{ namespace }}">
@@ -128,8 +129,10 @@
             <button class="btn secondary" onclick="loadReports()">刷新报告</button>
           </div>
           <div id="consistency-status" class="status"></div>
+          <div id="graph-summary"></div>
           <div id="reports-container"></div>
         </div>
+        <div id="report-detail"></div>
       </section>
 
       <section id="page-graph" class="page">

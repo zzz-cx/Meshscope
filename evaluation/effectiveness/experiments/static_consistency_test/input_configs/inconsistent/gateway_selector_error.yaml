@@ -1,0 +1,55 @@
+# 不一致配置：Gateway选择器错误
+apiVersion: v1
+kind: List
+items:
+- apiVersion: networking.istio.io/v1
+  kind: Gateway
+  metadata:
+    name: invalid-gateway
+    namespace: default
+  spec:
+    selector:
+      istio: nonexistent-gateway  # 错误：选择器指向不存在的标签
+    servers:
+    - hosts:
+      - example.com
+      port:
+        name: http
+        number: 80
+        protocol: HTTP
+
+- apiVersion: networking.istio.io/v1
+  kind: Gateway
+  metadata:
+    name: wrong-selector-gateway
+    namespace: default
+  spec:
+    selector:
+      app: wrong-label  # 错误：没有pod具有这个标签
+      version: v1.0.0   # 错误：标签组合不存在
+    servers:
+    - hosts:
+      - api.example.com
+      port:
+        name: https
+        number: 443
+        protocol: HTTPS
+        tls:
+          mode: SIMPLE
+          credentialName: api-cert
+
+- apiVersion: networking.istio.io/v1
+  kind: VirtualService
+  metadata:
+    name: vs-with-invalid-gateway
+    namespace: default
+  spec:
+    gateways:
+    - invalid-gateway  # 引用上面定义的有问题的gateway
+    - nonexistent-gateway  # 错误：引用完全不存在的gateway
+    hosts:
+    - example.com
+    http:
+    - route:
+      - destination:
+          host: productpage.default.svc.cluster.local

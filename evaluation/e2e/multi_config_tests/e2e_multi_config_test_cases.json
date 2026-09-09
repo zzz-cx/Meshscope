@@ -1,0 +1,79 @@
+{
+  "test_suite_name": "Multi-Config E2E Test Suite",
+  "description": "多配置端到端测试套件",
+  "version": "1.0",
+  "test_cases": [
+    {
+      "test_id": "e2e_multi_config_5",
+      "name": "多配置E2E测试 - 5个服务",
+      "description": "测试注入5个配置的e2e场景，包含灰度发布配置",
+      "fetch_from_cluster": true,
+      "use_fetched_configs": false,
+      "enable_traffic_test": true,
+      "enable_dynamic_analysis": true,
+      "cluster_config": {
+        "vm_host": "${SSH_HOST}",
+        "vm_user": "${SSH_USER:-root}",
+        "vm_password": "${SSH_PASSWORD}",
+        "k8s_host": "${K8S_HOST:-${SSH_HOST}}",
+        "k8s_token": "",
+        "namespace": "default",
+        "output_dir": "D:/python_code/istio_check/results/monitoring"
+      },
+      "traffic_config": {
+        "matrix_file": "results/monitoring/output_matrix_5.json",
+        "namespace": "default",
+        "log_dir": "results/envoy_logs_5",
+        "http_results_dir": "results/http_results_5",
+        "verification_output_dir": "results/verification_5",
+        "auto_generate_matrix": true,
+        "generator_config": {
+          "input_config": "D:\\python_code\\istio_check\\evaluation\\e2e\\multi_config_tests\\5_configs\\config_5_services.json",
+          "ingress_url": "http://${SSH_HOST}:${INGRESS_PORT:-30476}/productpage",
+          "service_deps": "istio_Dynamic_Test/service_dependencies.json"
+        }
+      },
+      "expected_results": {
+        "consistent": true,
+        "min_services": 5,
+        "canary_services_count": 1
+      }
+    },
+    {
+      "test_id": "e2e_multi_config_10",
+      "name": "多配置E2E测试 - 10个服务",
+      "description": "测试注入10个配置的e2e场景，包含灰度发布配置",
+      "fetch_from_cluster": true,
+      "use_fetched_configs": false,
+      "enable_traffic_test": true,
+      "enable_dynamic_analysis": true,
+      "cluster_config": {
+        "vm_host": "${SSH_HOST}",
+        "vm_user": "${SSH_USER:-root}",
+        "vm_password": "${SSH_PASSWORD}",
+        "k8s_host": "${K8S_HOST:-${SSH_HOST}}",
+        "k8s_token": "",
+        "namespace": "default",
+        "output_dir": "D:/python_code/istio_check/results/monitoring"
+      },
+      "traffic_config": {
+        "matrix_file": "results/monitoring/output_matrix_10.json",
+        "namespace": "default",
+        "log_dir": "results/envoy_logs_10",
+        "http_results_dir": "results/http_results_10",
+        "verification_output_dir": "results/verification_10",
+        "auto_generate_matrix": true,
+        "generator_config": {
+          "input_config": "D:\\python_code\\istio_check\\evaluation\\e2e\\multi_config_tests\\10_configs\\config_10_services.json",
+          "ingress_url": "http://${SSH_HOST}:${INGRESS_PORT:-30476}/productpage",
+          "service_deps": "istio_Dynamic_Test/service_dependencies.json"
+        }
+      },
+      "expected_results": {
+        "consistent": true,
+        "min_services": 10,
+        "canary_services_count": 3
+      }
+    }
+  ]
+}

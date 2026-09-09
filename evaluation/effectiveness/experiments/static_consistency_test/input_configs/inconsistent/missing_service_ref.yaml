@@ -1,0 +1,53 @@
+# 不一致配置：引用不存在的服务
+apiVersion: v1
+kind: List
+items:
+- apiVersion: networking.istio.io/v1
+  kind: VirtualService
+  metadata:
+    name: missing-service-ref
+    namespace: default
+  spec:
+    hosts:
+    - nonexistent-service.default.svc.cluster.local  # 错误：引用不存在的服务
+    http:
+    - route:
+      - destination:
+          host: nonexistent-service.default.svc.cluster.local
+          port:
+            number: 8080
+
+- apiVersion: networking.istio.io/v1
+  kind: DestinationRule
+  metadata:
+    name: missing-service-dr
+    namespace: default
+  spec:
+    host: another-missing-service.default.svc.cluster.local  # 错误：另一个不存在的服务
+    trafficPolicy:
+      connectionPool:
+        tcp:
+          maxConnections: 10
+
+- apiVersion: networking.istio.io/v1
+  kind: VirtualService
+  metadata:
+    name: valid-to-invalid-ref
+    namespace: default
+  spec:
+    hosts:
+    - productpage.default.svc.cluster.local  # 正确的服务引用
+    http:
+    - match:
+      - headers:
+          end-user:
+            exact: jason
+      route:
+      - destination:
+          host: reviews.default.svc.cluster.local  # 正确的服务引用
+          subset: v2
+    - route:
+      - destination:
+          host: invalid-backend.default.svc.cluster.local  # 错误：不存在的后端服务
+          port:
+            number: 9080

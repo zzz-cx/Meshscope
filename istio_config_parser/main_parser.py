@@ -44,9 +44,21 @@ def _resolve_config_dir(path: str) -> str:
 def _get_tau() -> float:
     try:
         from consistency_checker.config import get_config
-        return float(get_config().traffic_split_tolerance)
+        cfg = get_config()
+        tau = getattr(cfg, "alignment_tau", None)
+        if tau is None:
+            tau = cfg.traffic_split_tolerance
+        return float(tau)
     except Exception:
         return 0.1
+
+
+def _get_timeout_abs() -> float:
+    try:
+        from consistency_checker.config import get_config
+        return max(0.0, float(get_config().timeout_tolerance_seconds))
+    except Exception:
+        return 0.5
 
 
 def aligned_semantic_path(output_dir: Optional[str] = None) -> str:
@@ -183,7 +195,12 @@ def parse_to_legacy_format(
     if not data_plane_configs.get("routes"):
         data_plane_configs["routes"] = []
 
-    parser = UnifiedParser(enable_parallel=True, max_workers=None, tau=_get_tau())
+    parser = UnifiedParser(
+        enable_parallel=True,
+        max_workers=None,
+        tau=_get_tau(),
+        timeout_abs=_get_timeout_abs(),
+    )
     system_ir = parser.parse_align_and_build_ir(control_plane_configs, data_plane_configs)
     services = parse_services(control_plane_configs.get('services', {}))
     control_result, data_result = system_ir_to_legacy(system_ir, services)
@@ -315,7 +332,12 @@ def parse_unified_from_dir(
     
     # 使用统一解析器（数值容差 tau 来自 configpilot.json）
     logger.info("开始解析和对齐配置...")
-    parser = UnifiedParser(enable_parallel=enable_parallel, max_workers=max_workers, tau=_get_tau())
+    parser = UnifiedParser(
+        enable_parallel=enable_parallel,
+        max_workers=max_workers,
+        tau=_get_tau(),
+        timeout_abs=_get_timeout_abs(),
+    )
     system_ir = parser.parse_align_and_build_ir(control_plane_configs, data_plane_configs)
     
     logger.info("解析完成")
@@ -775,8 +797,10 @@ def parse_static_semantic(
     expected_tuples = _expected_tuples_from_pairs(pairs)
     graph_data = _simple_graph_from_pairs(pairs, control_plane_configs)
     tau = _get_tau()
+    timeout_abs = _get_timeout_abs()
     summary = system_ir.get_summary()
     summary["tau"] = tau
+    summary["timeout_tolerance_seconds"] = timeout_abs
     summary["conflict_count"] = len(conflicts)
     summary["expected_tuple_count"] = len(expected_tuples)
     summary["aligned_pair_count"] = sum(
@@ -787,6 +811,7 @@ def parse_static_semantic(
         "generated_at": datetime.now().isoformat(),
         "namespace": namespace,
         "tau": tau,
+        "timeout_tolerance_seconds": timeout_abs,
         "summary": summary,
         "pairs": pairs,
         "conflicts": conflicts,
@@ -898,7 +923,12 @@ def parse_and_export_models(
     
     # 使用统一解析器
     logger.info("开始解析配置...")
-    parser = UnifiedParser(enable_parallel=enable_parallel, max_workers=max_workers, tau=_get_tau())
+    parser = UnifiedParser(
+        enable_parallel=enable_parallel,
+        max_workers=max_workers,
+        tau=_get_tau(),
+        timeout_abs=_get_timeout_abs(),
+    )
     exported_files = parser.parse_and_export(
         control_plane_configs, 
         data_plane_configs, 

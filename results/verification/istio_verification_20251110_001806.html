@@ -1,0 +1,1070 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Istio 动态测试报告</title>
+    <style>
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .timestamp {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        
+        .summary {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            color: white;
+        }
+        
+        .stat-card h3 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .stat-card.passed { background: #4CAF50; }
+        .stat-card.failed { background: #f44336; }
+        .stat-card.warning { background: #ff9800; }
+        .stat-card.total { background: #2196F3; }
+        
+        .success-rate h3 {
+            text-align: center;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .progress-bar {
+            background: #e0e0e0;
+            border-radius: 25px;
+            height: 30px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        
+        .test-details {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .test-case {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        
+        .test-case.passed { border-left: 5px solid #4CAF50; }
+        .test-case.failed { border-left: 5px solid #f44336; }
+        .test-case.warning { border-left: 5px solid #ff9800; }
+        
+        .test-case-header {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .test-case-header h3 {
+            margin: 0;
+            font-size: 1.2em;
+        }
+        
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .status-badge.passed { background: #4CAF50; color: white; }
+        .status-badge.failed { background: #f44336; color: white; }
+        .status-badge.warning { background: #ff9800; color: white; }
+        
+        .test-description, .test-summary {
+            padding: 10px 20px;
+            margin: 0;
+        }
+        
+        .test-description {
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .metrics {
+            padding: 10px 20px;
+            background: #f8f9fa;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .metrics span {
+            background: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.9em;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .verifications {
+            padding: 20px;
+        }
+        
+        .verification-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .verification-item:last-child {
+            border-bottom: none;
+        }
+        
+        .verification-name {
+            font-weight: bold;
+        }
+        
+        .verification-message {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .charts {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+        }
+        
+        .chart h3 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .color-box {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+        }
+        
+        .color-box.passed { background: #4CAF50; }
+        .color-box.failed { background: #f44336; }
+        .color-box.warning { background: #ff9800; }
+        
+        .bar-chart {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        
+        .bar-item {
+            margin-bottom: 15px;
+        }
+        
+        .bar-label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .bar {
+            background: #e0e0e0;
+            border-radius: 10px;
+            height: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .bar-fill {
+            background: #2196F3;
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+        
+        .bar-fill.success {
+            background: #4CAF50;
+        }
+        
+        .bar-value {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            margin-top: 30px;
+        }
+        
+        /* 验证过程样式 */
+        .verification-process {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .process-summary {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+        
+        .process-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .info-item .label {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .info-item .value {
+            color: #34495e;
+            font-family: monospace;
+        }
+        
+        .steps-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .step-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+            transition: box-shadow 0.3s ease;
+        }
+        
+        .step-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .step-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .step-header h4 {
+            margin: 0;
+            font-size: 1.1em;
+        }
+        
+        .step-duration {
+            background: rgba(255,255,255,0.2);
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+        
+        .step-content {
+            padding: 20px;
+            background: white;
+        }
+        
+        .behaviors-details, .log-details {
+            margin-top: 15px;
+        }
+        
+        .behaviors-details summary, .log-details summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: #3498db;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        
+        .behaviors-list {
+            padding: 10px;
+            background: #fdfdfd;
+            border-radius: 5px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .behavior-item {
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 4px;
+            border-left: 3px solid #3498db;
+            font-size: 0.9em;
+        }
+        
+        .log-summary-table table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        
+        .log-summary-table th,
+        .log-summary-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .log-summary-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .success-rate-cell {
+            font-weight: 600;
+            color: #27ae60;
+        }
+        
+        .verification-stats {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+        }
+        
+        .verification-stats .stat {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+        
+        .verification-stats .stat.passed {
+            background: #d5f5d5;
+            color: #2d7d2d;
+        }
+        
+        .verification-stats .stat.failed {
+            background: #f5d5d5;
+            color: #7d2d2d;
+        }
+        
+        .verification-stats .stat.warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .error-message {
+            margin-top: 15px;
+            padding: 12px;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 5px;
+            color: #721c24;
+            font-weight: 500;
+        }
+        
+        /* 验证详情样式 */
+        .verification-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .verification-details {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .verification-details h5 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+            font-size: 1.1em;
+        }
+        
+        .verification-details h6 {
+            margin: 10px 0 5px 0;
+            color: #34495e;
+            font-size: 1em;
+        }
+        
+        .verification-details p {
+            margin: 5px 0;
+            font-size: 0.9em;
+        }
+        
+        .verification-details ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        
+        .verification-details li {
+            margin: 3px 0;
+            font-size: 0.9em;
+        }
+        
+        .retry-details {
+            border-left-color: #f39c12;
+            background: #fef9e7;
+        }
+        
+        .circuit-breaker-details {
+            border-left-color: #e74c3c;
+            background: #fdf2f2;
+        }
+        
+        .traffic-details {
+            border-left-color: #9b59b6;
+            background: #f8f4ff;
+        }
+        
+        .http-details {
+            border-left-color: #27ae60;
+            background: #f0f8f0;
+        }
+        
+        .generic-details {
+            border-left-color: #95a5a6;
+            background: #f5f6fa;
+        }
+        
+        .distribution-table table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            font-size: 0.9em;
+        }
+        
+        .distribution-table th,
+        .distribution-table td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .distribution-table th {
+            background: #e9ecef;
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .distribution-table .positive {
+            color: #dc3545;
+            font-weight: 600;
+        }
+        
+        .distribution-table .negative {
+            color: #28a745;
+            font-weight: 600;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .charts-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🛡️ Istio 动态测试验证报告</h1>
+            <div class="timestamp">生成时间: 2025-11-10 00:18:06</div>
+        </header>
+        
+        <section class="summary">
+            <h2>📊 测试摘要</h2>
+            <div class="stats-grid">
+                <div class="stat-card passed">
+                    <h3>2</h3>
+                    <p>通过用例</p>
+                </div>
+                <div class="stat-card failed">
+                    <h3>0</h3>
+                    <p>失败用例</p>
+                </div>
+                <div class="stat-card warning">
+                    <h3>2</h3>
+                    <p>警告用例</p>
+                </div>
+                <div class="stat-card total">
+                    <h3>4</h3>
+                    <p>总用例数</p>
+                </div>
+            </div>
+            <div class="success-rate">
+                <h3>整体成功率: 50.0%</h3>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 0.5%"></div>
+                </div>
+            </div>
+        </section>
+        
+        <section class="test-details">
+            <h2>📋 详细测试结果</h2>
+            
+            <div class="test-case warning">
+                <div class="test-case-header">
+                    <h3>⚠️ case_001</h3>
+                    <span class="status-badge warning">WARNING</span>
+                </div>
+                <p class="test-description">正向匹配路由测试 for host '*'</p>
+                <p class="test-summary">验证完成: 2/4 项通过 | 总请求: 292 | 成功率: 83.56% | 多维度验证: HTTP验证✅, 日志验证✅, 其他验证❌ | 路由测试</p>
+                
+                <div class="metrics">
+                    <span>请求数: 292</span>
+                    <span>成功率: 83.6%</span>
+                    <span>Pod数: 3</span>
+                </div>
+                
+                <div class="verifications">
+                    <h4>验证详情:</h4>
+            
+                    <div class="verification-item passed">
+                        <div class="verification-header">
+                            <span class="verification-name">✅ HTTP状态码验证</span>
+                            <span class="verification-message">HTTP验证通过: 成功率100.0% >= 1.0%, 平均响应时间0.392s <= 5.0s</span>
+                        </div>
+                        <div class="verification-details http-details"><h5>HTTP验证详情</h5><p>📊 总请求数: 1</p><p>✅ 成功率: 10000.0%</p><p>⏱️ 平均响应时间: 0.392s</p></div>
+                    </div>
+                
+                    <div class="verification-item passed">
+                        <div class="verification-header">
+                            <span class="verification-name">✅ 基本指标验证</span>
+                            <span class="verification-message">请求数量充足: 292 >= 1</span>
+                        </div>
+                        
+                    </div>
+                
+                    <div class="verification-item failed">
+                        <div class="verification-header">
+                            <span class="verification-name">❌ 路由验证</span>
+                            <span class="verification-message">未找到版本 productpage 的 pod</span>
+                        </div>
+                        <div class="verification-details generic-details"><h5>详细信息</h5><ul><li><strong>available_pods:</strong> productpage_productpage-v1-55f788cfdf-xndnp, productpage_productpage-v2-6bf858447c-zzbjv, reviews_vv2_reviews-v2-7c6798f6c7-fcfsq</li></ul></div>
+                    </div>
+                
+                    <div class="verification-item warning">
+                        <div class="verification-header">
+                            <span class="verification-name">⚠️ 性能指标验证</span>
+                            <span class="verification-message">成功率偏差: 83.56% vs 100.00%</span>
+                        </div>
+                        <div class="verification-details generic-details"><h5>详细信息</h5><ul><li><strong>total_requests:</strong> 292</li><li><strong>success_requests:</strong> 244</li><li><strong>success_rate:</strong> 0.8356164383561644</li></ul></div>
+                    </div>
+                </div></div>
+            <div class="test-case passed">
+                <div class="test-case-header">
+                    <h3>✅ case_002</h3>
+                    <span class="status-badge passed">PASSED</span>
+                </div>
+                <p class="test-description">正向匹配路由测试 for host 'productpage'</p>
+                <p class="test-summary">验证完成: 3/4 项通过 | 总请求: 735 | 成功率: 86.67% | 多维度验证: HTTP验证✅, 日志验证✅, 其他验证⚠️ | 路由测试</p>
+                
+                <div class="metrics">
+                    <span>请求数: 735</span>
+                    <span>成功率: 86.7%</span>
+                    <span>Pod数: 7</span>
+                </div>
+                
+                <div class="verifications">
+                    <h4>验证详情:</h4>
+            
+                    <div class="verification-item passed">
+                        <div class="verification-header">
+                            <span class="verification-name">✅ HTTP状态码验证</span>
+                            <span class="verification-message">HTTP验证通过: 成功率100.0% >= 1.0%, 平均响应时间0.013s <= 5.0s</span>
+                        </div>
+                        <div class="verification-details http-details"><h5>HTTP验证详情</h5><p>📊 总请求数: 62</p><p>✅ 成功率: 10000.0%</p><p>⏱️ 平均响应时间: 0.013s</p></div>
+                    </div>
+                
+                    <div class="verification-item passed">
+                        <div class="verification-header">
+                            <span class="verification-name">✅ 基本指标验证</span>
+                            <span class="verification-message">请求数量充足: 735 >= 1</span>
+                        </div>
+                        
+                    </div>
+                
+                    <div class="verification-item passed">
+                        <div class="verification-header">
+                            <span class="verification-name">✅ 路由验证</span>
+                            <span class="verification-message">成功路由到目标版本 v1</span>
+                        </div>
+                        <div class="verification-details generic-details"><h5>详细信息</h5><ul><li><strong>target_pods:</strong> details_details-v1-5866cddcdf-fxwtk, details_details-v1-69bf5dd69d-zpzrh, productpage_vv1_productpage-v1-55f788cfdf-xndnp, reviews_reviews-v1-5c644b7c86-rlj6j</li><li><strong>target_requests:</strong> 431</li><li><strong>total_requests:</strong> 735</li><li><strong>routing_ratio:</strong> 0.5863945578231292</li></ul></div>
+                    </div>
+                
+                    <div class="verification-item warning">
+                        <div class="verification-header">
+                            <span class="verification-name">⚠️ 性能指标验证</span>
+                            <span class="verification-message">成功率偏差: 86.67% vs 100.00%</span>
+                        </div>
+                        <div class="verification-details generic-details"><h5>详细信息</h5><ul><li><strong>total_requests:</strong> 735</li><li><strong>success_requests:</strong> 637</li><li><strong>success_rate:</strong> 0.8666666666666667</li></ul></div>
+                    </div>
+                </div></div>
+            <div class="test-case warning">
+                <div class="test-case-header">
+                    <h3>⚠️ case_003</h3>
+                    <span class="status-badge warning">WARNING</span>
+                </div>
+                <p class="test-description">正交组合测试(traffic_split) for host 'reviews'</p>
+                <p class="test-summary">验证完成: 3/4 项通过 | 总请求: 486 | 成功率: 100.00% | 多维度验证: HTTP验证✅, 日志验证✅, 其他验证⚠️ | 流量分布测试</p>
+                
+                <div class="metrics">
+                    <span>请求数: 486</span>
+                    <span>成功率: 100.0%</span>
+                    <span>Pod数: 4</span>
+                </div>
+                
+                <div class="verifications">
+                    <h4>验证详情:</h4>
+            
+                    <div class="verification-item passed">
+                        <div class="verification-header">
+                            <span class="verification-name">✅ HTTP状态码验证</span>
+                            <span class="verification-message">HTTP验证通过: 成功率100.0% >= 0.9%, 平均响应时间0.384s <= 5.0s</span>
+                        </div>
+                        <div class="verification-details http-details"><h5>HTTP验证详情</h5><p>📊 总请求数: 1</p><p>✅ 成功率: 10000.0%</p><p>⏱️ 平均响应时间: 0.384s</p></div>
+                    </div>
+                
+                    <div class="verification-item passed">
+                        <div class="verification-header">
+                            <span class="verification-name">✅ 基本指标验证</span>
+                            <span class="verification-message">请求数量充足: 486 >= 62</span>
+                        </div>
+                        
+                    </div>
+                
+                    <div class="verification-item failed">
+                        <div class="verification-header">
+                            <span class="verification-name">❌ 流量分布验证</span>
+                            <span class="verification-message">❌ 权重分布验证失败 - ❌ v1: 288个请求 (59.3%, 期望20.0%) | ❌ v2: 198个请求 (40.7%, 期望80.0%) (偏差超出容错范围: v1, v2)</span>
+                        </div>
+                        <div class="verification-details traffic-details"><h5>流量分布验证详情</h5><p>⚙️ 有效容错: ±5.0%</p></div>
+                    </div>
+                
+                    <div class="verification-item passed">
+                        <div class="verification-header">
+                            <span class="verification-name">✅ 性能指标验证</span>
+                            <span class="verification-message">成功率符合预期: 100.00% ≈ 90.00%</span>
+                        </div>
+                        <div class="verification-details generic-details"><h5>详细信息</h5><ul><li><strong>total_requests:</strong> 486</li><li><strong>success_requests:</strong> 486</li><li><strong>success_rate:</strong> 1.0</li></ul></div>
+                    </div>
+                </div></div>
+            <div class="test-case passed">
+                <div class="test-case-header">
+                    <h3>✅ case_004</h3>
+                    <span class="status-badge passed">PASSED</span>
+                </div>
+                <p class="test-description">全局/局部正交组合测试(circuit_breaker+connection_pool+routing) for host 'productpage'</p>
+                <p class="test-summary">验证完成: 3/4 项通过 | 总请求: 896 | 成功率: 83.93% | 多维度验证: HTTP验证✅, 日志验证✅, 其他验证⚠️</p>
+                
+                <div class="metrics">
+                    <span>请求数: 896</span>
+                    <span>成功率: 83.9%</span>
+                    <span>Pod数: 6</span>
+                </div>
+                
+                <div class="verifications">
+                    <h4>验证详情:</h4>
+            
+                    <div class="verification-item passed">
+                        <div class="verification-header">
+                            <span class="verification-name">✅ HTTP状态码验证</span>
+                            <span class="verification-message">HTTP验证通过: 成功率100.0% >= 1.0%, 平均响应时间0.427s <= 5.0s</span>
+                        </div>
+                        <div class="verification-details http-details"><h5>HTTP验证详情</h5><p>📊 总请求数: 1</p><p>✅ 成功率: 10000.0%</p><p>⏱️ 平均响应时间: 0.427s</p></div>
+                    </div>
+                
+                    <div class="verification-item passed">
+                        <div class="verification-header">
+                            <span class="verification-name">✅ 基本指标验证</span>
+                            <span class="verification-message">请求数量充足: 896 >= 75</span>
+                        </div>
+                        
+                    </div>
+                
+                    <div class="verification-item passed">
+                        <div class="verification-header">
+                            <span class="verification-name">✅ 熔断器验证</span>
+                            <span class="verification-message">检测到熔断行为: 110 个503错误, 错误聚集模式; 时间验证: 熔断触发时间正常 (9.896s), 恢复时间正常 (0.010s)</span>
+                        </div>
+                        <div class="verification-details circuit-breaker-details"><h5>熔断器验证详情</h5><p>📊 总请求数: 896</p><p>❌ 错误率: 12.4%</p><p>⚡ 503熔断错误: 110个</p><p>[METRICS] 熔断指标:</p><ul><li>110 个503错误</li><li>错误聚集模式</li></ul><h6>时间分析:</h6><ul><li>最大连续错误: 26个</li><li>熔断触发时间: 9.896s</li><li>恢复时间: 0.010s</li></ul><p>✅ 时间验证: 通过</p><p>⚙️ 期望熔断阈值: 5</p><p>⏱️ 期望恢复时间: 60.0s</p></div>
+                    </div>
+                
+                    <div class="verification-item warning">
+                        <div class="verification-header">
+                            <span class="verification-name">⚠️ 性能指标验证</span>
+                            <span class="verification-message">成功率偏差: 83.93% vs 100.00%</span>
+                        </div>
+                        <div class="verification-details generic-details"><h5>详细信息</h5><ul><li><strong>total_requests:</strong> 896</li><li><strong>success_requests:</strong> 752</li><li><strong>success_rate:</strong> 0.8392857142857143</li></ul></div>
+                    </div>
+                </div></div>
+        </section>
+        
+        <section class="verification-process">
+            <h2>[DETAIL] 验证过程详情</h2>
+            
+        <div class="process-summary">
+            <h3>📝 总体信息</h3>
+            <div class="process-info-grid">
+                <div class="info-item">
+                    <span class="label">开始时间:</span>
+                    <span class="value">2025-11-10T00:18:06.051109</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">结束时间:</span>
+                    <span class="value">2025-11-10T00:18:06.095394</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">总耗时:</span>
+                    <span class="value">0.04秒</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">配置文件:</span>
+                    <span class="value">未使用</span>
+                </div>
+            </div>
+        </div>
+        <h3>🔄 验证步骤</h3><div class="steps-container">
+                <div class="step-card">
+                    <div class="step-header">
+                        <h4>步骤 1: 解析测试矩阵</h4>
+                        <span class="step-duration">0.00s</span>
+                    </div>
+                    <div class="step-content">
+                
+                        <p><strong>解析的行为数量:</strong> 4</p>
+                        <details class="behaviors-details">
+                            <summary>查看期望行为详情 (4个)</summary>
+                            <div class="behaviors-list">
+                    
+                                <div class="behavior-item">
+                                    <strong>case_001</strong>: 
+                                    routing - 正向匹配路由测试 for host '*'
+                        </div>
+                                <div class="behavior-item">
+                                    <strong>case_002</strong>: 
+                                    routing - 正向匹配路由测试 for host 'productpage'
+                        </div>
+                                <div class="behavior-item">
+                                    <strong>case_003</strong>: 
+                                    traffic_split - 正交组合测试(traffic_split) for host 'reviews'
+                        </div>
+                                <div class="behavior-item">
+                                    <strong>case_004</strong>: 
+                                    circuit_breaker - 全局/局部正交组合测试(circuit_breaker+connection_pool+routing) for host 'productpage'
+                        <br>⚡ 熔断: 阈值5, 恢复时间: 60.0s</div></div></details>
+                    </div>
+                </div>
+                
+                <div class="step-card">
+                    <div class="step-header">
+                        <h4>步骤 2: 加载和解析日志</h4>
+                        <span class="step-duration">0.03s</span>
+                    </div>
+                    <div class="step-content">
+                
+                        <p><strong>处理的用例数:</strong> 9</p>
+                        <p><strong>总日志条目:</strong> 5381</p>
+                        <details class="log-details">
+                            <summary>查看日志解析详情</summary>
+                            <div class="log-summary-table">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>用例ID</th>
+                                            <th>日志条目</th>
+                                            <th>Pod数量</th>
+                                            <th>成功率</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                    
+                                        <tr>
+                                            <td>case_001</td>
+                                            <td>292</td>
+                                            <td>3</td>
+                                            <td class="success-rate-cell">83.6%</td>
+                                        </tr>
+                        
+                                        <tr>
+                                            <td>case_002</td>
+                                            <td>735</td>
+                                            <td>7</td>
+                                            <td class="success-rate-cell">86.7%</td>
+                                        </tr>
+                        
+                                        <tr>
+                                            <td>case_003</td>
+                                            <td>486</td>
+                                            <td>4</td>
+                                            <td class="success-rate-cell">100.0%</td>
+                                        </tr>
+                        
+                                        <tr>
+                                            <td>case_004</td>
+                                            <td>896</td>
+                                            <td>6</td>
+                                            <td class="success-rate-cell">83.9%</td>
+                                        </tr>
+                        
+                                        <tr>
+                                            <td>case_005</td>
+                                            <td>1172</td>
+                                            <td>11</td>
+                                            <td class="success-rate-cell">76.7%</td>
+                                        </tr>
+                        
+                                        <tr>
+                                            <td>case_006</td>
+                                            <td>600</td>
+                                            <td>3</td>
+                                            <td class="success-rate-cell">90.5%</td>
+                                        </tr>
+                        
+                                        <tr>
+                                            <td>case_007</td>
+                                            <td>400</td>
+                                            <td>2</td>
+                                            <td class="success-rate-cell">67.0%</td>
+                                        </tr>
+                        
+                                        <tr>
+                                            <td>case_009</td>
+                                            <td>600</td>
+                                            <td>3</td>
+                                            <td class="success-rate-cell">68.7%</td>
+                                        </tr>
+                        
+                                        <tr>
+                                            <td>case_010</td>
+                                            <td>200</td>
+                                            <td>1</td>
+                                            <td class="success-rate-cell">72.0%</td>
+                                        </tr>
+                        
+                                    </tbody>
+                                </table>
+                            </div>
+                        </details>
+                    
+                    </div>
+                </div>
+                
+                <div class="step-card">
+                    <div class="step-header">
+                        <h4>步骤 3: 执行对比验证</h4>
+                        <span class="step-duration">0.01s</span>
+                    </div>
+                    <div class="step-content">
+                
+                        <p><strong>验证结果数量:</strong> 4</p>
+                        <div class="verification-stats">
+                            <span class="stat passed">✅ 通过: 2</span>
+                            <span class="stat failed">❌ 失败: 0</span>
+                            <span class="stat warning">⚠️ 警告: 2</span>
+                        </div>
+                    
+                    </div>
+                </div>
+                </div>
+        </section>
+        
+        <section class="charts">
+            <h2>📈 统计图表</h2>
+            
+        <div class="charts-container">
+            <div class="chart">
+                <h3>测试用例状态分布</h3>
+                <div class="pie-chart" id="statusPieChart">
+                    <div class="pie-slice passed" style="--percentage: 50.0"></div>
+                    <div class="pie-slice failed" style="--percentage: 0.0"></div>
+                    <div class="pie-slice warning" style="--percentage: 50.0"></div>
+                </div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <span class="color-box passed"></span>
+                        <span>通过 (2)</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="color-box failed"></span>
+                        <span>失败 (0)</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="color-box warning"></span>
+                        <span>警告 (2)</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chart">
+                <h3>请求统计</h3>
+                <div class="bar-chart">
+                    <div class="bar-item">
+                        <span class="bar-label">总请求数</span>
+                        <div class="bar">
+                            <div class="bar-fill" style="width: 100%"></div>
+                            <span class="bar-value">2409</span>
+                        </div>
+                    </div>
+                    <div class="bar-item">
+                        <span class="bar-label">成功请求</span>
+                        <div class="bar">
+                            <div class="bar-fill success" style="width: 88.0%"></div>
+                            <span class="bar-value">2119</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        </section>
+        
+        <footer class="footer">
+            <p>由 Istio 动态测试框架生成 | 2025</p>
+        </footer>
+    </div>
+    
+    <script>
+        
+        // 添加一些交互性
+        document.addEventListener('DOMContentLoaded', function() {
+            // 点击测试用例标题时折叠/展开详情
+            document.querySelectorAll('.test-case-header').forEach(header => {
+                header.style.cursor = 'pointer';
+                header.addEventListener('click', function() {
+                    const verifications = this.parentElement.querySelector('.verifications');
+                    if (verifications) {
+                        verifications.style.display = verifications.style.display === 'none' ? 'block' : 'none';
+                    }
+                });
+            });
+            
+            // 添加一些动画效果
+            setTimeout(() => {
+                document.querySelectorAll('.progress-fill, .bar-fill').forEach(el => {
+                    el.style.opacity = '1';
+                    el.style.transform = 'scaleX(1)';
+                });
+            }, 500);
+        });
+        
+    </script>
+</body>
+</html>

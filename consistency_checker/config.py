@@ -29,6 +29,7 @@ class GlobalConfig:
     # 一致性检查配置
     consistency_output_dir: str = "results/consistency"
     visualization_output_dir: str = "results/visualization"
+    database_path: str = "results/meshscope.db"
     
     # Kubernetes配置（敏感信息优先从环境变量读取）
     ssh_host: Optional[str] = None
@@ -61,8 +62,26 @@ class GlobalConfig:
     enable_interactive_graph: bool = True
     
     # 阈值配置
-    traffic_split_tolerance: float = 0.1  # 流量分配容差
-    statistical_confidence: float = 0.95  # 统计置信度
+    traffic_split_tolerance: float = 0.1  # 运行时流量权重相对容差
+    statistical_confidence: float = 0.95  # 动态抽样置信度
+    alignment_tau: float = 0.1  # 控制面/数据面数值对齐容差 τ
+    timeout_tolerance_seconds: float = 0.5  # 超时绝对容差（秒）
+    min_split_requests: int = 30  # 流量分割最少样本
+    min_severity: str = "info"  # 报告最低严重级别
+    check_layer1: bool = True
+    check_layer2: bool = True
+    check_layer3: bool = True
+    report_unverified_policies: bool = True
+    report_scope_gaps: bool = True
+    report_partial_matched: bool = True
+    check_routing: bool = True
+    check_traffic_split: bool = True
+    check_retry: bool = True
+    check_timeout: bool = True
+    check_circuit_breaker: bool = True
+    check_rate_limit: bool = True
+    check_fault_injection: bool = True
+    check_orthogonal_minimize: bool = True
     
     # 日志配置
     log_level: str = "INFO"
@@ -121,6 +140,7 @@ class GlobalConfig:
         self.verification_dir = self._resolve_path(self.verification_dir)
         self.consistency_output_dir = self._resolve_path(self.consistency_output_dir)
         self.visualization_output_dir = self._resolve_path(self.visualization_output_dir)
+        self.database_path = self._resolve_path(self.database_path)
         self.service_dependencies_file = self._resolve_path(self.service_dependencies_file)
         self.istio_config_file = self._resolve_path(self.istio_config_file)
     
@@ -133,6 +153,47 @@ class GlobalConfig:
         if not host:
             return None
         return f"http://{host}:{port}{path}"
+
+    def sync_enabled_policies(self) -> None:
+        """把一致性功能开关同步到动态测试 enabled_policies。"""
+        policies = dict(self.enabled_policies or {})
+        for attr, name in POLICY_CHECK_TO_ENABLED.items():
+            policies[name] = bool(getattr(self, attr, True))
+        self.enabled_policies = policies
+
+    def allows_finding(self, finding: Any) -> bool:
+        """按运行时配置决定是否保留一条检验记录。"""
+        layer = str(getattr(finding, "layer", "") or "")
+        itype = str(getattr(finding, "inconsistency_type", "") or "")
+        if layer == "layer1" and not self.check_layer1:
+            return False
+        if layer == "layer2" and not self.check_layer2:
+            return False
+        if layer == "layer3" and not self.check_layer3:
+            return False
+        if itype == "partial_matched" and not self.report_partial_matched:
+            return False
+        if itype == "policy_not_verified" and not self.report_unverified_policies:
+            return False
+        if itype == "scope_mismatch" and not self.report_scope_gaps:
+            return False
+        if itype == "timeout_mismatch" and not self.check_timeout:
+            return False
+        if itype == "traffic_split_drift" and not self.check_traffic_split:
+            return False
+        severity = getattr(finding, "severity", "info")
+        sev_name = severity.value if hasattr(severity, "value") else str(severity or "info")
+        if _SEVERITY_RANK.get(sev_name.lower(), 0) < _SEVERITY_RANK.get((self.min_severity or "info").lower(), 0):
+            return False
+        ftype = str(getattr(finding, "function_type", "") or "").lower()
+        attr = _FUNCTION_CHECK_ATTR.get(ftype)
+        if attr and not bool(getattr(self, attr, True)):
+            return False
+        if itype == "traffic_split_drift":
+            samples = _sample_count(finding)
+            if samples is not None and samples < int(self.min_split_requests or 0):
+                return False
+        return True
         
     def _resolve_path(self, path: str) -> str:
         """将相对路径转换为绝对路径"""
@@ -210,8 +271,27 @@ class GlobalConfig:
             "consistency": {
                 "output_dir": self._relpath(self.consistency_output_dir),
                 "visualization_output_dir": self._relpath(self.visualization_output_dir),
+                "database_path": self._relpath(self.database_path),
                 "traffic_split_tolerance": self.traffic_split_tolerance,
                 "statistical_confidence": self.statistical_confidence,
+                "alignment_tau": self.alignment_tau,
+                "timeout_tolerance_seconds": self.timeout_tolerance_seconds,
+                "min_split_requests": self.min_split_requests,
+                "min_severity": self.min_severity,
+                "check_layer1": self.check_layer1,
+                "check_layer2": self.check_layer2,
+                "check_layer3": self.check_layer3,
+                "report_unverified_policies": self.report_unverified_policies,
+                "report_scope_gaps": self.report_scope_gaps,
+                "report_partial_matched": self.report_partial_matched,
+                "check_routing": self.check_routing,
+                "check_traffic_split": self.check_traffic_split,
+                "check_retry": self.check_retry,
+                "check_timeout": self.check_timeout,
+                "check_circuit_breaker": self.check_circuit_breaker,
+                "check_rate_limit": self.check_rate_limit,
+                "check_fault_injection": self.check_fault_injection,
+                "check_orthogonal_minimize": self.check_orthogonal_minimize,
             },
             "web": {
                 "port": self.web_port,
@@ -257,14 +337,85 @@ MONITOR_KEY_MAP = {
 CONSISTENCY_KEY_MAP = {
     "output_dir": "consistency_output_dir",
     "visualization_output_dir": "visualization_output_dir",
+    "database_path": "database_path",
     "traffic_split_tolerance": "traffic_split_tolerance",
     "statistical_confidence": "statistical_confidence",
+    "alignment_tau": "alignment_tau",
+    "timeout_tolerance_seconds": "timeout_tolerance_seconds",
+    "min_split_requests": "min_split_requests",
+    "min_severity": "min_severity",
+    "check_layer1": "check_layer1",
+    "check_layer2": "check_layer2",
+    "check_layer3": "check_layer3",
+    "report_unverified_policies": "report_unverified_policies",
+    "report_scope_gaps": "report_scope_gaps",
+    "report_partial_matched": "report_partial_matched",
+    "check_routing": "check_routing",
+    "check_traffic_split": "check_traffic_split",
+    "check_retry": "check_retry",
+    "check_timeout": "check_timeout",
+    "check_circuit_breaker": "check_circuit_breaker",
+    "check_rate_limit": "check_rate_limit",
+    "check_fault_injection": "check_fault_injection",
+    "check_orthogonal_minimize": "check_orthogonal_minimize",
 }
 
 WEB_KEY_MAP = {
     "port": "web_port",
     "enable_interactive_graph": "enable_interactive_graph",
 }
+
+POLICY_CHECK_TO_ENABLED = {
+    "check_routing": "routing",
+    "check_retry": "retry",
+    "check_circuit_breaker": "circuit_breaker",
+    "check_rate_limit": "rate_limit",
+    "check_fault_injection": "fault_injection",
+    "check_orthogonal_minimize": "orthogonal_minimize",
+}
+
+_FUNCTION_CHECK_ATTR = {
+    "routing": "check_routing",
+    "traffic_split": "check_traffic_split",
+    "traffic_shifting": "check_traffic_split",
+    "retry": "check_retry",
+    "timeout": "check_timeout",
+    "circuit_breaker": "check_circuit_breaker",
+    "rate_limit": "check_rate_limit",
+    "fault_injection": "check_fault_injection",
+}
+
+_SEVERITY_RANK = {
+    "info": 0,
+    "low": 1,
+    "medium": 2,
+    "high": 3,
+    "critical": 4,
+}
+
+ALLOWED_SEVERITY = set(_SEVERITY_RANK)
+
+
+def _sample_count(finding: Any) -> Optional[int]:
+    blobs = []
+    for attr in ("dynamic_observation", "details", "s_rt"):
+        obj = getattr(finding, attr, None)
+        if not isinstance(obj, dict):
+            continue
+        blobs.append(obj)
+        for nested_key in ("actual", "observation", "metrics", "constraint"):
+            nested = obj.get(nested_key)
+            if isinstance(nested, dict):
+                blobs.append(nested)
+    for blob in blobs:
+        for key in ("total", "requests", "sample_count", "count", "n"):
+            if blob.get(key) is None:
+                continue
+            try:
+                return int(blob[key])
+            except (TypeError, ValueError):
+                continue
+    return None
 
 
 def flatten_config_dict(data: Dict[str, Any]) -> Dict[str, Any]:
@@ -337,21 +488,138 @@ SETTINGS_GROUPS = [
     {
         "id": "consistency",
         "title": "一致性判定",
-        "hint": "之后跑流水线时生效。流量分配容差是声明权重与实测的允许偏差。",
+        "wide": True,
+        "hint": "保存后写回 configpilot.json，下次静态对齐和一致性检查立即按这些阈值与开关执行。",
         "fields": [
+            {"type": "heading", "label": "判定阈值"},
             {
                 "key": "traffic_split_tolerance",
                 "env": "",
                 "label": "流量分配容差",
                 "placeholder": "0.1",
-                "hint": "0.1 表示实测权重偏离声明超过 10% 则判不一致",
+                "hint": "运行时实测权重相对声明权重的允许偏差。0.1 表示偏离超过 10% 判为流量分割漂移。",
+            },
+            {
+                "key": "alignment_tau",
+                "env": "",
+                "label": "平面对齐容差 τ",
+                "placeholder": "0.1",
+                "hint": "控制面 Sdecl 与数据面 Sdp 比较数值约束时的相对容差，独立于运行时流量容差。",
+            },
+            {
+                "key": "timeout_tolerance_seconds",
+                "env": "",
+                "label": "超时绝对容差（秒）",
+                "placeholder": "0.5",
+                "hint": "timeout 字段差值不超过该秒数时不判超时不一致，避免 2s 与 2.05s 一类抖动。",
             },
             {
                 "key": "statistical_confidence",
                 "env": "",
                 "label": "统计置信度",
                 "placeholder": "0.95",
-                "hint": "动态抽样判定的置信水平，常用 0.95",
+                "hint": "动态抽样判定的置信水平，常用 0.95。",
+            },
+            {
+                "key": "min_split_requests",
+                "env": "",
+                "label": "流量分割最少样本",
+                "placeholder": "30",
+                "hint": "观测请求数低于该值时不报流量分割漂移，避免样本过少造成误报。",
+            },
+            {
+                "key": "min_severity",
+                "env": "",
+                "type": "select",
+                "label": "最低报告级别",
+                "hint": "低于该级别的检验记录不会写入报告。",
+                "options": [
+                    {"value": "info", "label": "info（全部）"},
+                    {"value": "low", "label": "low"},
+                    {"value": "medium", "label": "medium"},
+                    {"value": "high", "label": "high"},
+                    {"value": "critical", "label": "critical"},
+                ],
+            },
+            {"type": "heading", "label": "检验层次"},
+            {
+                "key": "check_layer1",
+                "type": "checkbox",
+                "label": "第一层 · 控制面 / 数据面对齐",
+                "hint": "比较 YAML 声明与 Envoy dump 是否对齐。",
+            },
+            {
+                "key": "check_layer2",
+                "type": "checkbox",
+                "label": "第二层 · 运行时行为",
+                "hint": "用动态测试观测核对路由、分割、重试、超时等是否按声明生效。",
+            },
+            {
+                "key": "check_layer3",
+                "type": "checkbox",
+                "label": "第三层 · 跨资源冲突",
+                "hint": "检查 subset 缺失、Gateway 选择器、路由优先级等配置冲突。",
+            },
+            {"type": "heading", "label": "报告内容"},
+            {
+                "key": "report_partial_matched",
+                "type": "checkbox",
+                "label": "报告部分匹配",
+                "hint": "平面对齐中仅部分字段超出容差 τ 的记录。",
+            },
+            {
+                "key": "report_unverified_policies",
+                "type": "checkbox",
+                "label": "报告未验证策略",
+                "hint": "声明了策略但没有对应动态测试覆盖。",
+            },
+            {
+                "key": "report_scope_gaps",
+                "type": "checkbox",
+                "label": "报告作用范围缺口",
+                "hint": "策略作用的 subset 未被测试覆盖。",
+            },
+            {"type": "heading", "label": "检查功能"},
+            {
+                "key": "check_routing",
+                "type": "checkbox",
+                "label": "路由",
+            },
+            {
+                "key": "check_traffic_split",
+                "type": "checkbox",
+                "label": "流量分割",
+            },
+            {
+                "key": "check_retry",
+                "type": "checkbox",
+                "label": "重试",
+            },
+            {
+                "key": "check_timeout",
+                "type": "checkbox",
+                "label": "超时",
+            },
+            {
+                "key": "check_circuit_breaker",
+                "type": "checkbox",
+                "label": "熔断",
+            },
+            {
+                "key": "check_rate_limit",
+                "type": "checkbox",
+                "label": "限流",
+            },
+            {
+                "key": "check_fault_injection",
+                "type": "checkbox",
+                "label": "故障注入",
+            },
+            {
+                "key": "check_orthogonal_minimize",
+                "type": "checkbox",
+                "label": "正交用例压缩",
+                "hint": "同时写入动态测试 enabled_policies，控制是否做正交最小化。",
             },
         ],
     },
@@ -374,10 +642,18 @@ ENDPOINT_ENV = {
     "ingress_port": "INGRESS_PORT",
 }
 
-ENDPOINT_FIELDS = [field for group in SETTINGS_GROUPS for field in group["fields"]]
+ENDPOINT_FIELDS = [field for group in SETTINGS_GROUPS for field in group["fields"] if field.get("key")]
 SECRET_KEYS = {field["key"] for field in ENDPOINT_FIELDS if field.get("secret")}
-ENDPOINT_INT_KEYS = {"ssh_port", "ingress_port", "k8s_port"}
-ENDPOINT_FLOAT_KEYS = {"traffic_split_tolerance", "statistical_confidence"}
+ENDPOINT_INT_KEYS = {"ssh_port", "ingress_port", "k8s_port", "min_split_requests"}
+ENDPOINT_RATIO_KEYS = {"traffic_split_tolerance", "statistical_confidence", "alignment_tau"}
+ENDPOINT_UNBOUNDED_FLOAT_KEYS = {"timeout_tolerance_seconds"}
+ENDPOINT_FLOAT_KEYS = ENDPOINT_RATIO_KEYS | ENDPOINT_UNBOUNDED_FLOAT_KEYS
+ENDPOINT_BOOL_KEYS = {
+    field["key"] for field in ENDPOINT_FIELDS if field.get("type") == "checkbox"
+}
+ENDPOINT_SELECT_KEYS = {
+    field["key"] for field in ENDPOINT_FIELDS if field.get("type") == "select"
+}
 DEFAULT_PROM_PORT = 31012
 DEFAULT_JAEGER_PORT = 16686
 DEFAULT_ZIPKIN_PORT = 9411
@@ -406,17 +682,33 @@ def _clean_endpoint_value(key: str, value: Any) -> Any:
     if key in SECRET_KEYS:
         text = str(value).strip()
         return text or None
+    if key in ENDPOINT_BOOL_KEYS:
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, (int, float)):
+            return bool(value)
+        return str(value).strip().lower() in {"1", "true", "yes", "on"}
     if key in ENDPOINT_INT_KEYS:
         try:
-            return int(value)
+            return max(0, int(value))
         except (TypeError, ValueError):
             return None
-    if key in ENDPOINT_FLOAT_KEYS:
+    if key in ENDPOINT_UNBOUNDED_FLOAT_KEYS:
+        try:
+            return max(0.0, float(value))
+        except (TypeError, ValueError):
+            return None
+    if key in ENDPOINT_RATIO_KEYS:
         try:
             number = float(value)
         except (TypeError, ValueError):
             return None
         return max(0.0, min(1.0, number))
+    if key in ENDPOINT_SELECT_KEYS:
+        text = str(value).strip().lower()
+        if key == "min_severity":
+            return text if text in ALLOWED_SEVERITY else None
+        return text or None
     text = str(value).strip()
     return text or None
 
@@ -425,20 +717,24 @@ def apply_endpoints(cfg: GlobalConfig, data: Dict[str, Any], persist: bool = Tru
     payload = data.get("values") if isinstance(data.get("values"), dict) else data
     old_host = cfg.ssh_host
     editable = [field["key"] for field in ENDPOINT_FIELDS]
+    numeric_keys = ENDPOINT_INT_KEYS | ENDPOINT_FLOAT_KEYS | ENDPOINT_SELECT_KEYS
     for key in editable:
         if key not in payload:
             continue
         if key in SECRET_KEYS and not str(payload.get(key) or "").strip():
             continue
         value = _clean_endpoint_value(key, payload.get(key))
-        if key in ENDPOINT_INT_KEYS or key in ENDPOINT_FLOAT_KEYS:
+        if key in numeric_keys:
             if value is None:
                 continue
             setattr(cfg, key, value)
+        elif key in ENDPOINT_BOOL_KEYS:
+            setattr(cfg, key, bool(value))
         elif key in SECRET_KEYS:
             setattr(cfg, key, value)
         else:
             setattr(cfg, key, value)
+    cfg.sync_enabled_policies()
     if "k8s_host" not in payload and cfg.ssh_host and (not cfg.k8s_host or cfg.k8s_host == old_host):
         cfg.k8s_host = cfg.ssh_host
     if sync_env:
@@ -477,6 +773,24 @@ def export_endpoints(cfg: GlobalConfig) -> Dict[str, Any]:
         "ingress_port": cfg.ingress_port or 30476,
         "traffic_split_tolerance": cfg.traffic_split_tolerance,
         "statistical_confidence": cfg.statistical_confidence,
+        "alignment_tau": cfg.alignment_tau,
+        "timeout_tolerance_seconds": cfg.timeout_tolerance_seconds,
+        "min_split_requests": cfg.min_split_requests,
+        "min_severity": cfg.min_severity or "info",
+        "check_layer1": bool(cfg.check_layer1),
+        "check_layer2": bool(cfg.check_layer2),
+        "check_layer3": bool(cfg.check_layer3),
+        "report_unverified_policies": bool(cfg.report_unverified_policies),
+        "report_scope_gaps": bool(cfg.report_scope_gaps),
+        "report_partial_matched": bool(cfg.report_partial_matched),
+        "check_routing": bool(cfg.check_routing),
+        "check_traffic_split": bool(cfg.check_traffic_split),
+        "check_retry": bool(cfg.check_retry),
+        "check_timeout": bool(cfg.check_timeout),
+        "check_circuit_breaker": bool(cfg.check_circuit_breaker),
+        "check_rate_limit": bool(cfg.check_rate_limit),
+        "check_fault_injection": bool(cfg.check_fault_injection),
+        "check_orthogonal_minimize": bool(cfg.check_orthogonal_minimize),
     }
     return {
         "values": values,

@@ -5,7 +5,7 @@
 """
 
 import logging
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, List, Optional, Any
 from datetime import datetime
 
 from consistency_checker.models.data_models import (
@@ -16,6 +16,15 @@ from consistency_checker.models.data_models import (
     ConsistencyStatus,
     SeverityLevel,
     PolicyType
+)
+from consistency_checker.core.finding_records import (
+    LAYER_CATALOG,
+    attach_tuples,
+    checks_performed,
+    collect_alignment_findings,
+    collect_conflict_findings,
+    index_pairs,
+    lookup_pair,
 )
 
 logger = logging.getLogger(__name__)
@@ -28,7 +37,8 @@ class ConsistencyChecker:
         self,
         static_policies: List[StaticPolicy],
         dynamic_behaviors: List[DynamicBehavior],
-        tolerance: float = 0.1
+        tolerance: float = 0.1,
+        artifact: Optional[Dict[str, Any]] = None,
     ):
         """
         初始化一致性检测器
@@ -37,13 +47,16 @@ class ConsistencyChecker:
             static_policies: 静态策略列表
             dynamic_behaviors: 动态行为列表
             tolerance: 容差阈值（用于流量分配等数值比较）
+            artifact: parser 对齐产物（pairs / conflicts），用于补全 Sdecl / Sdp / 资源定位
         """
         self.static_policies = static_policies
         self.dynamic_behaviors = dynamic_behaviors
         self.tolerance = tolerance
+        self.artifact = artifact or {}
         
         self.inconsistencies: List[InconsistencyAnnotation] = []
         self.policy_behavior_mapping: Dict[str, List[str]] = {}  # policy_id -> [case_ids]
+        self._pairs = index_pairs(self.artifact)
         
     def check(self) -> ConsistencyResult:
         """
@@ -53,6 +66,14 @@ class ConsistencyChecker:
             一致性检查结果
         """
         logger.info("开始一致性检查")
+        
+        # 0. 第一层 / 第三层：消费对齐产物与跨资源冲突
+        alignment_findings = collect_alignment_findings(self.artifact, self.dynamic_behaviors)
+        conflict_findings = collect_conflict_findings(self.artifact)
+        self.inconsistencies.extend(alignment_findings)
+        self.inconsistencies.extend(conflict_findings)
+        logger.info(f"✓ 平面对齐检查: {len(alignment_findings)} 条")
+        logger.info(f"✓ 跨资源冲突检查: {len(conflict_findings)} 条")
         
         # 1. 建立策略和行为的映射关系
         self._build_policy_behavior_mapping()
@@ -73,6 +94,8 @@ class ConsistencyChecker:
         # 5. 检查策略冲突
         conflicts = self._check_policy_conflicts()
         logger.info(f"✓ 策略冲突检查: 发现 {len(conflicts)} 个冲突")
+
+        self._apply_runtime_filters()
         
         # 6. 汇总结果
         result = self._generate_consistency_result(
@@ -86,6 +109,19 @@ class ConsistencyChecker:
                    f"一致性率={result.consistency_rate:.2%}")
         
         return result
+
+    def _apply_runtime_filters(self) -> None:
+        """按运行时配置过滤检验记录（层次、功能、严重级别、样本数）。"""
+        try:
+            from consistency_checker.config import get_config
+            cfg = get_config()
+        except Exception:
+            return
+        before = len(self.inconsistencies)
+        self.inconsistencies = [item for item in self.inconsistencies if cfg.allows_finding(item)]
+        dropped = before - len(self.inconsistencies)
+        if dropped:
+            logger.info("按运行时配置过滤掉 %s 条检验记录", dropped)
     
     def _build_policy_behavior_mapping(self):
         """建立策略和动态行为的映射关系"""
@@ -110,6 +146,7 @@ class ConsistencyChecker:
                 unverified_policies.append(policy.policy_id)
                 
                 # 创建不一致性标注
+                pair = lookup_pair(self._pairs, policy.target_service, policy_type=policy.policy_type)
                 inconsistency = InconsistencyAnnotation(
                     inconsistency_id=f"inc_policy_unverified_{policy.policy_id}",
                     inconsistency_type="policy_not_verified",
@@ -117,6 +154,8 @@ class ConsistencyChecker:
                     description=f"策略 {policy.config_name} 未被动态测试验证",
                     affected_policies=[policy.policy_id],
                     affected_services=[policy.target_service],
+                    affected_subsets=list(policy.applies_to or []),
+                    layer="layer2",
                     static_expectation={"policy": policy.config_name, "type": policy.policy_type.value},
                     dynamic_observation={"tests": 0, "status": "no_test_coverage"},
                     root_cause="缺少对应的测试用例",
@@ -125,7 +164,7 @@ class ConsistencyChecker:
                         "确认策略是否真正生效"
                     ]
                 )
-                self.inconsistencies.append(inconsistency)
+                self.inconsistencies.append(attach_tuples(inconsistency, pair=pair, policy=policy))
         
         return unverified_policies
     
@@ -162,6 +201,7 @@ class ConsistencyChecker:
                     scope_issues.append(issue)
                     
                     # 创建不一致性标注
+                    pair = lookup_pair(self._pairs, policy.target_service, policy_type=policy.policy_type)
                     inconsistency = InconsistencyAnnotation(
                         inconsistency_id=f"inc_scope_{policy.policy_id}",
                         inconsistency_type="scope_mismatch",
@@ -169,6 +209,8 @@ class ConsistencyChecker:
                         description=f"策略 {policy.config_name} 的部分作用范围未被测试覆盖",
                         affected_policies=[policy.policy_id],
                         affected_services=[policy.target_service],
+                        affected_subsets=list(missing_subsets),
+                        layer="layer2",
                         static_expectation={"applies_to": list(expected_subsets)},
                         dynamic_observation={"tested": list(tested_subsets), "missing": list(missing_subsets)},
                         root_cause="测试覆盖不完整",
@@ -178,7 +220,7 @@ class ConsistencyChecker:
                         ],
                         impact_scope=list(missing_subsets)
                     )
-                    self.inconsistencies.append(inconsistency)
+                    self.inconsistencies.append(attach_tuples(inconsistency, pair=pair, policy=policy))
         
         return scope_issues
     
@@ -211,22 +253,54 @@ class ConsistencyChecker:
                     
                     # 确定严重程度
                     severity = self._determine_deviation_severity(behavior, policy)
+                    pair = lookup_pair(self._pairs, behavior.target_service, policy_type=behavior.policy_type)
+                    itype = "behavior_deviation"
+                    if behavior.policy_type == PolicyType.TRAFFIC_SPLIT:
+                        itype = "traffic_split_drift"
                     
-                    # 创建不一致性标注
                     inconsistency = InconsistencyAnnotation(
                         inconsistency_id=f"inc_deviation_{behavior.test_case_id}",
-                        inconsistency_type="behavior_deviation",
+                        inconsistency_type=itype,
                         severity=severity,
                         description=f"测试 {behavior.test_case_id} 的实际行为与策略 {policy.config_name} 定义不一致",
                         affected_policies=[policy.policy_id],
                         affected_services=[behavior.target_service],
+                        layer="layer2",
                         static_expectation=behavior.expected_behavior,
                         dynamic_observation=behavior.actual_behavior,
                         root_cause=self._analyze_deviation_root_cause(behavior),
                         suggestions=self._generate_deviation_suggestions(behavior, policy),
                         impact_scope=[behavior.target_service]
                     )
-                    self.inconsistencies.append(inconsistency)
+                    self.inconsistencies.append(attach_tuples(
+                        inconsistency, pair=pair, policy=policy, behavior=behavior
+                    ))
+                else:
+                    pair = lookup_pair(self._pairs, behavior.target_service, policy_type=behavior.policy_type)
+                    itype = "traffic_split_drift" if behavior.policy_type == PolicyType.TRAFFIC_SPLIT else "behavior_deviation"
+                    inconsistency = InconsistencyAnnotation(
+                        inconsistency_id=f"inc_deviation_{behavior.test_case_id}",
+                        inconsistency_type=itype,
+                        severity=self._determine_deviation_severity(behavior, None),
+                        description=f"测试 {behavior.test_case_id} 的运行时行为与期望不一致",
+                        affected_policies=[],
+                        affected_services=[behavior.target_service],
+                        layer="layer2",
+                        static_expectation=behavior.expected_behavior,
+                        dynamic_observation=behavior.actual_behavior,
+                        root_cause=self._analyze_deviation_root_cause(behavior),
+                        suggestions=["对照 Sdecl / Sdp 与本次 Srt 观测", f"查看用例 {behavior.test_case_id}"],
+                        impact_scope=[behavior.target_service],
+                    )
+                    self.inconsistencies.append(attach_tuples(inconsistency, pair=pair, behavior=behavior))
+                    deviations.append({
+                        "test_case_id": behavior.test_case_id,
+                        "policy_id": None,
+                        "policy_type": behavior.policy_type.value,
+                        "service": behavior.target_service,
+                        "expected": behavior.expected_behavior,
+                        "actual": behavior.actual_behavior,
+                    })
         
         return deviations
     
@@ -256,6 +330,7 @@ class ConsistencyChecker:
                 conflicts.append(conflict)
                 
                 # 创建冲突标注
+                pair = lookup_pair(self._pairs, service, policy_type=PolicyType.TRAFFIC_SPLIT)
                 inconsistency = InconsistencyAnnotation(
                     inconsistency_id=f"inc_conflict_{service}_traffic_split",
                     inconsistency_type="policy_conflict",
@@ -263,6 +338,9 @@ class ConsistencyChecker:
                     description=f"服务 {service} 配置了多个流量分配策略，可能导致行为不确定",
                     affected_policies=[p.policy_id for p in traffic_split_policies],
                     affected_services=[service],
+                    layer="layer3",
+                    resource_kind="DestinationRule",
+                    function_type="traffic_shifting",
                     root_cause="重复的流量分配配置",
                     suggestions=[
                         "合并或删除冗余的流量分配策略",
@@ -270,11 +348,13 @@ class ConsistencyChecker:
                     ],
                     impact_scope=[service]
                 )
-                self.inconsistencies.append(inconsistency)
+                self.inconsistencies.append(attach_tuples(
+                    inconsistency, pair=pair, policy=traffic_split_policies[0]
+                ))
         
         return conflicts
     
-    def _determine_deviation_severity(self, behavior: DynamicBehavior, policy: StaticPolicy) -> SeverityLevel:
+    def _determine_deviation_severity(self, behavior: DynamicBehavior, policy: Optional[StaticPolicy]) -> SeverityLevel:
         """确定偏差的严重程度"""
         # 根据策略类型和偏差细节判断严重程度
         if behavior.policy_type in [PolicyType.CIRCUIT_BREAKER, PolicyType.AUTHORIZATION]:
@@ -395,7 +475,17 @@ class ConsistencyChecker:
                 "scope_issues": len(scope_issues),
                 "behavior_deviations": len(behavior_deviations),
                 "policy_conflicts": len(conflicts),
-                "unverified_policies": len(unverified_policies)
+                "unverified_policies": len(unverified_policies),
+                "by_layer": {
+                    layer: sum(1 for inc in self.inconsistencies if inc.layer == layer)
+                    for layer in ("layer1", "layer2", "layer3")
+                },
+                "by_type": {
+                    itype: sum(1 for inc in self.inconsistencies if inc.inconsistency_type == itype)
+                    for itype in sorted({inc.inconsistency_type for inc in self.inconsistencies})
+                },
+                "layers": LAYER_CATALOG,
+                "checks_performed": checks_performed(),
             }
         )
         

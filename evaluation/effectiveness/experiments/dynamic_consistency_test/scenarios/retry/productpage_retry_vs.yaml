@@ -1,0 +1,23 @@
+# 重试策略测试场景：失败时重试3次
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: productpage-retry-test
+  namespace: default
+  labels:
+    experiment: "dynamic_consistency_test"
+    scenario: "retry_policy_anomaly"
+spec:
+  hosts:
+  - productpage.default.svc.cluster.local
+  http:
+  - retries:
+      attempts: 3
+      perTryTimeout: 2s
+      retryOn: 5xx,gateway-error,connect-failure,refused-stream
+      retryRemoteLocalities: true
+    route:
+    - destination:
+        host: productpage.default.svc.cluster.local
+        port:
+          number: 9080

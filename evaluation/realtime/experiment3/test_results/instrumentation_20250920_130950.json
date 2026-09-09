@@ -1,0 +1,187 @@
+[
+  {
+    "stage": "TestStage",
+    "event_type": "start",
+    "timestamp": "2025-09-20T05:09:48.356366+00:00",
+    "duration_ms": null,
+    "metadata": {
+      "test": "value"
+    },
+    "thread_id": 36640,
+    "process_id": 33184
+  },
+  {
+    "stage": "TestStage",
+    "event_type": "end",
+    "timestamp": "2025-09-20T05:09:48.457171+00:00",
+    "duration_ms": 100.80432891845703,
+    "metadata": {
+      "result": "success"
+    },
+    "thread_id": 36640,
+    "process_id": 33184
+  },
+  {
+    "stage": "ContextTest",
+    "event_type": "execution",
+    "timestamp": "2025-09-20T05:09:48.457820+00:00",
+    "duration_ms": null,
+    "metadata": null,
+    "thread_id": 36640,
+    "process_id": 33184
+  },
+  {
+    "stage": "ContextTest",
+    "event_type": "middle",
+    "timestamp": "2025-09-20T05:09:48.558699+00:00",
+    "duration_ms": 100.87895393371582,
+    "metadata": null,
+    "thread_id": 36640,
+    "process_id": 33184
+  },
+  {
+    "stage": "ContextTest",
+    "event_type": "end",
+    "timestamp": "2025-09-20T05:09:48.659807+00:00",
+    "duration_ms": 201.98702812194824,
+    "metadata": null,
+    "thread_id": 36640,
+    "process_id": 33184
+  },
+  {
+    "stage": "Experiment",
+    "event_type": "start",
+    "timestamp": "2025-09-20T05:09:49.876316+00:00",
+    "duration_ms": null,
+    "metadata": {
+      "experiment_id": "exp3_1758344989"
+    },
+    "thread_id": 36640,
+    "process_id": 33184
+  },
+  {
+    "stage": "Initialization",
+    "event_type": "start",
+    "timestamp": "2025-09-20T05:09:49.876316+00:00",
+    "duration_ms": null,
+    "metadata": null,
+    "thread_id": 36640,
+    "process_id": 33184
+  },
+  {
+    "stage": "Initialization",
+    "event_type": "end",
+    "timestamp": "2025-09-20T05:09:49.878323+00:00",
+    "duration_ms": 2.0074844360351562,
+    "metadata": null,
+    "thread_id": 36640,
+    "process_id": 33184
+  },
+  {
+    "stage": "ConfigScale",
+    "event_type": "start",
+    "timestamp": "2025-09-20T05:09:49.878323+00:00",
+    "duration_ms": null,
+    "metadata": {
+      "scale": "small",
+      "change_rate": "low"
+    },
+    "thread_id": 36640,
+    "process_id": 33184
+  },
+  {
+    "stage": "Method",
+    "event_type": "start",
+    "timestamp": "2025-09-20T05:09:49.878323+00:00",
+    "duration_ms": null,
+    "metadata": {
+      "method": "static_only",
+      "scale": "small",
+      "change_rate": "low"
+    },
+    "thread_id": 36640,
+    "process_id": 33184
+  },
+  {
+    "stage": "Repetition",
+    "event_type": "start",
+    "timestamp": "2025-09-20T05:09:49.879316+00:00",
+    "duration_ms": null,
+    "metadata": {
+      "method": "static_only",
+      "repetition": 1,
+      "total": 1
+    },
+    "thread_id": 36640,
+    "process_id": 33184
+  },
+  {
+    "stage": "Repetition",
+    "event_type": "end",
+    "timestamp": "2025-09-20T05:09:49.883316+00:00",
+    "duration_ms": 4.00090217590332,
+    "metadata": {
+      "method": "static_only",
+      "repetition": 1,
+      "success": true,
+      "duration": 0.00400090217590332
+    },
+    "thread_id": 36640,
+    "process_id": 33184
+  },
+  {
+    "stage": "Method",
+    "event_type": "end",
+    "timestamp": "2025-09-20T05:09:50.887165+00:00",
+    "duration_ms": 1008.8424682617188,
+    "metadata": {
+      "method": "static_only",
+      "scale": "small",
+      "change_rate": "low",
+      "successful_runs": 1,
+      "failed_runs": 0
+    },
+    "thread_id": 36640,
+    "process_id": 33184
+  },
+  {
+    "stage": "ConfigScale",
+    "event_type": "end",
+    "timestamp": "2025-09-20T05:09:50.888162+00:00",
+    "duration_ms": 1009.8392963409424,
+    "metadata": {
+      "scale": "small",
+      "change_rate": "low",
+      "total_experiments": 1
+    },
+    "thread_id": 36640,
+    "process_id": 33184
+  },
+  {
+    "stage": "Analysis",
+    "event_type": "start",
+    "timestamp": "2025-09-20T05:09:50.888162+00:00",
+    "duration_ms": null,
+    "metadata": null,
+    "thread_id": 36640,
+    "process_id": 33184
+  },
+  {
+    "stage": "Analysis",
+    "event_type": "end",
+    "timestamp": "2025-09-20T05:09:50.890159+00:00",
+    "duration_ms": 1.9962787628173828,
+    "metadata": null,
+    "thread_id": 36640,
+    "process_id": 33184
+  },
+  {
+    "stage": "ReportGeneration",
+    "event_type": "start",
+    "timestamp": "2025-09-20T05:09:50.890159+00:00",
+    "duration_ms": null,
+    "metadata": null,
+    "thread_id": 36640,
+    "process_id": 33184
+  }
+]

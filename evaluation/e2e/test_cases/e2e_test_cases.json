@@ -1,0 +1,41 @@
+{
+  "test_suite_name": "E2E Basic Test Suite",
+  "description": "基础端到端测试套件",
+  "version": "1.0",
+  "test_cases": [
+    {
+      "test_id": "e2e_002",
+      "name": "集群实时配置解析与静态分析",
+      "description": "通过监控器从集群拉取最新配置后执行静态分析",
+      "fetch_from_cluster": true,
+      "use_fetched_configs": false,
+      "enable_traffic_test": true,
+      "enable_dynamic_analysis": true,
+      "cluster_config": {
+        "vm_host": "${SSH_HOST}",
+        "vm_user": "${SSH_USER:-root}",
+        "vm_password": "${SSH_PASSWORD}",
+        "k8s_host": "${K8S_HOST:-${SSH_HOST}}",
+        "k8s_token": "eyJhbGciOiJSUzI1NiIsImtpZCI6InBjM2UtbEpTLUVlMmxCeFNvLUZHUlhkcnNwNGFIOXN0ZjNpcVZJZG5qWTgifQ.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJvbmxpbmUtYm91dGlxdWUiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlY3JldC5uYW1lIjoiaXN0aW8tbW9uaXRvci10b2tlbiIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50Lm5hbWUiOiJpc3Rpby1tb25pdG9yIiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQudWlkIjoiY2EwNzRmOTUtMjgxNS00ZjU2LTk2OTItOGY1Y2RhYzEzZGVhIiwic3ViIjoic3lzdGVtOnNlcnZpY2VhY2NvdW50Om9ubGluZS1ib3V0aXF1ZTppc3Rpby1tb25pdG9yIn0.dd6EMIDvi98YD3sY1_0M80FOJdLiIKWo3QEKXSfCohWNzgwTKWFVciFMMu7XqqCKPKiphgLI75wfSQuJDKWR1yvKqkVvIWA5QK9gTlwJJF_gsSsi8qBH7TcGeb1eqdcWSTezrMm1_m49cIEnZ53gt8OqV2djuu5UhdxTapkoeeekm4CsowsRzyQRMeUxxKX6tPLock6KiSETkrObeC9oPMizs211bkmSJKWDrI2i67fEUsnPF_XSyRel4gnby8mq1PNBNXIghzJvQKhwwnrW-RaoACGJa2hRBMuY4jWnLX3Ph0Xswphkkxh2-ClXsPquMrXvTwNN4neagN9lsQfYXg",
+        "namespace": "default",
+        "output_dir": "D:/python_code/istio_check/results/monitoring"
+      },
+      "traffic_config": {
+        "matrix_file": "results/monitoring/output_matrix.json",
+        "namespace": "default",
+        "log_dir": "results/envoy_logs",
+        "http_results_dir": "results/http_results",
+        "verification_output_dir": "results/verification",
+        "auto_generate_matrix": true,
+        "generator_config": {
+          "ingress_url": "http://${SSH_HOST}:${INGRESS_PORT:-30476}/productpage",
+          "service_deps": "istio_Dynamic_Test/service_dependencies.json"
+        }
+      },
+      "expected_results": {
+        "consistent": true
+      }
+    }
+  ]
+}
+

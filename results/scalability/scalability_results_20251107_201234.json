@@ -1,0 +1,129 @@
+{
+  "start_time": "2025-11-07T20:12:10.134097",
+  "applications": [
+    "bookinfo"
+  ],
+  "metrics": [
+    {
+      "application_name": "bookinfo",
+      "namespace": "default",
+      "num_services": 7,
+      "num_policies": 16,
+      "config_size_kb": 670.55,
+      "static_parsing_time": 0.05284910000045784,
+      "test_generation_time": 0.040321500000572996,
+      "dynamic_validation_time": 0.03611610000007204,
+      "total_time": 22.14883010000085,
+      "cpu_avg_percent": 15.02222222222222,
+      "cpu_max_percent": 16.7,
+      "memory_avg_mb": 26571.99131944444,
+      "memory_max_mb": 26575.942708333332,
+      "static_parsing_cpu": 16.7,
+      "static_parsing_memory": 26567.38671875,
+      "test_generation_cpu": 12.0,
+      "test_generation_memory": 26572.64453125,
+      "dynamic_validation_cpu": 16.366666666666667,
+      "dynamic_validation_memory": 26575.942708333332,
+      "dynamic_validation_host_cpu": 16.366666666666667,
+      "dynamic_validation_host_memory": 26575.942708333332,
+      "dynamic_validation_vm_cpu": 0.0,
+      "dynamic_validation_vm_memory": 0.0,
+      "python_process_memory_mb": 0.0,
+      "network_bytes_total": 0,
+      "disk_bytes_total": 0,
+      "memory_before_mb": 26633.234375,
+      "memory_after_mb": 26567.9921875,
+      "memory_delta_mb": -65.2421875,
+      "vm_memory_before_mb": 2708.859375,
+      "vm_memory_after_mb": 2712.89453125,
+      "vm_memory_delta_mb": 4.03515625,
+      "vm_memory_snapshots": [
+        {
+          "timestamp": 1762517544.1905682,
+          "memory_mb": 2708.859375,
+          "memory_percent": 71.83792367943165,
+          "memory_total_mb": 3770.79296875,
+          "stage": "评估开始前"
+        },
+        {
+          "timestamp": 1762517546.5486536,
+          "memory_mb": 2706.16796875,
+          "memory_percent": 71.76654860601063,
+          "memory_total_mb": 3770.79296875,
+          "stage": "静态解析完成后"
+        },
+        {
+          "timestamp": 1762517548.9227812,
+          "memory_mb": 2716.99609375,
+          "memory_percent": 72.05370637600058,
+          "memory_total_mb": 3770.79296875,
+          "stage": "测试生成完成后"
+        },
+        {
+          "timestamp": 1762517552.8507435,
+          "memory_mb": 2718.6015625,
+          "memory_percent": 72.0962827986073,
+          "memory_total_mb": 3770.79296875,
+          "stage": "动态验证完成后"
+        },
+        {
+          "timestamp": 1762517554.4517555,
+          "memory_mb": 2712.89453125,
+          "memory_percent": 71.94493449342862,
+          "memory_total_mb": 3770.79296875,
+          "stage": "评估结束后"
+        }
+      ],
+      "k8s_memory_before_mb": 0.0,
+      "k8s_memory_after_mb": 0.0,
+      "k8s_memory_delta_mb": 0.0,
+      "k8s_memory_snapshots": [],
+      "total_memory_delta_mb": 59.66015625,
+      "checkpoints": {
+        "evaluation_start": 12504.7564878,
+        "static_parsing_config_loading_start": 12505.0666497,
+        "static_parsing_config_loading_end": 12505.0666502,
+        "static_parsing_parsing_start": 12505.0666505,
+        "static_parsing_parsing_end": 12505.1194986,
+        "static_parsing_ir_built": 12505.1194992,
+        "test_generation_generation_start": 12507.4254607,
+        "test_generation_generation_end": 12507.4657829,
+        "test_generation_tests_generated": 12507.4657832,
+        "dynamic_validation_validation_start": 12510.2481906,
+        "dynamic_validation_config_set": 12510.2481918,
+        "dynamic_validation_pipeline_created": 12510.2482636,
+        "dynamic_validation_pipeline_started": 12510.2482743,
+        "dynamic_validation_pipeline_completed": 12510.2843074,
+        "dynamic_validation_validation_end": 12510.284308
+      },
+      "num_test_cases": 5,
+      "num_verified_policies": 0,
+      "num_failed_policies": 0,
+      "validation_issues": [
+        {
+          "severity": "warning",
+          "category": "time",
+          "message": "总时间与各阶段时间之和差异较大: 98.74%",
+          "expected": "≈0.129秒",
+          "actual": "10.264秒"
+        },
+        {
+          "severity": "info",
+          "category": "time",
+          "message": "验证时间小于解析时间（可能是缓存效应）",
+          "expected": ">=0.053秒",
+          "actual": "0.036秒"
+        },
+        {
+          "severity": "info",
+          "category": "resource",
+          "message": "内存使用过于平滑 (差异=0.01%)",
+          "expected": ">5%",
+          "actual": "0.01%"
+        }
+      ],
+      "is_valid": true
+    }
+  ],
+  "end_time": "2025-11-07T20:12:34.451755"
+}

@@ -1,0 +1,274 @@
+{
+  "base_url": "http://192.168.1.69:31605",
+  "method": "orthogonal",
+  "num_cases": 15,
+  "num_ok": 15,
+  "success_rate_pct": 100.0,
+  "runtime_s": 0.033,
+  "branch_coverage_pct": 21.43,
+  "covered_branches": 15,
+  "total_branches": 70,
+  "results": [
+    {
+      "case_id": "ortho_type_routing_f1",
+      "method": "orthogonal",
+      "feature_id": 1,
+      "feature_type": "routing",
+      "branch_id": "routing_match",
+      "path": "/s27/route-1/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0057,
+      "covered_branches": [
+        "f1:routing_match"
+      ]
+    },
+    {
+      "case_id": "ortho_type_circuit_breaker_f3",
+      "method": "orthogonal",
+      "feature_id": 3,
+      "feature_type": "circuit_breaker",
+      "branch_id": "cb_normal",
+      "path": "/s37/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0057,
+      "covered_branches": [
+        "f3:cb_normal"
+      ]
+    },
+    {
+      "case_id": "ortho_type_retry_f4",
+      "method": "orthogonal",
+      "feature_id": 4,
+      "feature_type": "retry",
+      "branch_id": "retry_ok",
+      "path": "/s36/retry-4/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0081,
+      "covered_branches": [
+        "f4:retry_ok"
+      ]
+    },
+    {
+      "case_id": "ortho_sparse_f7",
+      "method": "orthogonal",
+      "feature_id": 7,
+      "feature_type": "traffic_shifting",
+      "branch_id": "split_sample",
+      "path": "/s18/split-7/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.008,
+      "covered_branches": [
+        "f7:split_sample"
+      ]
+    },
+    {
+      "case_id": "ortho_sparse_f6",
+      "method": "orthogonal",
+      "feature_id": 6,
+      "feature_type": "routing",
+      "branch_id": "routing_match",
+      "path": "/s38/route-6/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0094,
+      "covered_branches": [
+        "f6:routing_match"
+      ]
+    },
+    {
+      "case_id": "ortho_sparse_f10",
+      "method": "orthogonal",
+      "feature_id": 10,
+      "feature_type": "rate_limit",
+      "branch_id": "rl_under_limit",
+      "path": "/s7/rl-10/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.005,
+      "covered_branches": [
+        "f10:rl_under_limit"
+      ]
+    },
+    {
+      "case_id": "ortho_sparse_f9",
+      "method": "orthogonal",
+      "feature_id": 9,
+      "feature_type": "retry",
+      "branch_id": "retry_ok",
+      "path": "/s49/retry-9/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0088,
+      "covered_branches": [
+        "f9:retry_ok"
+      ]
+    },
+    {
+      "case_id": "ortho_sparse_f8",
+      "method": "orthogonal",
+      "feature_id": 8,
+      "feature_type": "circuit_breaker",
+      "branch_id": "cb_normal",
+      "path": "/s44/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0125,
+      "covered_branches": [
+        "f8:cb_normal"
+      ]
+    },
+    {
+      "case_id": "ortho_sparse_f12",
+      "method": "orthogonal",
+      "feature_id": 12,
+      "feature_type": "traffic_shifting",
+      "branch_id": "split_sample",
+      "path": "/s34/split-12/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0068,
+      "covered_branches": [
+        "f12:split_sample"
+      ]
+    },
+    {
+      "case_id": "ortho_sparse_f14",
+      "method": "orthogonal",
+      "feature_id": 14,
+      "feature_type": "retry",
+      "branch_id": "retry_ok",
+      "path": "/s11/retry-14/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0057,
+      "covered_branches": [
+        "f14:retry_ok"
+      ]
+    },
+    {
+      "case_id": "ortho_sparse_f11",
+      "method": "orthogonal",
+      "feature_id": 11,
+      "feature_type": "routing",
+      "branch_id": "routing_match",
+      "path": "/s37/route-11/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0099,
+      "covered_branches": [
+        "f11:routing_match"
+      ]
+    },
+    {
+      "case_id": "ortho_sparse_f13",
+      "method": "orthogonal",
+      "feature_id": 13,
+      "feature_type": "circuit_breaker",
+      "branch_id": "cb_normal",
+      "path": "/s31/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0063,
+      "covered_branches": [
+        "f13:cb_normal"
+      ]
+    },
+    {
+      "case_id": "ortho_sparse_f15",
+      "method": "orthogonal",
+      "feature_id": 15,
+      "feature_type": "rate_limit",
+      "branch_id": "rl_under_limit",
+      "path": "/s5/rl-15/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0047,
+      "covered_branches": [
+        "f15:rl_under_limit"
+      ]
+    },
+    {
+      "case_id": "ortho_type_rate_limit_f5",
+      "method": "orthogonal",
+      "feature_id": 5,
+      "feature_type": "rate_limit",
+      "branch_id": "rl_under_limit",
+      "path": "/s36/rl-5/",
+      "repeat": 3,
+      "statuses": [
+        200,
+        200,
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0078,
+      "covered_branches": [
+        "f5:rl_under_limit"
+      ]
+    },
+    {
+      "case_id": "ortho_type_traffic_shifting_f2",
+      "method": "orthogonal",
+      "feature_id": 2,
+      "feature_type": "traffic_shifting",
+      "branch_id": "split_sample",
+      "path": "/s34/split-2/",
+      "repeat": 5,
+      "statuses": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0059,
+      "covered_branches": [
+        "f2:split_sample"
+      ]
+    }
+  ]
+}

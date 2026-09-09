@@ -1,0 +1,49 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: '{"apiVersion":"networking.istio.io/v1","kind":"VirtualService","metadata":{"annotations":{},"name":"reviews","namespace":"default","resourceVersion":"2944508"},"spec":{"hosts":["reviews"],"http":[{"route":[{"destination":{"host":"reviews","subset":"v1"},"weight":20},{"destination":{"host":"reviews","subset":"v2"},"weight":80}]}]}}
+
+      '
+  creationTimestamp: '2025-07-02T04:21:38Z'
+  generation: 46
+  managedFields:
+  - apiVersion: networking.istio.io/v1
+    fieldsType: FieldsV1
+    fieldsV1:
+      f:metadata:
+        f:annotations: {}
+      f:spec:
+        .: {}
+        f:hosts: {}
+    manager: kubectl-replace
+    operation: Update
+    time: '2025-07-02T04:21:38Z'
+  - apiVersion: networking.istio.io/v1
+    fieldsType: FieldsV1
+    fieldsV1:
+      f:metadata:
+        f:annotations:
+          f:kubectl.kubernetes.io/last-applied-configuration: {}
+      f:spec:
+        f:http: {}
+    manager: kubectl-client-side-apply
+    operation: Update
+    time: '2025-11-06T07:33:51Z'
+  name: reviews
+  namespace: default
+  resourceVersion: '2944522'
+  uid: 43a5a58a-303d-4a6a-8e15-296e956e983f
+spec:
+  hosts:
+  - reviews
+  http:
+  - route:
+    - destination:
+        host: reviews
+        subset: v1
+      weight: 20
+    - destination:
+        host: reviews
+        subset: v2
+      weight: 80

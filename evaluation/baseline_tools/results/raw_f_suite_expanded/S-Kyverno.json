@@ -1,0 +1,306 @@
+{
+  "method": "S-Kyverno",
+  "results": [
+    {
+      "method": "S-Kyverno",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F10_runtime_policy_gap.yaml",
+      "detected_faults": [],
+      "raw": {
+        "returncode": 0,
+        "stdout": "\nApplying 2 policy rule(s) to 2 resource(s)...\n\npass: 1, fail: 0, warn: 0, error: 0, skip: 0 \n",
+        "stderr": ""
+      },
+      "t_detect_sec": 0.305,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "S-Kyverno",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F1_missing_subset.yaml",
+      "detected_faults": [],
+      "raw": {
+        "returncode": 0,
+        "stdout": "\nApplying 2 policy rule(s) to 2 resource(s)...\n\npass: 1, fail: 0, warn: 0, error: 0, skip: 0 \n",
+        "stderr": ""
+      },
+      "t_detect_sec": 0.3391,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "S-Kyverno",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F2_authorization_conflict.yaml",
+      "detected_faults": [],
+      "raw": {
+        "returncode": 0,
+        "stdout": "\nApplying 2 policy rule(s) to 4 resource(s)...\n\npass: 1, fail: 0, warn: 0, error: 0, skip: 0 \n",
+        "stderr": ""
+      },
+      "t_detect_sec": 0.2973,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "S-Kyverno",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F3_mtls_inconsistent.yaml",
+      "detected_faults": [
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F3_mtls_inconsistent.yaml",
+          "fault_type": "mtls_inconsistency",
+          "confidence": 0.8,
+          "description": "kyverno policy fail count=1",
+          "details": {
+            "tool": "kyverno"
+          },
+          "detection_time": "2026-07-29T18:21:41.410974"
+        }
+      ],
+      "raw": {
+        "returncode": 1,
+        "stdout": "\nApplying 2 policy rule(s) to 3 resource(s)...\n\npass: 0, fail: 1, warn: 0, error: 0, skip: 0 \n",
+        "stderr": ""
+      },
+      "t_detect_sec": 0.2795,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "S-Kyverno",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F4_timeout_mismatch.yaml",
+      "detected_faults": [],
+      "raw": {
+        "returncode": 0,
+        "stdout": "\nApplying 2 policy rule(s) to 2 resource(s)...\n\npass: 1, fail: 0, warn: 0, error: 0, skip: 0 \n",
+        "stderr": ""
+      },
+      "t_detect_sec": 0.2815,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "S-Kyverno",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F5_traffic_split_drift.yaml",
+      "detected_faults": [],
+      "raw": {
+        "returncode": 0,
+        "stdout": "\nApplying 2 policy rule(s) to 2 resource(s)...\n\npass: 2, fail: 0, warn: 0, error: 0, skip: 0 \n",
+        "stderr": ""
+      },
+      "t_detect_sec": 0.2827,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "S-Kyverno",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F6_retry_omission.yaml",
+      "detected_faults": [],
+      "raw": {
+        "returncode": 0,
+        "stdout": "\nApplying 2 policy rule(s) to 2 resource(s)...\n\npass: 1, fail: 0, warn: 0, error: 0, skip: 0 \n",
+        "stderr": ""
+      },
+      "t_detect_sec": 0.2943,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "S-Kyverno",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F7_circuit_breaker_ineffective.yaml",
+      "detected_faults": [],
+      "raw": {
+        "returncode": 0,
+        "stdout": "\nApplying 2 policy rule(s) to 2 resource(s)...\n\npass: 2, fail: 0, warn: 0, error: 0, skip: 0 \n",
+        "stderr": ""
+      },
+      "t_detect_sec": 0.328,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "S-Kyverno",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F8_partial_timeout_propagation.yaml",
+      "detected_faults": [],
+      "raw": {
+        "returncode": 0,
+        "stdout": "\nApplying 2 policy rule(s) to 4 resource(s)...\n\npass: 2, fail: 0, warn: 0, error: 0, skip: 0 \n",
+        "stderr": ""
+      },
+      "t_detect_sec": 0.3061,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "S-Kyverno",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F9_incorrect_routing_dependency.yaml",
+      "detected_faults": [],
+      "raw": {
+        "returncode": 0,
+        "stdout": "\nApplying 2 policy rule(s) to 2 resource(s)...\n\npass: 1, fail: 0, warn: 0, error: 0, skip: 0 \n",
+        "stderr": ""
+      },
+      "t_detect_sec": 0.3109,
+      "error": null,
+      "available": true
+    }
+  ],
+  "metrics": {
+    "overall": {
+      "precision": 1.0,
+      "recall": 0.1,
+      "f1": 0.1818,
+      "accuracy": 0.1,
+      "tp": 1,
+      "fp": 0,
+      "fn": 9,
+      "tn": 0
+    },
+    "stratified_recall": {
+      "static_only": 0.0,
+      "dynamic_only": 0.0,
+      "both": 0.3333
+    },
+    "stratified": {
+      "static_only": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "accuracy": 0.0,
+        "tp": 0,
+        "fp": 0,
+        "fn": 3,
+        "tn": 0
+      },
+      "dynamic_only": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "accuracy": 0.0,
+        "tp": 0,
+        "fp": 0,
+        "fn": 4,
+        "tn": 0
+      },
+      "both": {
+        "precision": 1.0,
+        "recall": 0.3333,
+        "f1": 0.5,
+        "accuracy": 0.3333,
+        "tp": 1,
+        "fp": 0,
+        "fn": 2,
+        "tn": 0
+      }
+    },
+    "t_detect_avg_sec": 0.3024,
+    "t_detect_sum_sec": 3.0244,
+    "n_samples": 10,
+    "rows": [
+      {
+        "sample": "f_suite/F10_runtime_policy_gap.yaml",
+        "detectability": "dynamic_only",
+        "gt_fault": "policy_enforcement_gap",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.305,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "f_suite/F1_missing_subset.yaml",
+        "detectability": "static_only",
+        "gt_fault": "missing_subset",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.3391,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "f_suite/F2_authorization_conflict.yaml",
+        "detectability": "static_only",
+        "gt_fault": "authorization_conflict",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.2973,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "f_suite/F3_mtls_inconsistent.yaml",
+        "detectability": "both",
+        "gt_fault": "mtls_inconsistency",
+        "detected": [
+          "mtls_inconsistency"
+        ],
+        "label": "TP",
+        "t_detect_sec": 0.2795,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "f_suite/F4_timeout_mismatch.yaml",
+        "detectability": "both",
+        "gt_fault": "timeout_error",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.2815,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "f_suite/F5_traffic_split_drift.yaml",
+        "detectability": "both",
+        "gt_fault": "weight_error",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.2827,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "f_suite/F6_retry_omission.yaml",
+        "detectability": "dynamic_only",
+        "gt_fault": "retry_policy_error",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.2943,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "f_suite/F7_circuit_breaker_ineffective.yaml",
+        "detectability": "dynamic_only",
+        "gt_fault": "circuit_breaker_error",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.328,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "f_suite/F8_partial_timeout_propagation.yaml",
+        "detectability": "dynamic_only",
+        "gt_fault": "timeout_propagation",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.3061,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "f_suite/F9_incorrect_routing_dependency.yaml",
+        "detectability": "static_only",
+        "gt_fault": "missing_service_ref",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.3109,
+        "available": true,
+        "error": null
+      }
+    ]
+  },
+  "available": {
+    "available": true,
+    "n_unavailable": 0
+  }
+}

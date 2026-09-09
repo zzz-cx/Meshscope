@@ -1,0 +1,283 @@
+{
+  "experiment_start": "2025-11-09T17:54:18.174225",
+  "experiment_end": "2025-11-09T18:00:40.652678",
+  "namespace": "default",
+  "steps": [
+    5,
+    10,
+    15,
+    20
+  ],
+  "records": [
+    {
+      "target_features": 5,
+      "static_duration": 3.241,
+      "dynamic_duration": 94.493,
+      "total_duration": 97.782,
+      "success": false,
+      "timestamp": "2025-11-09T17:54:26.094182",
+      "result_file": "results\\e2e_validation\\e2e_result_20251109_175603.json"
+    },
+    {
+      "target_features": 10,
+      "static_duration": 3.308,
+      "dynamic_duration": 84.657,
+      "total_duration": 88.014,
+      "success": false,
+      "timestamp": "2025-11-09T17:56:11.617270",
+      "result_file": "results\\e2e_validation\\e2e_result_20251109_175739.json"
+    },
+    {
+      "target_features": 15,
+      "static_duration": 3.44,
+      "dynamic_duration": 74.185,
+      "total_duration": 77.673,
+      "success": false,
+      "timestamp": "2025-11-09T17:57:42.433223",
+      "result_file": "results\\e2e_validation\\e2e_result_20251109_175900.json"
+    },
+    {
+      "target_features": 20,
+      "static_duration": 8.296,
+      "dynamic_duration": 89.164,
+      "total_duration": 97.51,
+      "success": false,
+      "timestamp": "2025-11-09T17:59:03.043776",
+      "result_file": "results\\e2e_validation\\e2e_result_20251109_180040.json"
+    }
+  ],
+  "analysis": {
+    "trend": "unknown",
+    "details": {
+      "dynamic_durations": []
+    }
+  },
+  "features": [
+    {
+      "feature_id": 1,
+      "type": "circuit_breaker",
+      "resource_kind": "DestinationRule",
+      "resource_name": "feature-cb-1",
+      "service": "ratings",
+      "metadata": {
+        "max_pending": 3,
+        "interval": "5s",
+        "base_ejection_time": "5s"
+      }
+    },
+    {
+      "feature_id": 2,
+      "type": "traffic_shifting",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-traffic-2",
+      "service": "reviews",
+      "metadata": {
+        "header": "x-meshscope-exp",
+        "header_value": "exp-2",
+        "weights": [
+          64,
+          36
+        ]
+      }
+    },
+    {
+      "feature_id": 3,
+      "type": "circuit_breaker",
+      "resource_kind": "DestinationRule",
+      "resource_name": "feature-cb-3",
+      "service": "ratings",
+      "metadata": {
+        "max_pending": 7,
+        "interval": "4s",
+        "base_ejection_time": "6s"
+      }
+    },
+    {
+      "feature_id": 4,
+      "type": "routing",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-routing-4",
+      "service": "productpage",
+      "metadata": {
+        "match_prefix": "/feature-routing-4"
+      }
+    },
+    {
+      "feature_id": 5,
+      "type": "routing",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-routing-5",
+      "service": "details",
+      "metadata": {
+        "match_prefix": "/feature-routing-5"
+      }
+    },
+    {
+      "feature_id": 6,
+      "type": "routing",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-routing-6",
+      "service": "details",
+      "metadata": {
+        "match_prefix": "/feature-routing-6"
+      }
+    },
+    {
+      "feature_id": 7,
+      "type": "routing",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-routing-7",
+      "service": "productpage",
+      "metadata": {
+        "match_prefix": "/feature-routing-7"
+      }
+    },
+    {
+      "feature_id": 8,
+      "type": "circuit_breaker",
+      "resource_kind": "DestinationRule",
+      "resource_name": "feature-cb-8",
+      "service": "ratings",
+      "metadata": {
+        "max_pending": 4,
+        "interval": "1s",
+        "base_ejection_time": "8s"
+      }
+    },
+    {
+      "feature_id": 9,
+      "type": "circuit_breaker",
+      "resource_kind": "DestinationRule",
+      "resource_name": "feature-cb-9",
+      "service": "reviews",
+      "metadata": {
+        "max_pending": 6,
+        "interval": "5s",
+        "base_ejection_time": "5s"
+      }
+    },
+    {
+      "feature_id": 10,
+      "type": "circuit_breaker",
+      "resource_kind": "DestinationRule",
+      "resource_name": "feature-cb-10",
+      "service": "ratings",
+      "metadata": {
+        "max_pending": 4,
+        "interval": "2s",
+        "base_ejection_time": "6s"
+      }
+    },
+    {
+      "feature_id": 11,
+      "type": "routing",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-routing-11",
+      "service": "productpage",
+      "metadata": {
+        "match_prefix": "/feature-routing-11"
+      }
+    },
+    {
+      "feature_id": 12,
+      "type": "routing",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-routing-12",
+      "service": "productpage",
+      "metadata": {
+        "match_prefix": "/feature-routing-12"
+      }
+    },
+    {
+      "feature_id": 13,
+      "type": "circuit_breaker",
+      "resource_kind": "DestinationRule",
+      "resource_name": "feature-cb-13",
+      "service": "reviews",
+      "metadata": {
+        "max_pending": 10,
+        "interval": "4s",
+        "base_ejection_time": "9s"
+      }
+    },
+    {
+      "feature_id": 14,
+      "type": "traffic_shifting",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-traffic-14",
+      "service": "reviews",
+      "metadata": {
+        "header": "x-meshscope-exp",
+        "header_value": "exp-14",
+        "weights": [
+          76,
+          24
+        ]
+      }
+    },
+    {
+      "feature_id": 15,
+      "type": "routing",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-routing-15",
+      "service": "details",
+      "metadata": {
+        "match_prefix": "/feature-routing-15"
+      }
+    },
+    {
+      "feature_id": 16,
+      "type": "circuit_breaker",
+      "resource_kind": "DestinationRule",
+      "resource_name": "feature-cb-16",
+      "service": "reviews",
+      "metadata": {
+        "max_pending": 8,
+        "interval": "4s",
+        "base_ejection_time": "6s"
+      }
+    },
+    {
+      "feature_id": 17,
+      "type": "circuit_breaker",
+      "resource_kind": "DestinationRule",
+      "resource_name": "feature-cb-17",
+      "service": "reviews",
+      "metadata": {
+        "max_pending": 1,
+        "interval": "3s",
+        "base_ejection_time": "14s"
+      }
+    },
+    {
+      "feature_id": 18,
+      "type": "routing",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-routing-18",
+      "service": "details",
+      "metadata": {
+        "match_prefix": "/feature-routing-18"
+      }
+    },
+    {
+      "feature_id": 19,
+      "type": "routing",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-routing-19",
+      "service": "details",
+      "metadata": {
+        "match_prefix": "/feature-routing-19"
+      }
+    },
+    {
+      "feature_id": 20,
+      "type": "routing",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-routing-20",
+      "service": "details",
+      "metadata": {
+        "match_prefix": "/feature-routing-20"
+      }
+    }
+  ]
+}

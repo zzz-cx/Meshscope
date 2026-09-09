@@ -1,0 +1,46 @@
+% Auto-generated — REAL cluster timings (mode=cluster).
+% Highlight: N=20 / C4  runs=2
+
+\subsection{Orthogonal Testing Efficiency}
+
+\begin{figure*}[t]
+\centering
+% \includegraphics[width=0.85\linewidth]{figures/evaluation/orthogonal-reduction.png}
+\caption{Orthogonal validation under different scales (real cluster).
+(a) Test-case growth vs configuration items.
+(b) Complete validation wall-clock time vs configuration items.}
+\label{fig:orthogonal-reduction}
+\end{figure*}
+
+\textbf{Goal.}
+Evaluate orthogonal reduction of dynamic validation cost on a live Istio cluster, and whether fault detection coverage is preserved after merging.
+
+\textbf{Setup.}
+Service scales $N\in\{5,10,15,20\}$, configuration levels $\{C1,C2,C3,C4\}$.
+Each validation case performs live \texttt{kubectl apply}, ingress traffic, assertion, and delete.
+Orthogonal bundles share one apply/clear and issue per-effect traffic.
+Each cell is repeated 2 times; times are wall-clock mean$\pm$std.
+
+\textbf{Results.}
+Under a 20-service deployment at C4 (450 configuration items), exhaustive validation uses 340 cases vs 88 orthogonal cases (reduction 74.12\%).
+Complete validation wall-clock time drops from $274.6\pm0.3$s to $83.2\pm0.0$s (time reduction 69.72\%).
+
+\textbf{Coverage ablation.}
+Table~\ref{tab:ortho-ablation} reports live fault/effect detection before vs after merging.
+
+\begin{table*}[t]
+\centering
+\caption{Real-cluster detection and validation time (C4).}
+\label{tab:ortho-ablation}
+\scriptsize
+\begin{tabular}{cccccccccc}
+\toprule
+$N$ & $|F|$ & DR$_b$ & DR$_a$ & $\Delta$ & Cases$_e$ & Cases$_o$ & Red. & $T_e$ (s) & $T_o$ (s) \\
+\midrule
+5 & 85 & 100.00\% & 100.00\% & 0.00 & 85 & 25 & 70.59\% & 67.1$\pm$0.2 & 21.8$\pm$0.1 \\
+10 & 170 & 100.00\% & 100.00\% & 0.00 & 170 & 46 & 72.94\% & 134.2$\pm$0.2 & 40.9$\pm$0.0 \\
+15 & 255 & 100.00\% & 100.00\% & 0.00 & 255 & 67 & 73.73\% & 202.9$\pm$0.3 & 61.0$\pm$0.1 \\
+20 & 340 & 100.00\% & 100.00\% & 0.00 & 340 & 88 & 74.12\% & 274.6$\pm$0.3 & 83.2$\pm$0.0 \\
+\bottomrule
+\end{tabular}
+\end{table*}

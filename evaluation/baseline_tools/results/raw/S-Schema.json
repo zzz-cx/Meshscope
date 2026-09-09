@@ -1,0 +1,431 @@
+{
+  "method": "S-Schema",
+  "results": [
+    {
+      "method": "S-Schema",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/correct/baseline_config.yaml",
+      "detected_faults": [],
+      "raw": {},
+      "t_detect_sec": 0.0255,
+      "error": "kubeval/kubeconform not installed",
+      "available": false
+    },
+    {
+      "method": "S-Schema",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/dynamic_only/aggressive_outlier.yaml",
+      "detected_faults": [],
+      "raw": {},
+      "t_detect_sec": 0.0244,
+      "error": "kubeval/kubeconform not installed",
+      "available": false
+    },
+    {
+      "method": "S-Schema",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/dynamic_only/always_abort.yaml",
+      "detected_faults": [],
+      "raw": {},
+      "t_detect_sec": 0.0245,
+      "error": "kubeval/kubeconform not installed",
+      "available": false
+    },
+    {
+      "method": "S-Schema",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/dynamic_only/retry_storm.yaml",
+      "detected_faults": [],
+      "raw": {},
+      "t_detect_sec": 0.0248,
+      "error": "kubeval/kubeconform not installed",
+      "available": false
+    },
+    {
+      "method": "S-Schema",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/dynamic_only/skewed_split.yaml",
+      "detected_faults": [],
+      "raw": {},
+      "t_detect_sec": 0.0246,
+      "error": "kubeval/kubeconform not installed",
+      "available": false
+    },
+    {
+      "method": "S-Schema",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/dynamic_only/tiny_pool.yaml",
+      "detected_faults": [],
+      "raw": {},
+      "t_detect_sec": 0.0246,
+      "error": "kubeval/kubeconform not installed",
+      "available": false
+    },
+    {
+      "method": "S-Schema",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/dynamic_only/tiny_ratelimit.yaml",
+      "detected_faults": [],
+      "raw": {},
+      "t_detect_sec": 0.0247,
+      "error": "kubeval/kubeconform not installed",
+      "available": false
+    },
+    {
+      "method": "S-Schema",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/dynamic_only/tiny_timeout.yaml",
+      "detected_faults": [],
+      "raw": {},
+      "t_detect_sec": 0.0244,
+      "error": "kubeval/kubeconform not installed",
+      "available": false
+    },
+    {
+      "method": "S-Schema",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/human_errors/conflict_vs.yaml",
+      "detected_faults": [],
+      "raw": {},
+      "t_detect_sec": 0.0249,
+      "error": "kubeval/kubeconform not installed",
+      "available": false
+    },
+    {
+      "method": "S-Schema",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/human_errors/duplicate_envoyfilter.yaml",
+      "detected_faults": [],
+      "raw": {},
+      "t_detect_sec": 0.0247,
+      "error": "kubeval/kubeconform not installed",
+      "available": false
+    },
+    {
+      "method": "S-Schema",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/human_errors/gateway_selector_error.yaml",
+      "detected_faults": [],
+      "raw": {},
+      "t_detect_sec": 0.0242,
+      "error": "kubeval/kubeconform not installed",
+      "available": false
+    },
+    {
+      "method": "S-Schema",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/human_errors/missing_service_ref.yaml",
+      "detected_faults": [],
+      "raw": {},
+      "t_detect_sec": 0.0245,
+      "error": "kubeval/kubeconform not installed",
+      "available": false
+    },
+    {
+      "method": "S-Schema",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/human_errors/missing_subset.yaml",
+      "detected_faults": [],
+      "raw": {},
+      "t_detect_sec": 0.0246,
+      "error": "kubeval/kubeconform not installed",
+      "available": false
+    },
+    {
+      "method": "S-Schema",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/human_errors/weight_error.yaml",
+      "detected_faults": [],
+      "raw": {},
+      "t_detect_sec": 0.0267,
+      "error": "kubeval/kubeconform not installed",
+      "available": false
+    },
+    {
+      "method": "S-Schema",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/mutated/dr_mut_01.yaml",
+      "detected_faults": [],
+      "raw": {},
+      "t_detect_sec": 0.0243,
+      "error": "kubeval/kubeconform not installed",
+      "available": false
+    },
+    {
+      "method": "S-Schema",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/mutated/timeout_mut_01.yaml",
+      "detected_faults": [],
+      "raw": {},
+      "t_detect_sec": 0.0253,
+      "error": "kubeval/kubeconform not installed",
+      "available": false
+    },
+    {
+      "method": "S-Schema",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/mutated/vs_mut_01.yaml",
+      "detected_faults": [],
+      "raw": {},
+      "t_detect_sec": 0.025,
+      "error": "kubeval/kubeconform not installed",
+      "available": false
+    },
+    {
+      "method": "S-Schema",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/real_world/case1.yaml",
+      "detected_faults": [],
+      "raw": {},
+      "t_detect_sec": 0.0247,
+      "error": "kubeval/kubeconform not installed",
+      "available": false
+    },
+    {
+      "method": "S-Schema",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/real_world/case2.yaml",
+      "detected_faults": [],
+      "raw": {},
+      "t_detect_sec": 0.0246,
+      "error": "kubeval/kubeconform not installed",
+      "available": false
+    }
+  ],
+  "metrics": {
+    "overall": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "accuracy": 0.0526,
+      "tp": 0,
+      "fp": 0,
+      "fn": 18,
+      "tn": 1
+    },
+    "stratified_recall": {
+      "static_only": 0.0,
+      "dynamic_only": 0.0,
+      "both": 0.0,
+      "none": 0.0
+    },
+    "stratified": {
+      "static_only": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "accuracy": 0.0,
+        "tp": 0,
+        "fp": 0,
+        "fn": 3,
+        "tn": 0
+      },
+      "dynamic_only": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "accuracy": 0.0,
+        "tp": 0,
+        "fp": 0,
+        "fn": 7,
+        "tn": 0
+      },
+      "both": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "accuracy": 0.0,
+        "tp": 0,
+        "fp": 0,
+        "fn": 8,
+        "tn": 0
+      },
+      "none": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "accuracy": 1.0,
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "tn": 1
+      }
+    },
+    "t_detect_avg_sec": 0.0248,
+    "t_detect_sum_sec": 0.471,
+    "n_samples": 19,
+    "rows": [
+      {
+        "sample": "correct/baseline_config.yaml",
+        "detectability": "none",
+        "gt_fault": "correct",
+        "detected": [],
+        "label": "TN",
+        "t_detect_sec": 0.0255,
+        "available": false,
+        "error": "kubeval/kubeconform not installed"
+      },
+      {
+        "sample": "dynamic_only/aggressive_outlier.yaml",
+        "detectability": "dynamic_only",
+        "gt_fault": "circuit_breaker_error",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.0244,
+        "available": false,
+        "error": "kubeval/kubeconform not installed"
+      },
+      {
+        "sample": "dynamic_only/always_abort.yaml",
+        "detectability": "dynamic_only",
+        "gt_fault": "fault_injection_error",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.0245,
+        "available": false,
+        "error": "kubeval/kubeconform not installed"
+      },
+      {
+        "sample": "dynamic_only/retry_storm.yaml",
+        "detectability": "dynamic_only",
+        "gt_fault": "retry_policy_error",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.0248,
+        "available": false,
+        "error": "kubeval/kubeconform not installed"
+      },
+      {
+        "sample": "dynamic_only/skewed_split.yaml",
+        "detectability": "dynamic_only",
+        "gt_fault": "weight_error",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.0246,
+        "available": false,
+        "error": "kubeval/kubeconform not installed"
+      },
+      {
+        "sample": "dynamic_only/tiny_pool.yaml",
+        "detectability": "dynamic_only",
+        "gt_fault": "circuit_breaker_error",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.0246,
+        "available": false,
+        "error": "kubeval/kubeconform not installed"
+      },
+      {
+        "sample": "dynamic_only/tiny_ratelimit.yaml",
+        "detectability": "dynamic_only",
+        "gt_fault": "rate_limit_error",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.0247,
+        "available": false,
+        "error": "kubeval/kubeconform not installed"
+      },
+      {
+        "sample": "dynamic_only/tiny_timeout.yaml",
+        "detectability": "dynamic_only",
+        "gt_fault": "timeout_error",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.0244,
+        "available": false,
+        "error": "kubeval/kubeconform not installed"
+      },
+      {
+        "sample": "human_errors/conflict_vs.yaml",
+        "detectability": "both",
+        "gt_fault": "routing_conflict",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.0249,
+        "available": false,
+        "error": "kubeval/kubeconform not installed"
+      },
+      {
+        "sample": "human_errors/duplicate_envoyfilter.yaml",
+        "detectability": "static_only",
+        "gt_fault": "duplicate_config",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.0247,
+        "available": false,
+        "error": "kubeval/kubeconform not installed"
+      },
+      {
+        "sample": "human_errors/gateway_selector_error.yaml",
+        "detectability": "static_only",
+        "gt_fault": "gateway_selector_error",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.0242,
+        "available": false,
+        "error": "kubeval/kubeconform not installed"
+      },
+      {
+        "sample": "human_errors/missing_service_ref.yaml",
+        "detectability": "both",
+        "gt_fault": "missing_service_ref",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.0245,
+        "available": false,
+        "error": "kubeval/kubeconform not installed"
+      },
+      {
+        "sample": "human_errors/missing_subset.yaml",
+        "detectability": "both",
+        "gt_fault": "missing_subset",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.0246,
+        "available": false,
+        "error": "kubeval/kubeconform not installed"
+      },
+      {
+        "sample": "human_errors/weight_error.yaml",
+        "detectability": "static_only",
+        "gt_fault": "weight_error",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.0267,
+        "available": false,
+        "error": "kubeval/kubeconform not installed"
+      },
+      {
+        "sample": "mutated/dr_mut_01.yaml",
+        "detectability": "both",
+        "gt_fault": "circuit_breaker_error",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.0243,
+        "available": false,
+        "error": "kubeval/kubeconform not installed"
+      },
+      {
+        "sample": "mutated/timeout_mut_01.yaml",
+        "detectability": "both",
+        "gt_fault": "timeout_error",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.0253,
+        "available": false,
+        "error": "kubeval/kubeconform not installed"
+      },
+      {
+        "sample": "mutated/vs_mut_01.yaml",
+        "detectability": "both",
+        "gt_fault": "retry_policy_error",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.025,
+        "available": false,
+        "error": "kubeval/kubeconform not installed"
+      },
+      {
+        "sample": "real_world/case1.yaml",
+        "detectability": "both",
+        "gt_fault": "fault_injection_error",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.0247,
+        "available": false,
+        "error": "kubeval/kubeconform not installed"
+      },
+      {
+        "sample": "real_world/case2.yaml",
+        "detectability": "both",
+        "gt_fault": "rate_limit_error",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.0246,
+        "available": false,
+        "error": "kubeval/kubeconform not installed"
+      }
+    ]
+  }
+}

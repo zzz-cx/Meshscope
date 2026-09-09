@@ -1,0 +1,212 @@
+{
+  "test_suite": "precision_recall_tests",
+  "description": "精确度和召回率测试用例集",
+  "version": "1.0",
+  "ground_truth_dataset": {
+    "description": "黄金标准数据集，包含已知的正确答案",
+    "total_samples": 1000,
+    "positive_samples": 300,
+    "negative_samples": 700,
+    "categories": {
+      "route_conflicts": 80,
+      "weight_errors": 60,
+      "timeout_issues": 45,
+      "retry_failures": 35,
+      "circuit_breaker_problems": 30,
+      "fault_injection_issues": 25,
+      "security_policy_conflicts": 25
+    }
+  },
+  "test_scenarios": [
+    {
+      "scenario_id": "PREC_001",
+      "name": "路由冲突精确检测",
+      "description": "测试系统对路由冲突检测的精确度",
+      "test_data": {
+        "total_cases": 100,
+        "true_positives": 85,
+        "false_positives": 12,
+        "true_negatives": 88,
+        "false_negatives": 15
+      },
+      "expected_metrics": {
+        "precision_min": 0.85,
+        "recall_min": 0.80,
+        "f1_score_min": 0.82
+      },
+      "config_variations": [
+        {
+          "variation": "simple_conflict",
+          "description": "简单的两个VirtualService冲突",
+          "files": ["configs/simple_route_conflict.yaml"]
+        },
+        {
+          "variation": "complex_conflict", 
+          "description": "多个服务的复杂路由冲突",
+          "files": ["configs/complex_route_conflict.yaml"]
+        },
+        {
+          "variation": "priority_conflict",
+          "description": "相同优先级的路由冲突",
+          "files": ["configs/priority_route_conflict.yaml"]
+        }
+      ]
+    },
+    {
+      "scenario_id": "PREC_002",
+      "name": "流量权重误差检测精度",
+      "description": "测试流量权重分配误差的检测精度",
+      "test_data": {
+        "weight_variations": [
+          {"configured": [80, 20], "actual": [85, 15], "should_detect": false},
+          {"configured": [80, 20], "actual": [90, 10], "should_detect": true},
+          {"configured": [50, 50], "actual": [60, 40], "should_detect": true},
+          {"configured": [70, 30], "actual": [72, 28], "should_detect": false}
+        ],
+        "tolerance_threshold": 0.05,
+        "measurement_duration": "5m",
+        "sample_size": 1000
+      },
+      "expected_metrics": {
+        "detection_accuracy": 0.90,
+        "measurement_precision": 0.02,
+        "statistical_significance": 0.95
+      },
+      "load_patterns": [
+        {"type": "constant", "qps": 10},
+        {"type": "burst", "peak_qps": 100, "duration": "30s"},
+        {"type": "gradient", "start_qps": 5, "end_qps": 50}
+      ]
+    },
+    {
+      "scenario_id": "PREC_003",
+      "name": "超时策略检测准确性",
+      "description": "测试超时策略生效性检测的准确性",
+      "test_data": {
+        "timeout_scenarios": [
+          {
+            "configured_timeout": "3s",
+            "actual_response_times": ["2.5s", "2.8s", "3.2s", "4.1s"],
+            "expected_timeouts": 2,
+            "should_detect_violation": true
+          },
+          {
+            "configured_timeout": "5s", 
+            "actual_response_times": ["1.5s", "2.1s", "3.8s", "4.2s"],
+            "expected_timeouts": 0,
+            "should_detect_violation": false
+          }
+        ],
+        "measurement_precision": "100ms",
+        "sample_size": 200
+      },
+      "expected_metrics": {
+        "timeout_detection_accuracy": 0.95,
+        "timing_precision": 0.1,
+        "false_alarm_rate": 0.05
+      }
+    },
+    {
+      "scenario_id": "PREC_004",
+      "name": "故障注入效果验证精度",
+      "description": "测试故障注入策略效果检测的精度",
+      "test_data": {
+        "fault_injection_configs": [
+          {
+            "delay": {"percentage": 50, "duration": "2s"},
+            "abort": {"percentage": 10, "status": 503},
+            "expected_delays": 100,
+            "expected_aborts": 20,
+            "total_requests": 200
+          },
+          {
+            "delay": {"percentage": 20, "duration": "1s"},
+            "abort": {"percentage": 5, "status": 500},
+            "expected_delays": 40,
+            "expected_aborts": 10,
+            "total_requests": 200
+          }
+        ],
+        "tolerance": 0.05,
+        "confidence_level": 0.90
+      },
+      "expected_metrics": {
+        "injection_detection_accuracy": 0.92,
+        "effect_measurement_precision": 0.03,
+        "configuration_compliance": 0.95
+      }
+    },
+    {
+      "scenario_id": "PREC_005",
+      "name": "熔断器状态检测精度",
+      "description": "测试熔断器触发和恢复检测的精度",
+      "test_data": {
+        "circuit_breaker_scenarios": [
+          {
+            "consecutive_errors": 5,
+            "base_ejection_time": "30s",
+            "max_ejection_percent": 50,
+            "injected_error_rate": 0.8,
+            "expected_ejections": 2,
+            "monitoring_duration": "2m"
+          },
+          {
+            "consecutive_errors": 3,
+            "base_ejection_time": "15s", 
+            "max_ejection_percent": 30,
+            "injected_error_rate": 0.6,
+            "expected_ejections": 3,
+            "monitoring_duration": "3m"
+          }
+        ],
+        "load_concurrency": 20,
+        "total_requests": 500
+      },
+      "expected_metrics": {
+        "ejection_detection_accuracy": 0.88,
+        "recovery_detection_accuracy": 0.85,
+        "state_transition_precision": 0.90
+      }
+    }
+  ],
+  "evaluation_framework": {
+    "data_collection": {
+      "metrics_sources": [
+        "prometheus_metrics",
+        "envoy_access_logs", 
+        "jaeger_traces",
+        "kubernetes_events"
+      ],
+      "sampling_strategy": "stratified_random",
+      "validation_method": "cross_validation"
+    },
+    "ground_truth_generation": {
+      "expert_annotation": true,
+      "automated_validation": true,
+      "consensus_requirement": 0.8,
+      "quality_control": "double_blind_review"
+    },
+    "statistical_analysis": {
+      "significance_test": "chi_square",
+      "confidence_interval": 0.95,
+      "multiple_comparison_correction": "bonferroni",
+      "effect_size_measurement": "cohen_d"
+    }
+  },
+  "acceptance_criteria": {
+    "overall_precision": 0.85,
+    "overall_recall": 0.80,
+    "overall_f1_score": 0.82,
+    "category_wise_precision": {
+      "route_conflicts": 0.90,
+      "weight_errors": 0.85,
+      "timeout_issues": 0.80,
+      "retry_failures": 0.75,
+      "circuit_breaker_problems": 0.80,
+      "fault_injection_issues": 0.85,
+      "security_policy_conflicts": 0.88
+    },
+    "consistency_across_runs": 0.95,
+    "robustness_to_noise": 0.80
+  }
+}

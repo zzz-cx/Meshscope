@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: '{"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"labels":{"app":"reviews","service":"reviews"},"name":"reviews","namespace":"default"},"spec":{"ports":[{"name":"http","port":9080}],"selector":{"app":"reviews"}}}
+
+      '
+  labels:
+    app: reviews
+    service: reviews
+  name: reviews
+  namespace: default
+spec:
+  clusterIP: 10.98.130.95
+  ports:
+  - name: http
+    port: 9080
+    protocol: TCP
+    targetPort: 9080
+  selector:
+    app: reviews
+  sessionAffinity: None
+  type: ClusterIP

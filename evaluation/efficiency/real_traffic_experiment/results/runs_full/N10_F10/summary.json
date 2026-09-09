@@ -1,0 +1,51 @@
+{
+  "namespace": "meshscope-exp-n10",
+  "n_services": 10,
+  "n_features": 10,
+  "generation": {
+    "exhaustive": {
+      "total_branches": 14,
+      "covered_branches": 14,
+      "coverage_pct": 100.0,
+      "num_cases": 14,
+      "uncovered": []
+    },
+    "orthogonal": {
+      "total_branches": 14,
+      "covered_branches": 10,
+      "coverage_pct": 71.43,
+      "num_cases": 10,
+      "uncovered": [
+        "f10:rl_burst",
+        "f1:routing_default",
+        "f5:rl_burst",
+        "f6:routing_default"
+      ]
+    }
+  },
+  "traffic": {
+    "exhaustive": {
+      "base_url": "http://192.168.1.69:31605",
+      "method": "exhaustive",
+      "num_cases": 14,
+      "num_ok": 14,
+      "success_rate_pct": 100.0,
+      "runtime_s": 0.123,
+      "branch_coverage_pct": 100.0,
+      "covered_branches": 14,
+      "total_branches": 14
+    },
+    "orthogonal": {
+      "base_url": "http://192.168.1.69:31605",
+      "method": "orthogonal",
+      "num_cases": 10,
+      "num_ok": 10,
+      "success_rate_pct": 100.0,
+      "runtime_s": 0.026,
+      "branch_coverage_pct": 71.43,
+      "covered_branches": 10,
+      "total_branches": 14
+    }
+  },
+  "elapsed_s": 12.72
+}

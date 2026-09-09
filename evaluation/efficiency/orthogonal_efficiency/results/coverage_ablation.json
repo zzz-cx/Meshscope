@@ -1,0 +1,3272 @@
+{
+  "bundle_size": 4,
+  "n_runs": 5,
+  "seed": 42,
+  "service_scales": [
+    5,
+    10,
+    15,
+    20,
+    30,
+    40,
+    50
+  ],
+  "config_levels": [
+    "C1",
+    "C2",
+    "C3",
+    "C4",
+    "C5"
+  ],
+  "timing_definition": "Complete validation time = sequential sum over suite cases of apply + traffic(+strategy overhead) + telemetry + assert + clear. Orthogonal bundles share apply/clear once per bundle.",
+  "grid": {
+    "N5_C1": {
+      "summary": {
+        "n_services": 5,
+        "config_level": "C1",
+        "config_label": "routing",
+        "n_config_items": 70,
+        "n_effect_types": 5,
+        "n_validation_units": 25,
+        "exhaustive_cases": 25,
+        "orthogonal_cases": 7,
+        "reduction_pct": 72.0,
+        "n_runs": 5,
+        "exh_validation_s_mean": 43.2,
+        "exh_validation_s_std": 0.329,
+        "ortho_validation_s_mean": 18.676,
+        "ortho_validation_s_std": 0.339,
+        "time_reduction_pct_mean": 56.763,
+        "time_reduction_pct_std": 1.112,
+        "fault_set_size": 25,
+        "dr_before_pct": 100.0,
+        "dr_after_pct": 100.0,
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "max_bundle_size": 4
+      },
+      "ablation": {
+        "fault_set_size": 25,
+        "before_merge": {
+          "total_faults": 25,
+          "detected": 25,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 25
+        },
+        "after_merge": {
+          "total_faults": 25,
+          "detected": 25,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 25
+        },
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "principle": "Orthogonal independence ensures merged effects remain separately observable in a shared execution; merging reduces apply/traffic cost without dropping per-effect assertions."
+      },
+      "runs": [
+        {
+          "run": 1,
+          "exhaustive_validation_s": 43.644,
+          "orthogonal_validation_s": 18.196,
+          "time_reduction_pct": 58.31
+        },
+        {
+          "run": 2,
+          "exhaustive_validation_s": 42.74,
+          "orthogonal_validation_s": 19.108,
+          "time_reduction_pct": 55.29
+        },
+        {
+          "run": 3,
+          "exhaustive_validation_s": 43.078,
+          "orthogonal_validation_s": 18.856,
+          "time_reduction_pct": 56.23
+        },
+        {
+          "run": 4,
+          "exhaustive_validation_s": 43.268,
+          "orthogonal_validation_s": 18.623,
+          "time_reduction_pct": 56.96
+        },
+        {
+          "run": 5,
+          "exhaustive_validation_s": 43.27,
+          "orthogonal_validation_s": 18.595,
+          "time_reduction_pct": 57.03
+        }
+      ],
+      "timing_note": "validation_s = complete pipeline time (apply + traffic + telemetry + assert + clear), sequential over the suite; orthogonal shares apply/clear per bundle.",
+      "istio_metadata": {
+        "n_services": 5,
+        "config_level": "C1",
+        "policies": [
+          "routing"
+        ]
+      }
+    },
+    "N5_C2": {
+      "summary": {
+        "n_services": 5,
+        "config_level": "C2",
+        "config_label": "routing+reliability",
+        "n_config_items": 85,
+        "n_effect_types": 8,
+        "n_validation_units": 40,
+        "exhaustive_cases": 40,
+        "orthogonal_cases": 11,
+        "reduction_pct": 72.5,
+        "n_runs": 5,
+        "exh_validation_s_mean": 80.974,
+        "exh_validation_s_std": 0.341,
+        "ortho_validation_s_mean": 41.403,
+        "ortho_validation_s_std": 0.466,
+        "time_reduction_pct_mean": 48.867,
+        "time_reduction_pct_std": 0.74,
+        "fault_set_size": 40,
+        "dr_before_pct": 100.0,
+        "dr_after_pct": 100.0,
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "max_bundle_size": 4
+      },
+      "ablation": {
+        "fault_set_size": 40,
+        "before_merge": {
+          "total_faults": 40,
+          "detected": 40,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 40
+        },
+        "after_merge": {
+          "total_faults": 40,
+          "detected": 40,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 40
+        },
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "principle": "Orthogonal independence ensures merged effects remain separately observable in a shared execution; merging reduces apply/traffic cost without dropping per-effect assertions."
+      },
+      "runs": [
+        {
+          "run": 1,
+          "exhaustive_validation_s": 81.066,
+          "orthogonal_validation_s": 41.662,
+          "time_reduction_pct": 48.61
+        },
+        {
+          "run": 2,
+          "exhaustive_validation_s": 80.447,
+          "orthogonal_validation_s": 42.083,
+          "time_reduction_pct": 47.69
+        },
+        {
+          "run": 3,
+          "exhaustive_validation_s": 81.381,
+          "orthogonal_validation_s": 41.236,
+          "time_reduction_pct": 49.33
+        },
+        {
+          "run": 4,
+          "exhaustive_validation_s": 81.069,
+          "orthogonal_validation_s": 40.94,
+          "time_reduction_pct": 49.5
+        },
+        {
+          "run": 5,
+          "exhaustive_validation_s": 80.909,
+          "orthogonal_validation_s": 41.093,
+          "time_reduction_pct": 49.21
+        }
+      ],
+      "timing_note": "validation_s = complete pipeline time (apply + traffic + telemetry + assert + clear), sequential over the suite; orthogonal shares apply/clear per bundle.",
+      "istio_metadata": {
+        "n_services": 5,
+        "config_level": "C2",
+        "policies": [
+          "retry",
+          "routing",
+          "timeout",
+          "traffic_split"
+        ]
+      }
+    },
+    "N5_C3": {
+      "summary": {
+        "n_services": 5,
+        "config_level": "C3",
+        "config_label": "resilience",
+        "n_config_items": 105,
+        "n_effect_types": 12,
+        "n_validation_units": 60,
+        "exhaustive_cases": 60,
+        "orthogonal_cases": 16,
+        "reduction_pct": 73.33,
+        "n_runs": 5,
+        "exh_validation_s_mean": 140.04,
+        "exh_validation_s_std": 0.363,
+        "ortho_validation_s_mean": 79.411,
+        "ortho_validation_s_std": 0.603,
+        "time_reduction_pct_mean": 43.294,
+        "time_reduction_pct_std": 0.304,
+        "fault_set_size": 60,
+        "dr_before_pct": 100.0,
+        "dr_after_pct": 100.0,
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "max_bundle_size": 4
+      },
+      "ablation": {
+        "fault_set_size": 60,
+        "before_merge": {
+          "total_faults": 60,
+          "detected": 60,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 60
+        },
+        "after_merge": {
+          "total_faults": 60,
+          "detected": 60,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 60
+        },
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "principle": "Orthogonal independence ensures merged effects remain separately observable in a shared execution; merging reduces apply/traffic cost without dropping per-effect assertions."
+      },
+      "runs": [
+        {
+          "run": 1,
+          "exhaustive_validation_s": 140.411,
+          "orthogonal_validation_s": 79.672,
+          "time_reduction_pct": 43.26
+        },
+        {
+          "run": 2,
+          "exhaustive_validation_s": 140.392,
+          "orthogonal_validation_s": 80.321,
+          "time_reduction_pct": 42.79
+        },
+        {
+          "run": 3,
+          "exhaustive_validation_s": 139.552,
+          "orthogonal_validation_s": 78.771,
+          "time_reduction_pct": 43.55
+        },
+        {
+          "run": 4,
+          "exhaustive_validation_s": 139.905,
+          "orthogonal_validation_s": 79.205,
+          "time_reduction_pct": 43.39
+        },
+        {
+          "run": 5,
+          "exhaustive_validation_s": 139.939,
+          "orthogonal_validation_s": 79.087,
+          "time_reduction_pct": 43.48
+        }
+      ],
+      "timing_note": "validation_s = complete pipeline time (apply + traffic + telemetry + assert + clear), sequential over the suite; orthogonal shares apply/clear per bundle.",
+      "istio_metadata": {
+        "n_services": 5,
+        "config_level": "C3",
+        "policies": [
+          "circuit_breaker",
+          "connection_pool",
+          "retry",
+          "routing",
+          "timeout",
+          "traffic_split"
+        ]
+      }
+    },
+    "N5_C4": {
+      "summary": {
+        "n_services": 5,
+        "config_level": "C4",
+        "config_label": "full",
+        "n_config_items": 113,
+        "n_effect_types": 17,
+        "n_validation_units": 85,
+        "exhaustive_cases": 85,
+        "orthogonal_cases": 25,
+        "reduction_pct": 70.59,
+        "n_runs": 5,
+        "exh_validation_s_mean": 206.417,
+        "exh_validation_s_std": 0.443,
+        "ortho_validation_s_mean": 123.661,
+        "ortho_validation_s_std": 0.706,
+        "time_reduction_pct_mean": 40.092,
+        "time_reduction_pct_std": 0.341,
+        "fault_set_size": 85,
+        "dr_before_pct": 100.0,
+        "dr_after_pct": 100.0,
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "max_bundle_size": 4
+      },
+      "ablation": {
+        "fault_set_size": 85,
+        "before_merge": {
+          "total_faults": 85,
+          "detected": 85,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 85
+        },
+        "after_merge": {
+          "total_faults": 85,
+          "detected": 85,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 85
+        },
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "principle": "Orthogonal independence ensures merged effects remain separately observable in a shared execution; merging reduces apply/traffic cost without dropping per-effect assertions."
+      },
+      "runs": [
+        {
+          "run": 1,
+          "exhaustive_validation_s": 206.159,
+          "orthogonal_validation_s": 123.795,
+          "time_reduction_pct": 39.95
+        },
+        {
+          "run": 2,
+          "exhaustive_validation_s": 207.045,
+          "orthogonal_validation_s": 124.484,
+          "time_reduction_pct": 39.88
+        },
+        {
+          "run": 3,
+          "exhaustive_validation_s": 205.99,
+          "orthogonal_validation_s": 123.321,
+          "time_reduction_pct": 40.13
+        },
+        {
+          "run": 4,
+          "exhaustive_validation_s": 206.183,
+          "orthogonal_validation_s": 124.057,
+          "time_reduction_pct": 39.83
+        },
+        {
+          "run": 5,
+          "exhaustive_validation_s": 206.71,
+          "orthogonal_validation_s": 122.648,
+          "time_reduction_pct": 40.67
+        }
+      ],
+      "timing_note": "validation_s = complete pipeline time (apply + traffic + telemetry + assert + clear), sequential over the suite; orthogonal shares apply/clear per bundle.",
+      "istio_metadata": {
+        "n_services": 5,
+        "config_level": "C4",
+        "policies": [
+          "circuit_breaker",
+          "connection_pool",
+          "fault_injection",
+          "rate_limit",
+          "retry",
+          "routing",
+          "timeout",
+          "traffic_split"
+        ]
+      }
+    },
+    "N5_C5": {
+      "summary": {
+        "n_services": 5,
+        "config_level": "C5",
+        "config_label": "full+mirror+authz",
+        "n_config_items": 148,
+        "n_effect_types": 20,
+        "n_validation_units": 100,
+        "exhaustive_cases": 100,
+        "orthogonal_cases": 29,
+        "reduction_pct": 71.0,
+        "n_runs": 5,
+        "exh_validation_s_mean": 234.955,
+        "exh_validation_s_std": 0.484,
+        "ortho_validation_s_mean": 137.015,
+        "ortho_validation_s_std": 0.715,
+        "time_reduction_pct_mean": 41.684,
+        "time_reduction_pct_std": 0.319,
+        "fault_set_size": 100,
+        "dr_before_pct": 100.0,
+        "dr_after_pct": 100.0,
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "max_bundle_size": 4
+      },
+      "ablation": {
+        "fault_set_size": 100,
+        "before_merge": {
+          "total_faults": 100,
+          "detected": 100,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 100
+        },
+        "after_merge": {
+          "total_faults": 100,
+          "detected": 100,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 100
+        },
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "principle": "Orthogonal independence ensures merged effects remain separately observable in a shared execution; merging reduces apply/traffic cost without dropping per-effect assertions."
+      },
+      "runs": [
+        {
+          "run": 1,
+          "exhaustive_validation_s": 235.691,
+          "orthogonal_validation_s": 136.594,
+          "time_reduction_pct": 42.05
+        },
+        {
+          "run": 2,
+          "exhaustive_validation_s": 235.085,
+          "orthogonal_validation_s": 138.181,
+          "time_reduction_pct": 41.22
+        },
+        {
+          "run": 3,
+          "exhaustive_validation_s": 234.919,
+          "orthogonal_validation_s": 136.617,
+          "time_reduction_pct": 41.85
+        },
+        {
+          "run": 4,
+          "exhaustive_validation_s": 234.663,
+          "orthogonal_validation_s": 137.223,
+          "time_reduction_pct": 41.52
+        },
+        {
+          "run": 5,
+          "exhaustive_validation_s": 234.415,
+          "orthogonal_validation_s": 136.461,
+          "time_reduction_pct": 41.79
+        }
+      ],
+      "timing_note": "validation_s = complete pipeline time (apply + traffic + telemetry + assert + clear), sequential over the suite; orthogonal shares apply/clear per bundle.",
+      "istio_metadata": {
+        "n_services": 5,
+        "config_level": "C5",
+        "policies": [
+          "authorization",
+          "circuit_breaker",
+          "connection_pool",
+          "fault_injection",
+          "mirroring",
+          "rate_limit",
+          "retry",
+          "routing",
+          "timeout",
+          "traffic_split"
+        ]
+      }
+    },
+    "N10_C1": {
+      "summary": {
+        "n_services": 10,
+        "config_level": "C1",
+        "config_label": "routing",
+        "n_config_items": 140,
+        "n_effect_types": 5,
+        "n_validation_units": 50,
+        "exhaustive_cases": 50,
+        "orthogonal_cases": 13,
+        "reduction_pct": 74.0,
+        "n_runs": 5,
+        "exh_validation_s_mean": 86.236,
+        "exh_validation_s_std": 0.975,
+        "ortho_validation_s_mean": 36.051,
+        "ortho_validation_s_std": 0.109,
+        "time_reduction_pct_mean": 58.19,
+        "time_reduction_pct_std": 0.512,
+        "fault_set_size": 50,
+        "dr_before_pct": 100.0,
+        "dr_after_pct": 100.0,
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "max_bundle_size": 4
+      },
+      "ablation": {
+        "fault_set_size": 50,
+        "before_merge": {
+          "total_faults": 50,
+          "detected": 50,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 50
+        },
+        "after_merge": {
+          "total_faults": 50,
+          "detected": 50,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 50
+        },
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "principle": "Orthogonal independence ensures merged effects remain separately observable in a shared execution; merging reduces apply/traffic cost without dropping per-effect assertions."
+      },
+      "runs": [
+        {
+          "run": 1,
+          "exhaustive_validation_s": 86.509,
+          "orthogonal_validation_s": 36.156,
+          "time_reduction_pct": 58.21
+        },
+        {
+          "run": 2,
+          "exhaustive_validation_s": 85.37,
+          "orthogonal_validation_s": 36.159,
+          "time_reduction_pct": 57.64
+        },
+        {
+          "run": 3,
+          "exhaustive_validation_s": 87.41,
+          "orthogonal_validation_s": 35.931,
+          "time_reduction_pct": 58.89
+        },
+        {
+          "run": 4,
+          "exhaustive_validation_s": 85.099,
+          "orthogonal_validation_s": 35.949,
+          "time_reduction_pct": 57.76
+        },
+        {
+          "run": 5,
+          "exhaustive_validation_s": 86.792,
+          "orthogonal_validation_s": 36.06,
+          "time_reduction_pct": 58.45
+        }
+      ],
+      "timing_note": "validation_s = complete pipeline time (apply + traffic + telemetry + assert + clear), sequential over the suite; orthogonal shares apply/clear per bundle.",
+      "istio_metadata": {
+        "n_services": 10,
+        "config_level": "C1",
+        "policies": [
+          "routing"
+        ]
+      }
+    },
+    "N10_C2": {
+      "summary": {
+        "n_services": 10,
+        "config_level": "C2",
+        "config_label": "routing+reliability",
+        "n_config_items": 170,
+        "n_effect_types": 8,
+        "n_validation_units": 80,
+        "exhaustive_cases": 80,
+        "orthogonal_cases": 21,
+        "reduction_pct": 73.75,
+        "n_runs": 5,
+        "exh_validation_s_mean": 161.242,
+        "exh_validation_s_std": 0.997,
+        "ortho_validation_s_mean": 81.298,
+        "ortho_validation_s_std": 0.66,
+        "time_reduction_pct_mean": 49.578,
+        "time_reduction_pct_std": 0.538,
+        "fault_set_size": 80,
+        "dr_before_pct": 100.0,
+        "dr_after_pct": 100.0,
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "max_bundle_size": 4
+      },
+      "ablation": {
+        "fault_set_size": 80,
+        "before_merge": {
+          "total_faults": 80,
+          "detected": 80,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 80
+        },
+        "after_merge": {
+          "total_faults": 80,
+          "detected": 80,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 80
+        },
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "principle": "Orthogonal independence ensures merged effects remain separately observable in a shared execution; merging reduces apply/traffic cost without dropping per-effect assertions."
+      },
+      "runs": [
+        {
+          "run": 1,
+          "exhaustive_validation_s": 161.079,
+          "orthogonal_validation_s": 81.668,
+          "time_reduction_pct": 49.3
+        },
+        {
+          "run": 2,
+          "exhaustive_validation_s": 160.811,
+          "orthogonal_validation_s": 81.928,
+          "time_reduction_pct": 49.05
+        },
+        {
+          "run": 3,
+          "exhaustive_validation_s": 162.04,
+          "orthogonal_validation_s": 80.31,
+          "time_reduction_pct": 50.44
+        },
+        {
+          "run": 4,
+          "exhaustive_validation_s": 159.893,
+          "orthogonal_validation_s": 80.952,
+          "time_reduction_pct": 49.37
+        },
+        {
+          "run": 5,
+          "exhaustive_validation_s": 162.386,
+          "orthogonal_validation_s": 81.632,
+          "time_reduction_pct": 49.73
+        }
+      ],
+      "timing_note": "validation_s = complete pipeline time (apply + traffic + telemetry + assert + clear), sequential over the suite; orthogonal shares apply/clear per bundle.",
+      "istio_metadata": {
+        "n_services": 10,
+        "config_level": "C2",
+        "policies": [
+          "retry",
+          "routing",
+          "timeout",
+          "traffic_split"
+        ]
+      }
+    },
+    "N10_C3": {
+      "summary": {
+        "n_services": 10,
+        "config_level": "C3",
+        "config_label": "resilience",
+        "n_config_items": 210,
+        "n_effect_types": 12,
+        "n_validation_units": 120,
+        "exhaustive_cases": 120,
+        "orthogonal_cases": 31,
+        "reduction_pct": 74.17,
+        "n_runs": 5,
+        "exh_validation_s_mean": 278.586,
+        "exh_validation_s_std": 1.507,
+        "ortho_validation_s_mean": 157.405,
+        "ortho_validation_s_std": 1.022,
+        "time_reduction_pct_mean": 43.497,
+        "time_reduction_pct_std": 0.52,
+        "fault_set_size": 120,
+        "dr_before_pct": 100.0,
+        "dr_after_pct": 100.0,
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "max_bundle_size": 4
+      },
+      "ablation": {
+        "fault_set_size": 120,
+        "before_merge": {
+          "total_faults": 120,
+          "detected": 120,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 120
+        },
+        "after_merge": {
+          "total_faults": 120,
+          "detected": 120,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 120
+        },
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "principle": "Orthogonal independence ensures merged effects remain separately observable in a shared execution; merging reduces apply/traffic cost without dropping per-effect assertions."
+      },
+      "runs": [
+        {
+          "run": 1,
+          "exhaustive_validation_s": 277.401,
+          "orthogonal_validation_s": 157.943,
+          "time_reduction_pct": 43.06
+        },
+        {
+          "run": 2,
+          "exhaustive_validation_s": 278.859,
+          "orthogonal_validation_s": 158.947,
+          "time_reduction_pct": 43.0
+        },
+        {
+          "run": 3,
+          "exhaustive_validation_s": 280.422,
+          "orthogonal_validation_s": 156.506,
+          "time_reduction_pct": 44.19
+        },
+        {
+          "run": 4,
+          "exhaustive_validation_s": 276.744,
+          "orthogonal_validation_s": 156.767,
+          "time_reduction_pct": 43.35
+        },
+        {
+          "run": 5,
+          "exhaustive_validation_s": 279.504,
+          "orthogonal_validation_s": 156.861,
+          "time_reduction_pct": 43.88
+        }
+      ],
+      "timing_note": "validation_s = complete pipeline time (apply + traffic + telemetry + assert + clear), sequential over the suite; orthogonal shares apply/clear per bundle.",
+      "istio_metadata": {
+        "n_services": 10,
+        "config_level": "C3",
+        "policies": [
+          "circuit_breaker",
+          "connection_pool",
+          "retry",
+          "routing",
+          "timeout",
+          "traffic_split"
+        ]
+      }
+    },
+    "N10_C4": {
+      "summary": {
+        "n_services": 10,
+        "config_level": "C4",
+        "config_label": "full",
+        "n_config_items": 225,
+        "n_effect_types": 17,
+        "n_validation_units": 170,
+        "exhaustive_cases": 170,
+        "orthogonal_cases": 46,
+        "reduction_pct": 72.94,
+        "n_runs": 5,
+        "exh_validation_s_mean": 410.061,
+        "exh_validation_s_std": 1.473,
+        "ortho_validation_s_mean": 241.037,
+        "ortho_validation_s_std": 1.099,
+        "time_reduction_pct_mean": 41.219,
+        "time_reduction_pct_std": 0.121,
+        "fault_set_size": 170,
+        "dr_before_pct": 100.0,
+        "dr_after_pct": 100.0,
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "max_bundle_size": 4
+      },
+      "ablation": {
+        "fault_set_size": 170,
+        "before_merge": {
+          "total_faults": 170,
+          "detected": 170,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 170
+        },
+        "after_merge": {
+          "total_faults": 170,
+          "detected": 170,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 170
+        },
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "principle": "Orthogonal independence ensures merged effects remain separately observable in a shared execution; merging reduces apply/traffic cost without dropping per-effect assertions."
+      },
+      "runs": [
+        {
+          "run": 1,
+          "exhaustive_validation_s": 409.459,
+          "orthogonal_validation_s": 240.778,
+          "time_reduction_pct": 41.2
+        },
+        {
+          "run": 2,
+          "exhaustive_validation_s": 411.682,
+          "orthogonal_validation_s": 242.768,
+          "time_reduction_pct": 41.03
+        },
+        {
+          "run": 3,
+          "exhaustive_validation_s": 409.438,
+          "orthogonal_validation_s": 240.511,
+          "time_reduction_pct": 41.26
+        },
+        {
+          "run": 4,
+          "exhaustive_validation_s": 408.246,
+          "orthogonal_validation_s": 239.841,
+          "time_reduction_pct": 41.25
+        },
+        {
+          "run": 5,
+          "exhaustive_validation_s": 411.479,
+          "orthogonal_validation_s": 241.289,
+          "time_reduction_pct": 41.36
+        }
+      ],
+      "timing_note": "validation_s = complete pipeline time (apply + traffic + telemetry + assert + clear), sequential over the suite; orthogonal shares apply/clear per bundle.",
+      "istio_metadata": {
+        "n_services": 10,
+        "config_level": "C4",
+        "policies": [
+          "circuit_breaker",
+          "connection_pool",
+          "fault_injection",
+          "rate_limit",
+          "retry",
+          "routing",
+          "timeout",
+          "traffic_split"
+        ]
+      }
+    },
+    "N10_C5": {
+      "summary": {
+        "n_services": 10,
+        "config_level": "C5",
+        "config_label": "full+mirror+authz",
+        "n_config_items": 295,
+        "n_effect_types": 20,
+        "n_validation_units": 200,
+        "exhaustive_cases": 200,
+        "orthogonal_cases": 54,
+        "reduction_pct": 73.0,
+        "n_runs": 5,
+        "exh_validation_s_mean": 467.754,
+        "exh_validation_s_std": 1.132,
+        "ortho_validation_s_mean": 268.653,
+        "ortho_validation_s_std": 1.076,
+        "time_reduction_pct_mean": 42.565,
+        "time_reduction_pct_std": 0.31,
+        "fault_set_size": 200,
+        "dr_before_pct": 100.0,
+        "dr_after_pct": 100.0,
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "max_bundle_size": 4
+      },
+      "ablation": {
+        "fault_set_size": 200,
+        "before_merge": {
+          "total_faults": 200,
+          "detected": 200,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 200
+        },
+        "after_merge": {
+          "total_faults": 200,
+          "detected": 200,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 200
+        },
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "principle": "Orthogonal independence ensures merged effects remain separately observable in a shared execution; merging reduces apply/traffic cost without dropping per-effect assertions."
+      },
+      "runs": [
+        {
+          "run": 1,
+          "exhaustive_validation_s": 467.509,
+          "orthogonal_validation_s": 269.318,
+          "time_reduction_pct": 42.39
+        },
+        {
+          "run": 2,
+          "exhaustive_validation_s": 468.798,
+          "orthogonal_validation_s": 269.388,
+          "time_reduction_pct": 42.54
+        },
+        {
+          "run": 3,
+          "exhaustive_validation_s": 466.978,
+          "orthogonal_validation_s": 269.279,
+          "time_reduction_pct": 42.34
+        },
+        {
+          "run": 4,
+          "exhaustive_validation_s": 466.445,
+          "orthogonal_validation_s": 268.414,
+          "time_reduction_pct": 42.46
+        },
+        {
+          "run": 5,
+          "exhaustive_validation_s": 469.041,
+          "orthogonal_validation_s": 266.865,
+          "time_reduction_pct": 43.1
+        }
+      ],
+      "timing_note": "validation_s = complete pipeline time (apply + traffic + telemetry + assert + clear), sequential over the suite; orthogonal shares apply/clear per bundle.",
+      "istio_metadata": {
+        "n_services": 10,
+        "config_level": "C5",
+        "policies": [
+          "authorization",
+          "circuit_breaker",
+          "connection_pool",
+          "fault_injection",
+          "mirroring",
+          "rate_limit",
+          "retry",
+          "routing",
+          "timeout",
+          "traffic_split"
+        ]
+      }
+    },
+    "N15_C1": {
+      "summary": {
+        "n_services": 15,
+        "config_level": "C1",
+        "config_label": "routing",
+        "n_config_items": 210,
+        "n_effect_types": 5,
+        "n_validation_units": 75,
+        "exhaustive_cases": 75,
+        "orthogonal_cases": 19,
+        "reduction_pct": 74.67,
+        "n_runs": 5,
+        "exh_validation_s_mean": 129.845,
+        "exh_validation_s_std": 0.588,
+        "ortho_validation_s_mean": 53.095,
+        "ortho_validation_s_std": 0.713,
+        "time_reduction_pct_mean": 59.108,
+        "time_reduction_pct_std": 0.664,
+        "fault_set_size": 75,
+        "dr_before_pct": 100.0,
+        "dr_after_pct": 100.0,
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "max_bundle_size": 4
+      },
+      "ablation": {
+        "fault_set_size": 75,
+        "before_merge": {
+          "total_faults": 75,
+          "detected": 75,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 75
+        },
+        "after_merge": {
+          "total_faults": 75,
+          "detected": 75,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 75
+        },
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "principle": "Orthogonal independence ensures merged effects remain separately observable in a shared execution; merging reduces apply/traffic cost without dropping per-effect assertions."
+      },
+      "runs": [
+        {
+          "run": 1,
+          "exhaustive_validation_s": 129.8,
+          "orthogonal_validation_s": 53.973,
+          "time_reduction_pct": 58.42
+        },
+        {
+          "run": 2,
+          "exhaustive_validation_s": 129.215,
+          "orthogonal_validation_s": 53.391,
+          "time_reduction_pct": 58.68
+        },
+        {
+          "run": 3,
+          "exhaustive_validation_s": 130.689,
+          "orthogonal_validation_s": 52.079,
+          "time_reduction_pct": 60.15
+        },
+        {
+          "run": 4,
+          "exhaustive_validation_s": 129.403,
+          "orthogonal_validation_s": 52.758,
+          "time_reduction_pct": 59.23
+        },
+        {
+          "run": 5,
+          "exhaustive_validation_s": 130.118,
+          "orthogonal_validation_s": 53.272,
+          "time_reduction_pct": 59.06
+        }
+      ],
+      "timing_note": "validation_s = complete pipeline time (apply + traffic + telemetry + assert + clear), sequential over the suite; orthogonal shares apply/clear per bundle.",
+      "istio_metadata": {
+        "n_services": 15,
+        "config_level": "C1",
+        "policies": [
+          "routing"
+        ]
+      }
+    },
+    "N15_C2": {
+      "summary": {
+        "n_services": 15,
+        "config_level": "C2",
+        "config_label": "routing+reliability",
+        "n_config_items": 255,
+        "n_effect_types": 8,
+        "n_validation_units": 120,
+        "exhaustive_cases": 120,
+        "orthogonal_cases": 31,
+        "reduction_pct": 74.17,
+        "n_runs": 5,
+        "exh_validation_s_mean": 242.76,
+        "exh_validation_s_std": 0.368,
+        "ortho_validation_s_mean": 121.391,
+        "ortho_validation_s_std": 0.96,
+        "time_reduction_pct_mean": 49.995,
+        "time_reduction_pct_std": 0.423,
+        "fault_set_size": 120,
+        "dr_before_pct": 100.0,
+        "dr_after_pct": 100.0,
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "max_bundle_size": 4
+      },
+      "ablation": {
+        "fault_set_size": 120,
+        "before_merge": {
+          "total_faults": 120,
+          "detected": 120,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 120
+        },
+        "after_merge": {
+          "total_faults": 120,
+          "detected": 120,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 120
+        },
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "principle": "Orthogonal independence ensures merged effects remain separately observable in a shared execution; merging reduces apply/traffic cost without dropping per-effect assertions."
+      },
+      "runs": [
+        {
+          "run": 1,
+          "exhaustive_validation_s": 243.018,
+          "orthogonal_validation_s": 122.32,
+          "time_reduction_pct": 49.67
+        },
+        {
+          "run": 2,
+          "exhaustive_validation_s": 242.779,
+          "orthogonal_validation_s": 121.908,
+          "time_reduction_pct": 49.79
+        },
+        {
+          "run": 3,
+          "exhaustive_validation_s": 243.198,
+          "orthogonal_validation_s": 119.835,
+          "time_reduction_pct": 50.73
+        },
+        {
+          "run": 4,
+          "exhaustive_validation_s": 242.288,
+          "orthogonal_validation_s": 121.189,
+          "time_reduction_pct": 49.98
+        },
+        {
+          "run": 5,
+          "exhaustive_validation_s": 242.515,
+          "orthogonal_validation_s": 121.702,
+          "time_reduction_pct": 49.82
+        }
+      ],
+      "timing_note": "validation_s = complete pipeline time (apply + traffic + telemetry + assert + clear), sequential over the suite; orthogonal shares apply/clear per bundle.",
+      "istio_metadata": {
+        "n_services": 15,
+        "config_level": "C2",
+        "policies": [
+          "retry",
+          "routing",
+          "timeout",
+          "traffic_split"
+        ]
+      }
+    },
+    "N15_C3": {
+      "summary": {
+        "n_services": 15,
+        "config_level": "C3",
+        "config_label": "resilience",
+        "n_config_items": 315,
+        "n_effect_types": 12,
+        "n_validation_units": 180,
+        "exhaustive_cases": 180,
+        "orthogonal_cases": 46,
+        "reduction_pct": 74.44,
+        "n_runs": 5,
+        "exh_validation_s_mean": 418.434,
+        "exh_validation_s_std": 0.746,
+        "ortho_validation_s_mean": 235.356,
+        "ortho_validation_s_std": 1.779,
+        "time_reduction_pct_mean": 43.753,
+        "time_reduction_pct_std": 0.408,
+        "fault_set_size": 180,
+        "dr_before_pct": 100.0,
+        "dr_after_pct": 100.0,
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "max_bundle_size": 4
+      },
+      "ablation": {
+        "fault_set_size": 180,
+        "before_merge": {
+          "total_faults": 180,
+          "detected": 180,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 180
+        },
+        "after_merge": {
+          "total_faults": 180,
+          "detected": 180,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 180
+        },
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "principle": "Orthogonal independence ensures merged effects remain separately observable in a shared execution; merging reduces apply/traffic cost without dropping per-effect assertions."
+      },
+      "runs": [
+        {
+          "run": 1,
+          "exhaustive_validation_s": 419.634,
+          "orthogonal_validation_s": 236.683,
+          "time_reduction_pct": 43.6
+        },
+        {
+          "run": 2,
+          "exhaustive_validation_s": 418.182,
+          "orthogonal_validation_s": 237.294,
+          "time_reduction_pct": 43.26
+        },
+        {
+          "run": 3,
+          "exhaustive_validation_s": 418.63,
+          "orthogonal_validation_s": 233.174,
+          "time_reduction_pct": 44.3
+        },
+        {
+          "run": 4,
+          "exhaustive_validation_s": 417.74,
+          "orthogonal_validation_s": 233.867,
+          "time_reduction_pct": 44.02
+        },
+        {
+          "run": 5,
+          "exhaustive_validation_s": 417.983,
+          "orthogonal_validation_s": 235.762,
+          "time_reduction_pct": 43.6
+        }
+      ],
+      "timing_note": "validation_s = complete pipeline time (apply + traffic + telemetry + assert + clear), sequential over the suite; orthogonal shares apply/clear per bundle.",
+      "istio_metadata": {
+        "n_services": 15,
+        "config_level": "C3",
+        "policies": [
+          "circuit_breaker",
+          "connection_pool",
+          "retry",
+          "routing",
+          "timeout",
+          "traffic_split"
+        ]
+      }
+    },
+    "N15_C4": {
+      "summary": {
+        "n_services": 15,
+        "config_level": "C4",
+        "config_label": "full",
+        "n_config_items": 338,
+        "n_effect_types": 17,
+        "n_validation_units": 255,
+        "exhaustive_cases": 255,
+        "orthogonal_cases": 67,
+        "reduction_pct": 73.73,
+        "n_runs": 5,
+        "exh_validation_s_mean": 616.136,
+        "exh_validation_s_std": 0.964,
+        "ortho_validation_s_mean": 359.801,
+        "ortho_validation_s_std": 2.463,
+        "time_reduction_pct_mean": 41.604,
+        "time_reduction_pct_std": 0.394,
+        "fault_set_size": 255,
+        "dr_before_pct": 100.0,
+        "dr_after_pct": 100.0,
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "max_bundle_size": 4
+      },
+      "ablation": {
+        "fault_set_size": 255,
+        "before_merge": {
+          "total_faults": 255,
+          "detected": 255,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 255
+        },
+        "after_merge": {
+          "total_faults": 255,
+          "detected": 255,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 255
+        },
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "principle": "Orthogonal independence ensures merged effects remain separately observable in a shared execution; merging reduces apply/traffic cost without dropping per-effect assertions."
+      },
+      "runs": [
+        {
+          "run": 1,
+          "exhaustive_validation_s": 615.897,
+          "orthogonal_validation_s": 363.025,
+          "time_reduction_pct": 41.06
+        },
+        {
+          "run": 2,
+          "exhaustive_validation_s": 617.392,
+          "orthogonal_validation_s": 361.683,
+          "time_reduction_pct": 41.42
+        },
+        {
+          "run": 3,
+          "exhaustive_validation_s": 616.869,
+          "orthogonal_validation_s": 357.067,
+          "time_reduction_pct": 42.12
+        },
+        {
+          "run": 4,
+          "exhaustive_validation_s": 615.342,
+          "orthogonal_validation_s": 358.753,
+          "time_reduction_pct": 41.7
+        },
+        {
+          "run": 5,
+          "exhaustive_validation_s": 615.179,
+          "orthogonal_validation_s": 358.478,
+          "time_reduction_pct": 41.73
+        }
+      ],
+      "timing_note": "validation_s = complete pipeline time (apply + traffic + telemetry + assert + clear), sequential over the suite; orthogonal shares apply/clear per bundle.",
+      "istio_metadata": {
+        "n_services": 15,
+        "config_level": "C4",
+        "policies": [
+          "circuit_breaker",
+          "connection_pool",
+          "fault_injection",
+          "rate_limit",
+          "retry",
+          "routing",
+          "timeout",
+          "traffic_split"
+        ]
+      }
+    },
+    "N15_C5": {
+      "summary": {
+        "n_services": 15,
+        "config_level": "C5",
+        "config_label": "full+mirror+authz",
+        "n_config_items": 443,
+        "n_effect_types": 20,
+        "n_validation_units": 300,
+        "exhaustive_cases": 300,
+        "orthogonal_cases": 79,
+        "reduction_pct": 73.67,
+        "n_runs": 5,
+        "exh_validation_s_mean": 701.651,
+        "exh_validation_s_std": 0.829,
+        "ortho_validation_s_mean": 401.043,
+        "ortho_validation_s_std": 2.571,
+        "time_reduction_pct_mean": 42.843,
+        "time_reduction_pct_std": 0.372,
+        "fault_set_size": 300,
+        "dr_before_pct": 100.0,
+        "dr_after_pct": 100.0,
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "max_bundle_size": 4
+      },
+      "ablation": {
+        "fault_set_size": 300,
+        "before_merge": {
+          "total_faults": 300,
+          "detected": 300,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 300
+        },
+        "after_merge": {
+          "total_faults": 300,
+          "detected": 300,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 300
+        },
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "principle": "Orthogonal independence ensures merged effects remain separately observable in a shared execution; merging reduces apply/traffic cost without dropping per-effect assertions."
+      },
+      "runs": [
+        {
+          "run": 1,
+          "exhaustive_validation_s": 701.859,
+          "orthogonal_validation_s": 404.669,
+          "time_reduction_pct": 42.34
+        },
+        {
+          "run": 2,
+          "exhaustive_validation_s": 701.794,
+          "orthogonal_validation_s": 402.362,
+          "time_reduction_pct": 42.67
+        },
+        {
+          "run": 3,
+          "exhaustive_validation_s": 702.615,
+          "orthogonal_validation_s": 398.025,
+          "time_reduction_pct": 43.35
+        },
+        {
+          "run": 4,
+          "exhaustive_validation_s": 700.327,
+          "orthogonal_validation_s": 399.534,
+          "time_reduction_pct": 42.95
+        },
+        {
+          "run": 5,
+          "exhaustive_validation_s": 701.66,
+          "orthogonal_validation_s": 400.625,
+          "time_reduction_pct": 42.9
+        }
+      ],
+      "timing_note": "validation_s = complete pipeline time (apply + traffic + telemetry + assert + clear), sequential over the suite; orthogonal shares apply/clear per bundle.",
+      "istio_metadata": {
+        "n_services": 15,
+        "config_level": "C5",
+        "policies": [
+          "authorization",
+          "circuit_breaker",
+          "connection_pool",
+          "fault_injection",
+          "mirroring",
+          "rate_limit",
+          "retry",
+          "routing",
+          "timeout",
+          "traffic_split"
+        ]
+      }
+    },
+    "N20_C1": {
+      "summary": {
+        "n_services": 20,
+        "config_level": "C1",
+        "config_label": "routing",
+        "n_config_items": 280,
+        "n_effect_types": 5,
+        "n_validation_units": 100,
+        "exhaustive_cases": 100,
+        "orthogonal_cases": 25,
+        "reduction_pct": 75.0,
+        "n_runs": 5,
+        "exh_validation_s_mean": 172.731,
+        "exh_validation_s_std": 0.397,
+        "ortho_validation_s_mean": 70.351,
+        "ortho_validation_s_std": 0.39,
+        "time_reduction_pct_mean": 59.271,
+        "time_reduction_pct_std": 0.24,
+        "fault_set_size": 100,
+        "dr_before_pct": 100.0,
+        "dr_after_pct": 100.0,
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "max_bundle_size": 4
+      },
+      "ablation": {
+        "fault_set_size": 100,
+        "before_merge": {
+          "total_faults": 100,
+          "detected": 100,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 100
+        },
+        "after_merge": {
+          "total_faults": 100,
+          "detected": 100,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 100
+        },
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "principle": "Orthogonal independence ensures merged effects remain separately observable in a shared execution; merging reduces apply/traffic cost without dropping per-effect assertions."
+      },
+      "runs": [
+        {
+          "run": 1,
+          "exhaustive_validation_s": 172.884,
+          "orthogonal_validation_s": 70.258,
+          "time_reduction_pct": 59.36
+        },
+        {
+          "run": 2,
+          "exhaustive_validation_s": 172.358,
+          "orthogonal_validation_s": 70.034,
+          "time_reduction_pct": 59.37
+        },
+        {
+          "run": 3,
+          "exhaustive_validation_s": 172.995,
+          "orthogonal_validation_s": 69.95,
+          "time_reduction_pct": 59.57
+        },
+        {
+          "run": 4,
+          "exhaustive_validation_s": 172.263,
+          "orthogonal_validation_s": 70.696,
+          "time_reduction_pct": 58.96
+        },
+        {
+          "run": 5,
+          "exhaustive_validation_s": 173.154,
+          "orthogonal_validation_s": 70.819,
+          "time_reduction_pct": 59.1
+        }
+      ],
+      "timing_note": "validation_s = complete pipeline time (apply + traffic + telemetry + assert + clear), sequential over the suite; orthogonal shares apply/clear per bundle.",
+      "istio_metadata": {
+        "n_services": 20,
+        "config_level": "C1",
+        "policies": [
+          "routing"
+        ]
+      }
+    },
+    "N20_C2": {
+      "summary": {
+        "n_services": 20,
+        "config_level": "C2",
+        "config_label": "routing+reliability",
+        "n_config_items": 340,
+        "n_effect_types": 8,
+        "n_validation_units": 160,
+        "exhaustive_cases": 160,
+        "orthogonal_cases": 41,
+        "reduction_pct": 74.38,
+        "n_runs": 5,
+        "exh_validation_s_mean": 322.735,
+        "exh_validation_s_std": 0.706,
+        "ortho_validation_s_mean": 160.99,
+        "ortho_validation_s_std": 0.55,
+        "time_reduction_pct_mean": 50.116,
+        "time_reduction_pct_std": 0.245,
+        "fault_set_size": 160,
+        "dr_before_pct": 100.0,
+        "dr_after_pct": 100.0,
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "max_bundle_size": 4
+      },
+      "ablation": {
+        "fault_set_size": 160,
+        "before_merge": {
+          "total_faults": 160,
+          "detected": 160,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 160
+        },
+        "after_merge": {
+          "total_faults": 160,
+          "detected": 160,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 160
+        },
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "principle": "Orthogonal independence ensures merged effects remain separately observable in a shared execution; merging reduces apply/traffic cost without dropping per-effect assertions."
+      },
+      "runs": [
+        {
+          "run": 1,
+          "exhaustive_validation_s": 322.718,
+          "orthogonal_validation_s": 161.593,
+          "time_reduction_pct": 49.93
+        },
+        {
+          "run": 2,
+          "exhaustive_validation_s": 321.658,
+          "orthogonal_validation_s": 161.052,
+          "time_reduction_pct": 49.93
+        },
+        {
+          "run": 3,
+          "exhaustive_validation_s": 323.638,
+          "orthogonal_validation_s": 160.204,
+          "time_reduction_pct": 50.5
+        },
+        {
+          "run": 4,
+          "exhaustive_validation_s": 322.865,
+          "orthogonal_validation_s": 160.722,
+          "time_reduction_pct": 50.22
+        },
+        {
+          "run": 5,
+          "exhaustive_validation_s": 322.795,
+          "orthogonal_validation_s": 161.381,
+          "time_reduction_pct": 50.01
+        }
+      ],
+      "timing_note": "validation_s = complete pipeline time (apply + traffic + telemetry + assert + clear), sequential over the suite; orthogonal shares apply/clear per bundle.",
+      "istio_metadata": {
+        "n_services": 20,
+        "config_level": "C2",
+        "policies": [
+          "retry",
+          "routing",
+          "timeout",
+          "traffic_split"
+        ]
+      }
+    },
+    "N20_C3": {
+      "summary": {
+        "n_services": 20,
+        "config_level": "C3",
+        "config_label": "resilience",
+        "n_config_items": 420,
+        "n_effect_types": 12,
+        "n_validation_units": 240,
+        "exhaustive_cases": 240,
+        "orthogonal_cases": 61,
+        "reduction_pct": 74.58,
+        "n_runs": 5,
+        "exh_validation_s_mean": 556.837,
+        "exh_validation_s_std": 0.708,
+        "ortho_validation_s_mean": 313.378,
+        "ortho_validation_s_std": 1.379,
+        "time_reduction_pct_mean": 43.722,
+        "time_reduction_pct_std": 0.233,
+        "fault_set_size": 240,
+        "dr_before_pct": 100.0,
+        "dr_after_pct": 100.0,
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "max_bundle_size": 4
+      },
+      "ablation": {
+        "fault_set_size": 240,
+        "before_merge": {
+          "total_faults": 240,
+          "detected": 240,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 240
+        },
+        "after_merge": {
+          "total_faults": 240,
+          "detected": 240,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 240
+        },
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "principle": "Orthogonal independence ensures merged effects remain separately observable in a shared execution; merging reduces apply/traffic cost without dropping per-effect assertions."
+      },
+      "runs": [
+        {
+          "run": 1,
+          "exhaustive_validation_s": 556.96,
+          "orthogonal_validation_s": 315.397,
+          "time_reduction_pct": 43.37
+        },
+        {
+          "run": 2,
+          "exhaustive_validation_s": 556.388,
+          "orthogonal_validation_s": 311.574,
+          "time_reduction_pct": 44.0
+        },
+        {
+          "run": 3,
+          "exhaustive_validation_s": 557.546,
+          "orthogonal_validation_s": 313.722,
+          "time_reduction_pct": 43.73
+        },
+        {
+          "run": 4,
+          "exhaustive_validation_s": 557.423,
+          "orthogonal_validation_s": 313.067,
+          "time_reduction_pct": 43.84
+        },
+        {
+          "run": 5,
+          "exhaustive_validation_s": 555.867,
+          "orthogonal_validation_s": 313.132,
+          "time_reduction_pct": 43.67
+        }
+      ],
+      "timing_note": "validation_s = complete pipeline time (apply + traffic + telemetry + assert + clear), sequential over the suite; orthogonal shares apply/clear per bundle.",
+      "istio_metadata": {
+        "n_services": 20,
+        "config_level": "C3",
+        "policies": [
+          "circuit_breaker",
+          "connection_pool",
+          "retry",
+          "routing",
+          "timeout",
+          "traffic_split"
+        ]
+      }
+    },
+    "N20_C4": {
+      "summary": {
+        "n_services": 20,
+        "config_level": "C4",
+        "config_label": "full",
+        "n_config_items": 450,
+        "n_effect_types": 17,
+        "n_validation_units": 340,
+        "exhaustive_cases": 340,
+        "orthogonal_cases": 88,
+        "reduction_pct": 74.12,
+        "n_runs": 5,
+        "exh_validation_s_mean": 819.606,
+        "exh_validation_s_std": 2.097,
+        "ortho_validation_s_mean": 476.996,
+        "ortho_validation_s_std": 1.96,
+        "time_reduction_pct_mean": 41.801,
+        "time_reduction_pct_std": 0.275,
+        "fault_set_size": 340,
+        "dr_before_pct": 100.0,
+        "dr_after_pct": 100.0,
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "max_bundle_size": 4
+      },
+      "ablation": {
+        "fault_set_size": 340,
+        "before_merge": {
+          "total_faults": 340,
+          "detected": 340,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 340
+        },
+        "after_merge": {
+          "total_faults": 340,
+          "detected": 340,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 340
+        },
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "principle": "Orthogonal independence ensures merged effects remain separately observable in a shared execution; merging reduces apply/traffic cost without dropping per-effect assertions."
+      },
+      "runs": [
+        {
+          "run": 1,
+          "exhaustive_validation_s": 820.223,
+          "orthogonal_validation_s": 479.229,
+          "time_reduction_pct": 41.57
+        },
+        {
+          "run": 2,
+          "exhaustive_validation_s": 816.185,
+          "orthogonal_validation_s": 475.809,
+          "time_reduction_pct": 41.7
+        },
+        {
+          "run": 3,
+          "exhaustive_validation_s": 820.145,
+          "orthogonal_validation_s": 475.582,
+          "time_reduction_pct": 42.01
+        },
+        {
+          "run": 4,
+          "exhaustive_validation_s": 821.891,
+          "orthogonal_validation_s": 475.324,
+          "time_reduction_pct": 42.17
+        },
+        {
+          "run": 5,
+          "exhaustive_validation_s": 819.586,
+          "orthogonal_validation_s": 479.038,
+          "time_reduction_pct": 41.55
+        }
+      ],
+      "timing_note": "validation_s = complete pipeline time (apply + traffic + telemetry + assert + clear), sequential over the suite; orthogonal shares apply/clear per bundle.",
+      "istio_metadata": {
+        "n_services": 20,
+        "config_level": "C4",
+        "policies": [
+          "circuit_breaker",
+          "connection_pool",
+          "fault_injection",
+          "rate_limit",
+          "retry",
+          "routing",
+          "timeout",
+          "traffic_split"
+        ]
+      }
+    },
+    "N20_C5": {
+      "summary": {
+        "n_services": 20,
+        "config_level": "C5",
+        "config_label": "full+mirror+authz",
+        "n_config_items": 590,
+        "n_effect_types": 20,
+        "n_validation_units": 400,
+        "exhaustive_cases": 400,
+        "orthogonal_cases": 104,
+        "reduction_pct": 74.0,
+        "n_runs": 5,
+        "exh_validation_s_mean": 934.509,
+        "exh_validation_s_std": 1.913,
+        "ortho_validation_s_mean": 531.421,
+        "ortho_validation_s_std": 1.305,
+        "time_reduction_pct_mean": 43.133,
+        "time_reduction_pct_std": 0.163,
+        "fault_set_size": 400,
+        "dr_before_pct": 100.0,
+        "dr_after_pct": 100.0,
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "max_bundle_size": 4
+      },
+      "ablation": {
+        "fault_set_size": 400,
+        "before_merge": {
+          "total_faults": 400,
+          "detected": 400,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 400
+        },
+        "after_merge": {
+          "total_faults": 400,
+          "detected": 400,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 400
+        },
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "principle": "Orthogonal independence ensures merged effects remain separately observable in a shared execution; merging reduces apply/traffic cost without dropping per-effect assertions."
+      },
+      "runs": [
+        {
+          "run": 1,
+          "exhaustive_validation_s": 933.552,
+          "orthogonal_validation_s": 532.3,
+          "time_reduction_pct": 42.98
+        },
+        {
+          "run": 2,
+          "exhaustive_validation_s": 932.168,
+          "orthogonal_validation_s": 530.19,
+          "time_reduction_pct": 43.12
+        },
+        {
+          "run": 3,
+          "exhaustive_validation_s": 935.552,
+          "orthogonal_validation_s": 529.825,
+          "time_reduction_pct": 43.37
+        },
+        {
+          "run": 4,
+          "exhaustive_validation_s": 937.156,
+          "orthogonal_validation_s": 532.196,
+          "time_reduction_pct": 43.21
+        },
+        {
+          "run": 5,
+          "exhaustive_validation_s": 934.116,
+          "orthogonal_validation_s": 532.595,
+          "time_reduction_pct": 42.98
+        }
+      ],
+      "timing_note": "validation_s = complete pipeline time (apply + traffic + telemetry + assert + clear), sequential over the suite; orthogonal shares apply/clear per bundle.",
+      "istio_metadata": {
+        "n_services": 20,
+        "config_level": "C5",
+        "policies": [
+          "authorization",
+          "circuit_breaker",
+          "connection_pool",
+          "fault_injection",
+          "mirroring",
+          "rate_limit",
+          "retry",
+          "routing",
+          "timeout",
+          "traffic_split"
+        ]
+      }
+    },
+    "N30_C1": {
+      "summary": {
+        "n_services": 30,
+        "config_level": "C1",
+        "config_label": "routing",
+        "n_config_items": 420,
+        "n_effect_types": 5,
+        "n_validation_units": 150,
+        "exhaustive_cases": 150,
+        "orthogonal_cases": 38,
+        "reduction_pct": 74.67,
+        "n_runs": 5,
+        "exh_validation_s_mean": 257.86,
+        "exh_validation_s_std": 1.38,
+        "ortho_validation_s_mean": 106.197,
+        "ortho_validation_s_std": 0.257,
+        "time_reduction_pct_mean": 58.815,
+        "time_reduction_pct_std": 0.254,
+        "fault_set_size": 150,
+        "dr_before_pct": 100.0,
+        "dr_after_pct": 100.0,
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "max_bundle_size": 4
+      },
+      "ablation": {
+        "fault_set_size": 150,
+        "before_merge": {
+          "total_faults": 150,
+          "detected": 150,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 150
+        },
+        "after_merge": {
+          "total_faults": 150,
+          "detected": 150,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 150
+        },
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "principle": "Orthogonal independence ensures merged effects remain separately observable in a shared execution; merging reduces apply/traffic cost without dropping per-effect assertions."
+      },
+      "runs": [
+        {
+          "run": 1,
+          "exhaustive_validation_s": 258.83,
+          "orthogonal_validation_s": 106.407,
+          "time_reduction_pct": 58.89
+        },
+        {
+          "run": 2,
+          "exhaustive_validation_s": 257.138,
+          "orthogonal_validation_s": 106.173,
+          "time_reduction_pct": 58.71
+        },
+        {
+          "run": 3,
+          "exhaustive_validation_s": 256.054,
+          "orthogonal_validation_s": 106.078,
+          "time_reduction_pct": 58.57
+        },
+        {
+          "run": 4,
+          "exhaustive_validation_s": 259.557,
+          "orthogonal_validation_s": 105.845,
+          "time_reduction_pct": 59.22
+        },
+        {
+          "run": 5,
+          "exhaustive_validation_s": 257.721,
+          "orthogonal_validation_s": 106.484,
+          "time_reduction_pct": 58.68
+        }
+      ],
+      "timing_note": "validation_s = complete pipeline time (apply + traffic + telemetry + assert + clear), sequential over the suite; orthogonal shares apply/clear per bundle.",
+      "istio_metadata": {
+        "n_services": 30,
+        "config_level": "C1",
+        "policies": [
+          "routing"
+        ]
+      }
+    },
+    "N30_C2": {
+      "summary": {
+        "n_services": 30,
+        "config_level": "C2",
+        "config_label": "routing+reliability",
+        "n_config_items": 510,
+        "n_effect_types": 8,
+        "n_validation_units": 240,
+        "exhaustive_cases": 240,
+        "orthogonal_cases": 61,
+        "reduction_pct": 74.58,
+        "n_runs": 5,
+        "exh_validation_s_mean": 483.242,
+        "exh_validation_s_std": 1.696,
+        "ortho_validation_s_mean": 241.219,
+        "ortho_validation_s_std": 1.018,
+        "time_reduction_pct_mean": 50.083,
+        "time_reduction_pct_std": 0.312,
+        "fault_set_size": 240,
+        "dr_before_pct": 100.0,
+        "dr_after_pct": 100.0,
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "max_bundle_size": 4
+      },
+      "ablation": {
+        "fault_set_size": 240,
+        "before_merge": {
+          "total_faults": 240,
+          "detected": 240,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 240
+        },
+        "after_merge": {
+          "total_faults": 240,
+          "detected": 240,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 240
+        },
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "principle": "Orthogonal independence ensures merged effects remain separately observable in a shared execution; merging reduces apply/traffic cost without dropping per-effect assertions."
+      },
+      "runs": [
+        {
+          "run": 1,
+          "exhaustive_validation_s": 483.282,
+          "orthogonal_validation_s": 241.144,
+          "time_reduction_pct": 50.1
+        },
+        {
+          "run": 2,
+          "exhaustive_validation_s": 483.057,
+          "orthogonal_validation_s": 241.313,
+          "time_reduction_pct": 50.04
+        },
+        {
+          "run": 3,
+          "exhaustive_validation_s": 481.0,
+          "orthogonal_validation_s": 240.754,
+          "time_reduction_pct": 49.95
+        },
+        {
+          "run": 4,
+          "exhaustive_validation_s": 485.775,
+          "orthogonal_validation_s": 240.06,
+          "time_reduction_pct": 50.58
+        },
+        {
+          "run": 5,
+          "exhaustive_validation_s": 483.095,
+          "orthogonal_validation_s": 242.823,
+          "time_reduction_pct": 49.74
+        }
+      ],
+      "timing_note": "validation_s = complete pipeline time (apply + traffic + telemetry + assert + clear), sequential over the suite; orthogonal shares apply/clear per bundle.",
+      "istio_metadata": {
+        "n_services": 30,
+        "config_level": "C2",
+        "policies": [
+          "retry",
+          "routing",
+          "timeout",
+          "traffic_split"
+        ]
+      }
+    },
+    "N30_C3": {
+      "summary": {
+        "n_services": 30,
+        "config_level": "C3",
+        "config_label": "resilience",
+        "n_config_items": 630,
+        "n_effect_types": 12,
+        "n_validation_units": 360,
+        "exhaustive_cases": 360,
+        "orthogonal_cases": 91,
+        "reduction_pct": 74.72,
+        "n_runs": 5,
+        "exh_validation_s_mean": 833.969,
+        "exh_validation_s_std": 2.196,
+        "ortho_validation_s_mean": 469.682,
+        "ortho_validation_s_std": 1.588,
+        "time_reduction_pct_mean": 43.681,
+        "time_reduction_pct_std": 0.259,
+        "fault_set_size": 360,
+        "dr_before_pct": 100.0,
+        "dr_after_pct": 100.0,
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "max_bundle_size": 4
+      },
+      "ablation": {
+        "fault_set_size": 360,
+        "before_merge": {
+          "total_faults": 360,
+          "detected": 360,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 360
+        },
+        "after_merge": {
+          "total_faults": 360,
+          "detected": 360,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 360
+        },
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "principle": "Orthogonal independence ensures merged effects remain separately observable in a shared execution; merging reduces apply/traffic cost without dropping per-effect assertions."
+      },
+      "runs": [
+        {
+          "run": 1,
+          "exhaustive_validation_s": 835.032,
+          "orthogonal_validation_s": 468.253,
+          "time_reduction_pct": 43.92
+        },
+        {
+          "run": 2,
+          "exhaustive_validation_s": 833.193,
+          "orthogonal_validation_s": 470.252,
+          "time_reduction_pct": 43.56
+        },
+        {
+          "run": 3,
+          "exhaustive_validation_s": 831.168,
+          "orthogonal_validation_s": 468.619,
+          "time_reduction_pct": 43.62
+        },
+        {
+          "run": 4,
+          "exhaustive_validation_s": 837.035,
+          "orthogonal_validation_s": 469.101,
+          "time_reduction_pct": 43.96
+        },
+        {
+          "run": 5,
+          "exhaustive_validation_s": 833.416,
+          "orthogonal_validation_s": 472.183,
+          "time_reduction_pct": 43.34
+        }
+      ],
+      "timing_note": "validation_s = complete pipeline time (apply + traffic + telemetry + assert + clear), sequential over the suite; orthogonal shares apply/clear per bundle.",
+      "istio_metadata": {
+        "n_services": 30,
+        "config_level": "C3",
+        "policies": [
+          "circuit_breaker",
+          "connection_pool",
+          "retry",
+          "routing",
+          "timeout",
+          "traffic_split"
+        ]
+      }
+    },
+    "N30_C4": {
+      "summary": {
+        "n_services": 30,
+        "config_level": "C4",
+        "config_label": "full",
+        "n_config_items": 675,
+        "n_effect_types": 17,
+        "n_validation_units": 510,
+        "exhaustive_cases": 510,
+        "orthogonal_cases": 131,
+        "reduction_pct": 74.31,
+        "n_runs": 5,
+        "exh_validation_s_mean": 1227.492,
+        "exh_validation_s_std": 3.473,
+        "ortho_validation_s_mean": 716.206,
+        "ortho_validation_s_std": 2.498,
+        "time_reduction_pct_mean": 41.653,
+        "time_reduction_pct_std": 0.271,
+        "fault_set_size": 510,
+        "dr_before_pct": 100.0,
+        "dr_after_pct": 100.0,
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "max_bundle_size": 4
+      },
+      "ablation": {
+        "fault_set_size": 510,
+        "before_merge": {
+          "total_faults": 510,
+          "detected": 510,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 510
+        },
+        "after_merge": {
+          "total_faults": 510,
+          "detected": 510,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 510
+        },
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "principle": "Orthogonal independence ensures merged effects remain separately observable in a shared execution; merging reduces apply/traffic cost without dropping per-effect assertions."
+      },
+      "runs": [
+        {
+          "run": 1,
+          "exhaustive_validation_s": 1227.625,
+          "orthogonal_validation_s": 713.726,
+          "time_reduction_pct": 41.86
+        },
+        {
+          "run": 2,
+          "exhaustive_validation_s": 1225.493,
+          "orthogonal_validation_s": 716.761,
+          "time_reduction_pct": 41.51
+        },
+        {
+          "run": 3,
+          "exhaustive_validation_s": 1224.018,
+          "orthogonal_validation_s": 714.901,
+          "time_reduction_pct": 41.59
+        },
+        {
+          "run": 4,
+          "exhaustive_validation_s": 1233.154,
+          "orthogonal_validation_s": 715.413,
+          "time_reduction_pct": 41.99
+        },
+        {
+          "run": 5,
+          "exhaustive_validation_s": 1227.171,
+          "orthogonal_validation_s": 720.227,
+          "time_reduction_pct": 41.31
+        }
+      ],
+      "timing_note": "validation_s = complete pipeline time (apply + traffic + telemetry + assert + clear), sequential over the suite; orthogonal shares apply/clear per bundle.",
+      "istio_metadata": {
+        "n_services": 30,
+        "config_level": "C4",
+        "policies": [
+          "circuit_breaker",
+          "connection_pool",
+          "fault_injection",
+          "rate_limit",
+          "retry",
+          "routing",
+          "timeout",
+          "traffic_split"
+        ]
+      }
+    },
+    "N30_C5": {
+      "summary": {
+        "n_services": 30,
+        "config_level": "C5",
+        "config_label": "full+mirror+authz",
+        "n_config_items": 885,
+        "n_effect_types": 20,
+        "n_validation_units": 600,
+        "exhaustive_cases": 600,
+        "orthogonal_cases": 154,
+        "reduction_pct": 74.33,
+        "n_runs": 5,
+        "exh_validation_s_mean": 1400.524,
+        "exh_validation_s_std": 3.239,
+        "ortho_validation_s_mean": 796.994,
+        "ortho_validation_s_std": 2.031,
+        "time_reduction_pct_mean": 43.093,
+        "time_reduction_pct_std": 0.225,
+        "fault_set_size": 600,
+        "dr_before_pct": 100.0,
+        "dr_after_pct": 100.0,
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "max_bundle_size": 4
+      },
+      "ablation": {
+        "fault_set_size": 600,
+        "before_merge": {
+          "total_faults": 600,
+          "detected": 600,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 600
+        },
+        "after_merge": {
+          "total_faults": 600,
+          "detected": 600,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 600
+        },
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "principle": "Orthogonal independence ensures merged effects remain separately observable in a shared execution; merging reduces apply/traffic cost without dropping per-effect assertions."
+      },
+      "runs": [
+        {
+          "run": 1,
+          "exhaustive_validation_s": 1401.76,
+          "orthogonal_validation_s": 795.667,
+          "time_reduction_pct": 43.24
+        },
+        {
+          "run": 2,
+          "exhaustive_validation_s": 1398.871,
+          "orthogonal_validation_s": 799.061,
+          "time_reduction_pct": 42.88
+        },
+        {
+          "run": 3,
+          "exhaustive_validation_s": 1396.806,
+          "orthogonal_validation_s": 795.461,
+          "time_reduction_pct": 43.05
+        },
+        {
+          "run": 4,
+          "exhaustive_validation_s": 1405.359,
+          "orthogonal_validation_s": 795.415,
+          "time_reduction_pct": 43.4
+        },
+        {
+          "run": 5,
+          "exhaustive_validation_s": 1399.823,
+          "orthogonal_validation_s": 799.367,
+          "time_reduction_pct": 42.9
+        }
+      ],
+      "timing_note": "validation_s = complete pipeline time (apply + traffic + telemetry + assert + clear), sequential over the suite; orthogonal shares apply/clear per bundle.",
+      "istio_metadata": {
+        "n_services": 30,
+        "config_level": "C5",
+        "policies": [
+          "authorization",
+          "circuit_breaker",
+          "connection_pool",
+          "fault_injection",
+          "mirroring",
+          "rate_limit",
+          "retry",
+          "routing",
+          "timeout",
+          "traffic_split"
+        ]
+      }
+    },
+    "N40_C1": {
+      "summary": {
+        "n_services": 40,
+        "config_level": "C1",
+        "config_label": "routing",
+        "n_config_items": 560,
+        "n_effect_types": 5,
+        "n_validation_units": 200,
+        "exhaustive_cases": 200,
+        "orthogonal_cases": 50,
+        "reduction_pct": 75.0,
+        "n_runs": 5,
+        "exh_validation_s_mean": 343.575,
+        "exh_validation_s_std": 1.164,
+        "ortho_validation_s_mean": 141.074,
+        "ortho_validation_s_std": 0.294,
+        "time_reduction_pct_mean": 58.939,
+        "time_reduction_pct_std": 0.144,
+        "fault_set_size": 200,
+        "dr_before_pct": 100.0,
+        "dr_after_pct": 100.0,
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "max_bundle_size": 4
+      },
+      "ablation": {
+        "fault_set_size": 200,
+        "before_merge": {
+          "total_faults": 200,
+          "detected": 200,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 200
+        },
+        "after_merge": {
+          "total_faults": 200,
+          "detected": 200,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 200
+        },
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "principle": "Orthogonal independence ensures merged effects remain separately observable in a shared execution; merging reduces apply/traffic cost without dropping per-effect assertions."
+      },
+      "runs": [
+        {
+          "run": 1,
+          "exhaustive_validation_s": 344.973,
+          "orthogonal_validation_s": 140.846,
+          "time_reduction_pct": 59.17
+        },
+        {
+          "run": 2,
+          "exhaustive_validation_s": 342.485,
+          "orthogonal_validation_s": 141.06,
+          "time_reduction_pct": 58.81
+        },
+        {
+          "run": 3,
+          "exhaustive_validation_s": 343.088,
+          "orthogonal_validation_s": 141.255,
+          "time_reduction_pct": 58.83
+        },
+        {
+          "run": 4,
+          "exhaustive_validation_s": 344.671,
+          "orthogonal_validation_s": 141.466,
+          "time_reduction_pct": 58.96
+        },
+        {
+          "run": 5,
+          "exhaustive_validation_s": 342.658,
+          "orthogonal_validation_s": 140.745,
+          "time_reduction_pct": 58.93
+        }
+      ],
+      "timing_note": "validation_s = complete pipeline time (apply + traffic + telemetry + assert + clear), sequential over the suite; orthogonal shares apply/clear per bundle.",
+      "istio_metadata": {
+        "n_services": 40,
+        "config_level": "C1",
+        "policies": [
+          "routing"
+        ]
+      }
+    },
+    "N40_C2": {
+      "summary": {
+        "n_services": 40,
+        "config_level": "C2",
+        "config_label": "routing+reliability",
+        "n_config_items": 680,
+        "n_effect_types": 8,
+        "n_validation_units": 320,
+        "exhaustive_cases": 320,
+        "orthogonal_cases": 81,
+        "reduction_pct": 74.69,
+        "n_runs": 5,
+        "exh_validation_s_mean": 644.32,
+        "exh_validation_s_std": 1.024,
+        "ortho_validation_s_mean": 320.912,
+        "ortho_validation_s_std": 0.672,
+        "time_reduction_pct_mean": 50.194,
+        "time_reduction_pct_std": 0.126,
+        "fault_set_size": 320,
+        "dr_before_pct": 100.0,
+        "dr_after_pct": 100.0,
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "max_bundle_size": 4
+      },
+      "ablation": {
+        "fault_set_size": 320,
+        "before_merge": {
+          "total_faults": 320,
+          "detected": 320,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 320
+        },
+        "after_merge": {
+          "total_faults": 320,
+          "detected": 320,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 320
+        },
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "principle": "Orthogonal independence ensures merged effects remain separately observable in a shared execution; merging reduces apply/traffic cost without dropping per-effect assertions."
+      },
+      "runs": [
+        {
+          "run": 1,
+          "exhaustive_validation_s": 644.825,
+          "orthogonal_validation_s": 320.216,
+          "time_reduction_pct": 50.34
+        },
+        {
+          "run": 2,
+          "exhaustive_validation_s": 642.81,
+          "orthogonal_validation_s": 320.432,
+          "time_reduction_pct": 50.15
+        },
+        {
+          "run": 3,
+          "exhaustive_validation_s": 644.358,
+          "orthogonal_validation_s": 320.932,
+          "time_reduction_pct": 50.19
+        },
+        {
+          "run": 4,
+          "exhaustive_validation_s": 645.575,
+          "orthogonal_validation_s": 321.031,
+          "time_reduction_pct": 50.27
+        },
+        {
+          "run": 5,
+          "exhaustive_validation_s": 644.034,
+          "orthogonal_validation_s": 321.95,
+          "time_reduction_pct": 50.01
+        }
+      ],
+      "timing_note": "validation_s = complete pipeline time (apply + traffic + telemetry + assert + clear), sequential over the suite; orthogonal shares apply/clear per bundle.",
+      "istio_metadata": {
+        "n_services": 40,
+        "config_level": "C2",
+        "policies": [
+          "retry",
+          "routing",
+          "timeout",
+          "traffic_split"
+        ]
+      }
+    },
+    "N40_C3": {
+      "summary": {
+        "n_services": 40,
+        "config_level": "C3",
+        "config_label": "resilience",
+        "n_config_items": 840,
+        "n_effect_types": 12,
+        "n_validation_units": 480,
+        "exhaustive_cases": 480,
+        "orthogonal_cases": 121,
+        "reduction_pct": 74.79,
+        "n_runs": 5,
+        "exh_validation_s_mean": 1111.829,
+        "exh_validation_s_std": 1.182,
+        "ortho_validation_s_mean": 625.848,
+        "ortho_validation_s_std": 0.65,
+        "time_reduction_pct_mean": 43.71,
+        "time_reduction_pct_std": 0.048,
+        "fault_set_size": 480,
+        "dr_before_pct": 100.0,
+        "dr_after_pct": 100.0,
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "max_bundle_size": 4
+      },
+      "ablation": {
+        "fault_set_size": 480,
+        "before_merge": {
+          "total_faults": 480,
+          "detected": 480,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 480
+        },
+        "after_merge": {
+          "total_faults": 480,
+          "detected": 480,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 480
+        },
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "principle": "Orthogonal independence ensures merged effects remain separately observable in a shared execution; merging reduces apply/traffic cost without dropping per-effect assertions."
+      },
+      "runs": [
+        {
+          "run": 1,
+          "exhaustive_validation_s": 1112.483,
+          "orthogonal_validation_s": 625.633,
+          "time_reduction_pct": 43.76
+        },
+        {
+          "run": 2,
+          "exhaustive_validation_s": 1109.905,
+          "orthogonal_validation_s": 625.0,
+          "time_reduction_pct": 43.69
+        },
+        {
+          "run": 3,
+          "exhaustive_validation_s": 1112.979,
+          "orthogonal_validation_s": 626.062,
+          "time_reduction_pct": 43.75
+        },
+        {
+          "run": 4,
+          "exhaustive_validation_s": 1111.634,
+          "orthogonal_validation_s": 625.765,
+          "time_reduction_pct": 43.71
+        },
+        {
+          "run": 5,
+          "exhaustive_validation_s": 1112.146,
+          "orthogonal_validation_s": 626.781,
+          "time_reduction_pct": 43.64
+        }
+      ],
+      "timing_note": "validation_s = complete pipeline time (apply + traffic + telemetry + assert + clear), sequential over the suite; orthogonal shares apply/clear per bundle.",
+      "istio_metadata": {
+        "n_services": 40,
+        "config_level": "C3",
+        "policies": [
+          "circuit_breaker",
+          "connection_pool",
+          "retry",
+          "routing",
+          "timeout",
+          "traffic_split"
+        ]
+      }
+    },
+    "N40_C4": {
+      "summary": {
+        "n_services": 40,
+        "config_level": "C4",
+        "config_label": "full",
+        "n_config_items": 900,
+        "n_effect_types": 17,
+        "n_validation_units": 680,
+        "exhaustive_cases": 680,
+        "orthogonal_cases": 173,
+        "reduction_pct": 74.56,
+        "n_runs": 5,
+        "exh_validation_s_mean": 1638.528,
+        "exh_validation_s_std": 3.007,
+        "ortho_validation_s_mean": 951.86,
+        "ortho_validation_s_std": 0.749,
+        "time_reduction_pct_mean": 41.907,
+        "time_reduction_pct_std": 0.103,
+        "fault_set_size": 680,
+        "dr_before_pct": 100.0,
+        "dr_after_pct": 100.0,
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "max_bundle_size": 4
+      },
+      "ablation": {
+        "fault_set_size": 680,
+        "before_merge": {
+          "total_faults": 680,
+          "detected": 680,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 680
+        },
+        "after_merge": {
+          "total_faults": 680,
+          "detected": 680,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 680
+        },
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "principle": "Orthogonal independence ensures merged effects remain separately observable in a shared execution; merging reduces apply/traffic cost without dropping per-effect assertions."
+      },
+      "runs": [
+        {
+          "run": 1,
+          "exhaustive_validation_s": 1635.299,
+          "orthogonal_validation_s": 951.667,
+          "time_reduction_pct": 41.8
+        },
+        {
+          "run": 2,
+          "exhaustive_validation_s": 1638.23,
+          "orthogonal_validation_s": 951.778,
+          "time_reduction_pct": 41.9
+        },
+        {
+          "run": 3,
+          "exhaustive_validation_s": 1641.381,
+          "orthogonal_validation_s": 951.041,
+          "time_reduction_pct": 42.06
+        },
+        {
+          "run": 4,
+          "exhaustive_validation_s": 1635.926,
+          "orthogonal_validation_s": 951.726,
+          "time_reduction_pct": 41.82
+        },
+        {
+          "run": 5,
+          "exhaustive_validation_s": 1641.804,
+          "orthogonal_validation_s": 953.09,
+          "time_reduction_pct": 41.95
+        }
+      ],
+      "timing_note": "validation_s = complete pipeline time (apply + traffic + telemetry + assert + clear), sequential over the suite; orthogonal shares apply/clear per bundle.",
+      "istio_metadata": {
+        "n_services": 40,
+        "config_level": "C4",
+        "policies": [
+          "circuit_breaker",
+          "connection_pool",
+          "fault_injection",
+          "rate_limit",
+          "retry",
+          "routing",
+          "timeout",
+          "traffic_split"
+        ]
+      }
+    },
+    "N40_C5": {
+      "summary": {
+        "n_services": 40,
+        "config_level": "C5",
+        "config_label": "full+mirror+authz",
+        "n_config_items": 1180,
+        "n_effect_types": 20,
+        "n_validation_units": 800,
+        "exhaustive_cases": 800,
+        "orthogonal_cases": 204,
+        "reduction_pct": 74.5,
+        "n_runs": 5,
+        "exh_validation_s_mean": 1868.221,
+        "exh_validation_s_std": 1.603,
+        "ortho_validation_s_mean": 1060.628,
+        "ortho_validation_s_std": 0.549,
+        "time_reduction_pct_mean": 43.228,
+        "time_reduction_pct_std": 0.044,
+        "fault_set_size": 800,
+        "dr_before_pct": 100.0,
+        "dr_after_pct": 100.0,
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "max_bundle_size": 4
+      },
+      "ablation": {
+        "fault_set_size": 800,
+        "before_merge": {
+          "total_faults": 800,
+          "detected": 800,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 800
+        },
+        "after_merge": {
+          "total_faults": 800,
+          "detected": 800,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 800
+        },
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "principle": "Orthogonal independence ensures merged effects remain separately observable in a shared execution; merging reduces apply/traffic cost without dropping per-effect assertions."
+      },
+      "runs": [
+        {
+          "run": 1,
+          "exhaustive_validation_s": 1866.843,
+          "orthogonal_validation_s": 1060.036,
+          "time_reduction_pct": 43.22
+        },
+        {
+          "run": 2,
+          "exhaustive_validation_s": 1868.923,
+          "orthogonal_validation_s": 1060.085,
+          "time_reduction_pct": 43.28
+        },
+        {
+          "run": 3,
+          "exhaustive_validation_s": 1868.717,
+          "orthogonal_validation_s": 1060.932,
+          "time_reduction_pct": 43.23
+        },
+        {
+          "run": 4,
+          "exhaustive_validation_s": 1866.357,
+          "orthogonal_validation_s": 1060.793,
+          "time_reduction_pct": 43.16
+        },
+        {
+          "run": 5,
+          "exhaustive_validation_s": 1870.263,
+          "orthogonal_validation_s": 1061.292,
+          "time_reduction_pct": 43.25
+        }
+      ],
+      "timing_note": "validation_s = complete pipeline time (apply + traffic + telemetry + assert + clear), sequential over the suite; orthogonal shares apply/clear per bundle.",
+      "istio_metadata": {
+        "n_services": 40,
+        "config_level": "C5",
+        "policies": [
+          "authorization",
+          "circuit_breaker",
+          "connection_pool",
+          "fault_injection",
+          "mirroring",
+          "rate_limit",
+          "retry",
+          "routing",
+          "timeout",
+          "traffic_split"
+        ]
+      }
+    },
+    "N50_C1": {
+      "summary": {
+        "n_services": 50,
+        "config_level": "C1",
+        "config_label": "routing",
+        "n_config_items": 700,
+        "n_effect_types": 5,
+        "n_validation_units": 250,
+        "exhaustive_cases": 250,
+        "orthogonal_cases": 63,
+        "reduction_pct": 74.8,
+        "n_runs": 5,
+        "exh_validation_s_mean": 430.712,
+        "exh_validation_s_std": 0.452,
+        "ortho_validation_s_mean": 176.512,
+        "ortho_validation_s_std": 0.513,
+        "time_reduction_pct_mean": 59.019,
+        "time_reduction_pct_std": 0.127,
+        "fault_set_size": 250,
+        "dr_before_pct": 100.0,
+        "dr_after_pct": 100.0,
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "max_bundle_size": 4
+      },
+      "ablation": {
+        "fault_set_size": 250,
+        "before_merge": {
+          "total_faults": 250,
+          "detected": 250,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 250
+        },
+        "after_merge": {
+          "total_faults": 250,
+          "detected": 250,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 250
+        },
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "principle": "Orthogonal independence ensures merged effects remain separately observable in a shared execution; merging reduces apply/traffic cost without dropping per-effect assertions."
+      },
+      "runs": [
+        {
+          "run": 1,
+          "exhaustive_validation_s": 430.056,
+          "orthogonal_validation_s": 176.868,
+          "time_reduction_pct": 58.87
+        },
+        {
+          "run": 2,
+          "exhaustive_validation_s": 430.705,
+          "orthogonal_validation_s": 175.702,
+          "time_reduction_pct": 59.21
+        },
+        {
+          "run": 3,
+          "exhaustive_validation_s": 430.535,
+          "orthogonal_validation_s": 176.482,
+          "time_reduction_pct": 59.01
+        },
+        {
+          "run": 4,
+          "exhaustive_validation_s": 431.158,
+          "orthogonal_validation_s": 177.031,
+          "time_reduction_pct": 58.94
+        },
+        {
+          "run": 5,
+          "exhaustive_validation_s": 431.108,
+          "orthogonal_validation_s": 176.476,
+          "time_reduction_pct": 59.06
+        }
+      ],
+      "timing_note": "validation_s = complete pipeline time (apply + traffic + telemetry + assert + clear), sequential over the suite; orthogonal shares apply/clear per bundle.",
+      "istio_metadata": {
+        "n_services": 50,
+        "config_level": "C1",
+        "policies": [
+          "routing"
+        ]
+      }
+    },
+    "N50_C2": {
+      "summary": {
+        "n_services": 50,
+        "config_level": "C2",
+        "config_label": "routing+reliability",
+        "n_config_items": 850,
+        "n_effect_types": 8,
+        "n_validation_units": 400,
+        "exhaustive_cases": 400,
+        "orthogonal_cases": 101,
+        "reduction_pct": 74.75,
+        "n_runs": 5,
+        "exh_validation_s_mean": 807.085,
+        "exh_validation_s_std": 1.067,
+        "ortho_validation_s_mean": 400.954,
+        "ortho_validation_s_std": 1.065,
+        "time_reduction_pct_mean": 50.321,
+        "time_reduction_pct_std": 0.151,
+        "fault_set_size": 400,
+        "dr_before_pct": 100.0,
+        "dr_after_pct": 100.0,
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "max_bundle_size": 4
+      },
+      "ablation": {
+        "fault_set_size": 400,
+        "before_merge": {
+          "total_faults": 400,
+          "detected": 400,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 400
+        },
+        "after_merge": {
+          "total_faults": 400,
+          "detected": 400,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 400
+        },
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "principle": "Orthogonal independence ensures merged effects remain separately observable in a shared execution; merging reduces apply/traffic cost without dropping per-effect assertions."
+      },
+      "runs": [
+        {
+          "run": 1,
+          "exhaustive_validation_s": 806.509,
+          "orthogonal_validation_s": 401.378,
+          "time_reduction_pct": 50.23
+        },
+        {
+          "run": 2,
+          "exhaustive_validation_s": 807.806,
+          "orthogonal_validation_s": 399.157,
+          "time_reduction_pct": 50.59
+        },
+        {
+          "run": 3,
+          "exhaustive_validation_s": 807.183,
+          "orthogonal_validation_s": 401.292,
+          "time_reduction_pct": 50.28
+        },
+        {
+          "run": 4,
+          "exhaustive_validation_s": 808.316,
+          "orthogonal_validation_s": 401.961,
+          "time_reduction_pct": 50.27
+        },
+        {
+          "run": 5,
+          "exhaustive_validation_s": 805.609,
+          "orthogonal_validation_s": 400.98,
+          "time_reduction_pct": 50.23
+        }
+      ],
+      "timing_note": "validation_s = complete pipeline time (apply + traffic + telemetry + assert + clear), sequential over the suite; orthogonal shares apply/clear per bundle.",
+      "istio_metadata": {
+        "n_services": 50,
+        "config_level": "C2",
+        "policies": [
+          "retry",
+          "routing",
+          "timeout",
+          "traffic_split"
+        ]
+      }
+    },
+    "N50_C3": {
+      "summary": {
+        "n_services": 50,
+        "config_level": "C3",
+        "config_label": "resilience",
+        "n_config_items": 1050,
+        "n_effect_types": 12,
+        "n_validation_units": 600,
+        "exhaustive_cases": 600,
+        "orthogonal_cases": 151,
+        "reduction_pct": 74.83,
+        "n_runs": 5,
+        "exh_validation_s_mean": 1391.208,
+        "exh_validation_s_std": 2.067,
+        "ortho_validation_s_mean": 783.433,
+        "ortho_validation_s_std": 1.285,
+        "time_reduction_pct_mean": 43.687,
+        "time_reduction_pct_std": 0.124,
+        "fault_set_size": 600,
+        "dr_before_pct": 100.0,
+        "dr_after_pct": 100.0,
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "max_bundle_size": 4
+      },
+      "ablation": {
+        "fault_set_size": 600,
+        "before_merge": {
+          "total_faults": 600,
+          "detected": 600,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 600
+        },
+        "after_merge": {
+          "total_faults": 600,
+          "detected": 600,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 600
+        },
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "principle": "Orthogonal independence ensures merged effects remain separately observable in a shared execution; merging reduces apply/traffic cost without dropping per-effect assertions."
+      },
+      "runs": [
+        {
+          "run": 1,
+          "exhaustive_validation_s": 1389.515,
+          "orthogonal_validation_s": 783.737,
+          "time_reduction_pct": 43.6
+        },
+        {
+          "run": 2,
+          "exhaustive_validation_s": 1392.728,
+          "orthogonal_validation_s": 781.396,
+          "time_reduction_pct": 43.89
+        },
+        {
+          "run": 3,
+          "exhaustive_validation_s": 1393.445,
+          "orthogonal_validation_s": 784.403,
+          "time_reduction_pct": 43.71
+        },
+        {
+          "run": 4,
+          "exhaustive_validation_s": 1391.72,
+          "orthogonal_validation_s": 784.568,
+          "time_reduction_pct": 43.63
+        },
+        {
+          "run": 5,
+          "exhaustive_validation_s": 1388.631,
+          "orthogonal_validation_s": 783.06,
+          "time_reduction_pct": 43.61
+        }
+      ],
+      "timing_note": "validation_s = complete pipeline time (apply + traffic + telemetry + assert + clear), sequential over the suite; orthogonal shares apply/clear per bundle.",
+      "istio_metadata": {
+        "n_services": 50,
+        "config_level": "C3",
+        "policies": [
+          "circuit_breaker",
+          "connection_pool",
+          "retry",
+          "routing",
+          "timeout",
+          "traffic_split"
+        ]
+      }
+    },
+    "N50_C4": {
+      "summary": {
+        "n_services": 50,
+        "config_level": "C4",
+        "config_label": "full",
+        "n_config_items": 1125,
+        "n_effect_types": 17,
+        "n_validation_units": 850,
+        "exhaustive_cases": 850,
+        "orthogonal_cases": 216,
+        "reduction_pct": 74.59,
+        "n_runs": 5,
+        "exh_validation_s_mean": 2050.556,
+        "exh_validation_s_std": 1.628,
+        "ortho_validation_s_mean": 1189.859,
+        "ortho_validation_s_std": 2.734,
+        "time_reduction_pct_mean": 41.974,
+        "time_reduction_pct_std": 0.124,
+        "fault_set_size": 850,
+        "dr_before_pct": 100.0,
+        "dr_after_pct": 100.0,
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "max_bundle_size": 4
+      },
+      "ablation": {
+        "fault_set_size": 850,
+        "before_merge": {
+          "total_faults": 850,
+          "detected": 850,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 850
+        },
+        "after_merge": {
+          "total_faults": 850,
+          "detected": 850,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 850
+        },
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "principle": "Orthogonal independence ensures merged effects remain separately observable in a shared execution; merging reduces apply/traffic cost without dropping per-effect assertions."
+      },
+      "runs": [
+        {
+          "run": 1,
+          "exhaustive_validation_s": 2052.512,
+          "orthogonal_validation_s": 1191.01,
+          "time_reduction_pct": 41.97
+        },
+        {
+          "run": 2,
+          "exhaustive_validation_s": 2050.95,
+          "orthogonal_validation_s": 1186.192,
+          "time_reduction_pct": 42.16
+        },
+        {
+          "run": 3,
+          "exhaustive_validation_s": 2049.106,
+          "orthogonal_validation_s": 1189.302,
+          "time_reduction_pct": 41.96
+        },
+        {
+          "run": 4,
+          "exhaustive_validation_s": 2051.541,
+          "orthogonal_validation_s": 1193.641,
+          "time_reduction_pct": 41.82
+        },
+        {
+          "run": 5,
+          "exhaustive_validation_s": 2048.672,
+          "orthogonal_validation_s": 1189.15,
+          "time_reduction_pct": 41.96
+        }
+      ],
+      "timing_note": "validation_s = complete pipeline time (apply + traffic + telemetry + assert + clear), sequential over the suite; orthogonal shares apply/clear per bundle.",
+      "istio_metadata": {
+        "n_services": 50,
+        "config_level": "C4",
+        "policies": [
+          "circuit_breaker",
+          "connection_pool",
+          "fault_injection",
+          "rate_limit",
+          "retry",
+          "routing",
+          "timeout",
+          "traffic_split"
+        ]
+      }
+    },
+    "N50_C5": {
+      "summary": {
+        "n_services": 50,
+        "config_level": "C5",
+        "config_label": "full+mirror+authz",
+        "n_config_items": 1475,
+        "n_effect_types": 20,
+        "n_validation_units": 1000,
+        "exhaustive_cases": 1000,
+        "orthogonal_cases": 254,
+        "reduction_pct": 74.6,
+        "n_runs": 5,
+        "exh_validation_s_mean": 2338.109,
+        "exh_validation_s_std": 1.446,
+        "ortho_validation_s_mean": 1323.737,
+        "ortho_validation_s_std": 2.453,
+        "time_reduction_pct_mean": 43.384,
+        "time_reduction_pct_std": 0.1,
+        "fault_set_size": 1000,
+        "dr_before_pct": 100.0,
+        "dr_after_pct": 100.0,
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "max_bundle_size": 4
+      },
+      "ablation": {
+        "fault_set_size": 1000,
+        "before_merge": {
+          "total_faults": 1000,
+          "detected": 1000,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 1000
+        },
+        "after_merge": {
+          "total_faults": 1000,
+          "detected": 1000,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 1000
+        },
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "principle": "Orthogonal independence ensures merged effects remain separately observable in a shared execution; merging reduces apply/traffic cost without dropping per-effect assertions."
+      },
+      "runs": [
+        {
+          "run": 1,
+          "exhaustive_validation_s": 2340.192,
+          "orthogonal_validation_s": 1325.84,
+          "time_reduction_pct": 43.34
+        },
+        {
+          "run": 2,
+          "exhaustive_validation_s": 2337.26,
+          "orthogonal_validation_s": 1319.807,
+          "time_reduction_pct": 43.53
+        },
+        {
+          "run": 3,
+          "exhaustive_validation_s": 2337.026,
+          "orthogonal_validation_s": 1324.426,
+          "time_reduction_pct": 43.33
+        },
+        {
+          "run": 4,
+          "exhaustive_validation_s": 2337.004,
+          "orthogonal_validation_s": 1325.545,
+          "time_reduction_pct": 43.28
+        },
+        {
+          "run": 5,
+          "exhaustive_validation_s": 2339.064,
+          "orthogonal_validation_s": 1323.067,
+          "time_reduction_pct": 43.44
+        }
+      ],
+      "timing_note": "validation_s = complete pipeline time (apply + traffic + telemetry + assert + clear), sequential over the suite; orthogonal shares apply/clear per bundle.",
+      "istio_metadata": {
+        "n_services": 50,
+        "config_level": "C5",
+        "policies": [
+          "authorization",
+          "circuit_breaker",
+          "connection_pool",
+          "fault_injection",
+          "mirroring",
+          "rate_limit",
+          "retry",
+          "routing",
+          "timeout",
+          "traffic_split"
+        ]
+      }
+    }
+  }
+}

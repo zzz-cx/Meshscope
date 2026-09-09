@@ -1,0 +1,58 @@
+# F8 Partial timeout propagation — edge hop timeout only; mid-tier unbounded
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: productpage-f8
+  namespace: default
+  annotations:
+    configpilot.intent/timeout_chain: "partial"
+spec:
+  hosts:
+  - productpage.default.svc.cluster.local
+  http:
+  - route:
+    - destination:
+        host: reviews.default.svc.cluster.local
+        subset: v1
+      weight: 100
+    timeout: 50ms
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: reviews-f8
+  namespace: default
+spec:
+  hosts:
+  - reviews.default.svc.cluster.local
+  http:
+  - route:
+    - destination:
+        host: ratings.default.svc.cluster.local
+        subset: v1
+      weight: 100
+    # no timeout — partial propagation gap
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: reviews-f8
+  namespace: default
+spec:
+  host: reviews.default.svc.cluster.local
+  subsets:
+  - name: v1
+    labels:
+      version: v1
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: ratings-f8
+  namespace: default
+spec:
+  host: ratings.default.svc.cluster.local
+  subsets:
+  - name: v1
+    labels:
+      version: v1

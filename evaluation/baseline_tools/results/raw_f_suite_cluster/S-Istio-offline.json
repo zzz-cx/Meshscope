@@ -1,0 +1,341 @@
+{
+  "method": "S-Istio-offline",
+  "results": [
+    {
+      "method": "S-Istio-offline",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F10_runtime_policy_gap.yaml",
+      "detected_faults": [],
+      "raw": {
+        "returncode": 0,
+        "stdout": "[]\n",
+        "stderr": "\u2714 No validation issues found when analyzing /tmp/baseline_2lc67sf6.yaml.\n",
+        "mode": "offline",
+        "istioctl": "/root/configPilot/cluster/istio-1.24.6/bin/istioctl"
+      },
+      "t_detect_sec": 0.0353,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "S-Istio-offline",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F1_missing_subset.yaml",
+      "detected_faults": [
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F1_missing_subset.yaml",
+          "fault_type": "missing_subset",
+          "confidence": 0.9,
+          "description": "Referenced host+subset in destinationrule not found: \"reviews.default.svc.cluster.local+v4\"",
+          "details": {
+            "tool": "istioctl",
+            "code": "IST0101",
+            "level": "Error",
+            "mode": "offline"
+          },
+          "detection_time": "2026-07-29T17:20:19.646442"
+        }
+      ],
+      "raw": {
+        "returncode": 0,
+        "stdout": "[\n\t{\n\t\t\"code\": \"IST0101\",\n\t\t\"documentationUrl\": \"https://istio.io/v1.24/docs/reference/config/analysis/ist0101/?ref=istioctl-analyze\",\n\t\t\"level\": \"Error\",\n\t\t\"message\": \"Referenced host+subset in destinationrule not found: \\\"reviews.default.svc.cluster.local+v4\\\"\",\n\t\t\"origin\": \"VirtualService default/reviews-f1\",\n\t\t\"reference\": \"/tmp/baseline_bvogs23n.yaml:13\"\n\t}\n]\n",
+        "stderr": "",
+        "mode": "offline",
+        "istioctl": "/root/configPilot/cluster/istio-1.24.6/bin/istioctl"
+      },
+      "t_detect_sec": 0.0334,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "S-Istio-offline",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F2_authorization_conflict.yaml",
+      "detected_faults": [
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F2_authorization_conflict.yaml",
+          "fault_type": "authorization_conflict",
+          "confidence": 0.75,
+          "description": "Schema validation warning: configured AuthorizationPolicy will deny all traffic to TCP ports under its scope due to the use of only HTTP attributes in a DENY rule; it is recommended to explicitly specify the port",
+          "details": {
+            "tool": "istioctl",
+            "code": "IST0133",
+            "level": "Warning",
+            "mode": "offline"
+          },
+          "detection_time": "2026-07-29T17:20:19.681917"
+        }
+      ],
+      "raw": {
+        "returncode": 0,
+        "stdout": "[\n\t{\n\t\t\"code\": \"IST0133\",\n\t\t\"documentationUrl\": \"https://istio.io/v1.24/docs/reference/config/analysis/ist0133/?ref=istioctl-analyze\",\n\t\t\"level\": \"Warning\",\n\t\t\"message\": \"Schema validation warning: configured AuthorizationPolicy will deny all traffic to TCP ports under its scope due to the use of only HTTP attributes in a DENY rule; it is recommended to explicitly specify the port\",\n\t\t\"origin\": \"AuthorizationPolicy default/reviews-deny-productpage\",\n\t\t\"reference\": \"/tmp/baseline_smahx10f.yaml:17\"\n\t}\n]\n",
+        "stderr": "",
+        "mode": "offline",
+        "istioctl": "/root/configPilot/cluster/istio-1.24.6/bin/istioctl"
+      },
+      "t_detect_sec": 0.0354,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "S-Istio-offline",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F3_mtls_inconsistent.yaml",
+      "detected_faults": [],
+      "raw": {
+        "returncode": 0,
+        "stdout": "[]\n",
+        "stderr": "\u2714 No validation issues found when analyzing /tmp/baseline_2ayffdwh.yaml.\n",
+        "mode": "offline",
+        "istioctl": "/root/configPilot/cluster/istio-1.24.6/bin/istioctl"
+      },
+      "t_detect_sec": 0.0329,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "S-Istio-offline",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F4_timeout_mismatch.yaml",
+      "detected_faults": [],
+      "raw": {
+        "returncode": 0,
+        "stdout": "[]\n",
+        "stderr": "\u2714 No validation issues found when analyzing /tmp/baseline_bx54xk72.yaml.\n",
+        "mode": "offline",
+        "istioctl": "/root/configPilot/cluster/istio-1.24.6/bin/istioctl"
+      },
+      "t_detect_sec": 0.0315,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "S-Istio-offline",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F5_traffic_split_drift.yaml",
+      "detected_faults": [],
+      "raw": {
+        "returncode": 0,
+        "stdout": "[]\n",
+        "stderr": "\u2714 No validation issues found when analyzing /tmp/baseline_rw3jjnoe.yaml.\n",
+        "mode": "offline",
+        "istioctl": "/root/configPilot/cluster/istio-1.24.6/bin/istioctl"
+      },
+      "t_detect_sec": 0.0338,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "S-Istio-offline",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F6_retry_omission.yaml",
+      "detected_faults": [],
+      "raw": {
+        "returncode": 0,
+        "stdout": "[]\n",
+        "stderr": "\u2714 No validation issues found when analyzing /tmp/baseline_ne3x0a5w.yaml.\n",
+        "mode": "offline",
+        "istioctl": "/root/configPilot/cluster/istio-1.24.6/bin/istioctl"
+      },
+      "t_detect_sec": 0.0322,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "S-Istio-offline",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F7_circuit_breaker_ineffective.yaml",
+      "detected_faults": [],
+      "raw": {
+        "returncode": 0,
+        "stdout": "[]\n",
+        "stderr": "\u2714 No validation issues found when analyzing /tmp/baseline_h2t4yu0p.yaml.\n",
+        "mode": "offline",
+        "istioctl": "/root/configPilot/cluster/istio-1.24.6/bin/istioctl"
+      },
+      "t_detect_sec": 0.0311,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "S-Istio-offline",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F8_partial_timeout_propagation.yaml",
+      "detected_faults": [],
+      "raw": {
+        "returncode": 0,
+        "stdout": "[]\n",
+        "stderr": "\u2714 No validation issues found when analyzing /tmp/baseline_91518274.yaml.\n",
+        "mode": "offline",
+        "istioctl": "/root/configPilot/cluster/istio-1.24.6/bin/istioctl"
+      },
+      "t_detect_sec": 0.0327,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "S-Istio-offline",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F9_incorrect_routing_dependency.yaml",
+      "detected_faults": [],
+      "raw": {
+        "returncode": 0,
+        "stdout": "[]\n",
+        "stderr": "\u2714 No validation issues found when analyzing /tmp/baseline_2el2t13r.yaml.\n",
+        "mode": "offline",
+        "istioctl": "/root/configPilot/cluster/istio-1.24.6/bin/istioctl"
+      },
+      "t_detect_sec": 0.0341,
+      "error": null,
+      "available": true
+    }
+  ],
+  "metrics": {
+    "overall": {
+      "precision": 1.0,
+      "recall": 0.2,
+      "f1": 0.3333,
+      "accuracy": 0.2,
+      "tp": 2,
+      "fp": 0,
+      "fn": 8,
+      "tn": 0
+    },
+    "stratified_recall": {
+      "static_only": 0.6667,
+      "dynamic_only": 0.0,
+      "both": 0.0
+    },
+    "stratified": {
+      "static_only": {
+        "precision": 1.0,
+        "recall": 0.6667,
+        "f1": 0.8,
+        "accuracy": 0.6667,
+        "tp": 2,
+        "fp": 0,
+        "fn": 1,
+        "tn": 0
+      },
+      "dynamic_only": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "accuracy": 0.0,
+        "tp": 0,
+        "fp": 0,
+        "fn": 4,
+        "tn": 0
+      },
+      "both": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "accuracy": 0.0,
+        "tp": 0,
+        "fp": 0,
+        "fn": 3,
+        "tn": 0
+      }
+    },
+    "t_detect_avg_sec": 0.0332,
+    "t_detect_sum_sec": 0.3324,
+    "n_samples": 10,
+    "rows": [
+      {
+        "sample": "f_suite/F10_runtime_policy_gap.yaml",
+        "detectability": "dynamic_only",
+        "gt_fault": "policy_enforcement_gap",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.0353,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "f_suite/F1_missing_subset.yaml",
+        "detectability": "static_only",
+        "gt_fault": "missing_subset",
+        "detected": [
+          "missing_subset"
+        ],
+        "label": "TP",
+        "t_detect_sec": 0.0334,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "f_suite/F2_authorization_conflict.yaml",
+        "detectability": "static_only",
+        "gt_fault": "authorization_conflict",
+        "detected": [
+          "authorization_conflict"
+        ],
+        "label": "TP",
+        "t_detect_sec": 0.0354,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "f_suite/F3_mtls_inconsistent.yaml",
+        "detectability": "both",
+        "gt_fault": "mtls_inconsistency",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.0329,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "f_suite/F4_timeout_mismatch.yaml",
+        "detectability": "both",
+        "gt_fault": "timeout_error",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.0315,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "f_suite/F5_traffic_split_drift.yaml",
+        "detectability": "both",
+        "gt_fault": "weight_error",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.0338,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "f_suite/F6_retry_omission.yaml",
+        "detectability": "dynamic_only",
+        "gt_fault": "retry_policy_error",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.0322,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "f_suite/F7_circuit_breaker_ineffective.yaml",
+        "detectability": "dynamic_only",
+        "gt_fault": "circuit_breaker_error",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.0311,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "f_suite/F8_partial_timeout_propagation.yaml",
+        "detectability": "dynamic_only",
+        "gt_fault": "timeout_propagation",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.0327,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "f_suite/F9_incorrect_routing_dependency.yaml",
+        "detectability": "static_only",
+        "gt_fault": "missing_service_ref",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.0341,
+        "available": true,
+        "error": null
+      }
+    ]
+  }
+}

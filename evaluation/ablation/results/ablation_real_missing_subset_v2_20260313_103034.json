@@ -1,0 +1,121 @@
+{
+  "case_name": "missing_subset_v2",
+  "ground_truth": {
+    "has_fault": true,
+    "fault_types": [
+      "missing_subset"
+    ],
+    "description": "VS -> subset v2, DR only defines v1",
+    "namespace": "default"
+  },
+  "static_result": {
+    "method": "static_real",
+    "has_fault": true,
+    "fault_types": [
+      "missing_subset",
+      "weight_mismatch",
+      "extra_in_data_plane",
+      "missing_in_data_plane"
+    ],
+    "detected_faults": [
+      {
+        "fault_type": "missing_in_data_plane",
+        "severity": "high",
+        "description": "控制平面定义的服务在数据平面中缺失: {'bookinfo'}",
+        "details": {
+          "type": "missing_in_data_plane",
+          "severity": "high",
+          "services": [
+            "bookinfo"
+          ],
+          "description": "控制平面定义的服务在数据平面中缺失: {'bookinfo'}"
+        }
+      },
+      {
+        "fault_type": "extra_in_data_plane",
+        "severity": "medium",
+        "description": "数据平面存在控制平面未定义的服务: {'kiali', 'currencyservice', '*', 'frontend', 'checkoutservice', 'istio-ingressgateway', 'istiod', 'paymentservice', 'sleep', 'productcatalogservice', 'adservice', 'recommendationservice', 'ratings', 'shippingservice', 'details', 'metadata', 'cartservice', 'prometheus', 'emailservice', 'accounts'}",
+        "details": {
+          "type": "extra_in_data_plane",
+          "severity": "medium",
+          "services": [
+            "kiali",
+            "currencyservice",
+            "*",
+            "frontend",
+            "checkoutservice",
+            "istio-ingressgateway",
+            "istiod",
+            "paymentservice",
+            "sleep",
+            "productcatalogservice",
+            "adservice",
+            "recommendationservice",
+            "ratings",
+            "shippingservice",
+            "details",
+            "metadata",
+            "cartservice",
+            "prometheus",
+            "emailservice",
+            "accounts"
+          ],
+          "description": "数据平面存在控制平面未定义的服务: {'kiali', 'currencyservice', '*', 'frontend', 'checkoutservice', 'istio-ingressgateway', 'istiod', 'paymentservice', 'sleep', 'productcatalogservice', 'adservice', 'recommendationservice', 'ratings', 'shippingservice', 'details', 'metadata', 'cartservice', 'prometheus', 'emailservice', 'accounts'}"
+        }
+      },
+      {
+        "fault_type": "weight_mismatch",
+        "severity": "high",
+        "description": "服务 reviews 的流量权重配置不一致",
+        "details": {
+          "type": "weight_mismatch",
+          "severity": "high",
+          "service": "reviews",
+          "control_plane": {
+            "v1": {
+              "weight": 20,
+              "namespace": "default"
+            },
+            "v2": {
+              "weight": 80,
+              "namespace": "default"
+            }
+          },
+          "data_plane": {
+            "v1": 20,
+            "v2": 80
+          },
+          "description": "服务 reviews 的流量权重配置不一致"
+        }
+      },
+      {
+        "fault_type": "missing_subset",
+        "severity": "high",
+        "description": "VirtualService 'productpage' 引用了 subset 'v1'，但 DestinationRule 中只定义了 (无)",
+        "details": {
+          "type": "missing_subset",
+          "severity": "high",
+          "service": "productpage",
+          "virtualservice": "productpage",
+          "missing_subset": "v1",
+          "available_subsets": [],
+          "description": "VirtualService 'productpage' 引用了 subset 'v1'，但 DestinationRule 中只定义了 (无)"
+        }
+      },
+      {
+        "fault_type": "missing_subset",
+        "severity": "high",
+        "description": "VirtualService 'productpage' 引用了 subset 'v2'，但 DestinationRule 中只定义了 (无)",
+        "details": {
+          "type": "missing_subset",
+          "severity": "high",
+          "service": "productpage",
+          "virtualservice": "productpage",
+          "missing_subset": "v2",
+          "available_subsets": [],
+          "description": "VirtualService 'productpage' 引用了 subset 'v2'，但 DestinationRule 中只定义了 (无)"
+        }
+      }
+    ]
+  }
+}

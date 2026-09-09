@@ -1,0 +1,23 @@
+============================================================
+Istio 动态验证报告
+============================================================
+
+[SKIP] case_001: 熔断 cartservice (10.0s)
+
+[SKIP] case_002: 熔断 currencyservice (10.0s)
+
+[SKIP] case_003: 熔断 adservice (10.0s)
+
+[SKIP] case_004: 流量分配 adservice (10.0s)
+
+[SKIP] case_005: 熔断 reviews (10.0s)
+
+[SKIP] case_006: 熔断 productpage (10.0s)
+
+[SKIP] case_007: 熔断 frontend (10.0s)
+
+[SKIP] case_008: 熔断 recommendationservice (10.0s)
+
+------------------------------------------------------------
+总计: 8  通过: 0  失败: 0  警告: 0
+通过率: 0.0%

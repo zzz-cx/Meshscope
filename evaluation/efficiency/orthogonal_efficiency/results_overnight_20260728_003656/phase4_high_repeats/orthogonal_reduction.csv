@@ -1,0 +1,5 @@
+mode,n_services,config_level,config_label,n_config_items,n_effect_types,n_validation_units,exhaustive_cases,orthogonal_cases,reduction_pct,n_runs,exh_validation_s_mean,exh_validation_s_std,ortho_validation_s_mean,ortho_validation_s_std,time_reduction_pct_mean,time_reduction_pct_std,fault_set_size,dr_before_pct,dr_after_pct,delta_detection_pct,coverage_preserved,max_bundle_size,base_url,namespace,exh_success_rate_pct_last,ortho_success_rate_pct_last
+cluster,10,C4,full,225,17,170,170,46,72.94,8,133.88,0.261,40.731,0.143,69.576,0.081,170,100.0,100.0,0.0,True,4,http://192.168.1.69:31605,meshscope-ortho-n10,100.0,100.0
+cluster,10,C5,full+mirror+authz,295,20,200,200,54,73.0,8,156.224,0.13,46.85,0.09,70.011,0.038,200,100.0,100.0,0.0,True,4,http://192.168.1.69:31605,meshscope-ortho-n10,100.0,100.0
+cluster,15,C4,full,338,17,255,255,67,73.73,8,201.458,0.635,60.415,0.319,70.011,0.143,255,100.0,100.0,0.0,True,4,http://192.168.1.69:31605,meshscope-ortho-n15,100.0,100.0
+cluster,15,C5,full+mirror+authz,443,20,300,300,79,73.67,8,235.492,0.459,70.228,0.256,70.178,0.118,300,100.0,100.0,0.0,True,4,http://192.168.1.69:31605,meshscope-ortho-n15,100.0,100.0

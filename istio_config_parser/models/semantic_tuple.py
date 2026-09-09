@@ -255,7 +255,12 @@ def _numeric_pairs(obj: Any, prefix: str = "") -> List[Tuple[str, float]]:
     return pairs
 
 
-def compare_tuples(control: SemanticTuple, data: SemanticTuple, tau: float = 0.1) -> List[Dict[str, Any]]:
+def compare_tuples(
+    control: SemanticTuple,
+    data: SemanticTuple,
+    tau: float = 0.1,
+    timeout_abs: float = 0.0,
+) -> List[Dict[str, Any]]:
     diffs: List[Dict[str, Any]] = []
     if _clean(control.predicate) != _clean(data.predicate):
         diffs.append({
@@ -307,7 +312,10 @@ def compare_tuples(control: SemanticTuple, data: SemanticTuple, tau: float = 0.1
             })
             continue
         denom = max(abs(cv), 1.0)
-        if abs(cv - dv) / denom > tau:
+        abs_delta = abs(cv - dv)
+        if "timeout" in str(key).lower() and timeout_abs > 0 and abs_delta <= timeout_abs:
+            continue
+        if abs_delta / denom > tau:
             diffs.append({
                 "kind": "constraint",
                 "field": key,

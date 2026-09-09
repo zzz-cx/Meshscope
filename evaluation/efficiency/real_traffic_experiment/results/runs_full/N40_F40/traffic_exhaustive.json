@@ -1,0 +1,1285 @@
+{
+  "base_url": "http://192.168.1.69:31605",
+  "method": "exhaustive",
+  "num_cases": 56,
+  "num_ok": 56,
+  "success_rate_pct": 100.0,
+  "runtime_s": 0.461,
+  "branch_coverage_pct": 100.0,
+  "covered_branches": 56,
+  "total_branches": 56,
+  "results": [
+    {
+      "case_id": "exh_f6_routing_match",
+      "method": "exhaustive",
+      "feature_id": 6,
+      "feature_type": "routing",
+      "branch_id": "routing_match",
+      "path": "/s11/route-6/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0152,
+      "covered_branches": [
+        "f6:routing_match"
+      ]
+    },
+    {
+      "case_id": "exh_f1_routing_match",
+      "method": "exhaustive",
+      "feature_id": 1,
+      "feature_type": "routing",
+      "branch_id": "routing_match",
+      "path": "/s10/route-1/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0251,
+      "covered_branches": [
+        "f1:routing_match"
+      ]
+    },
+    {
+      "case_id": "exh_f1_routing_default",
+      "method": "exhaustive",
+      "feature_id": 1,
+      "feature_type": "routing",
+      "branch_id": "routing_default",
+      "path": "/s10/route-1/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.026,
+      "covered_branches": [
+        "f1:routing_default"
+      ]
+    },
+    {
+      "case_id": "exh_f4_retry_ok",
+      "method": "exhaustive",
+      "feature_id": 4,
+      "feature_type": "retry",
+      "branch_id": "retry_ok",
+      "path": "/s19/retry-4/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0256,
+      "covered_branches": [
+        "f4:retry_ok"
+      ]
+    },
+    {
+      "case_id": "exh_f3_cb_normal",
+      "method": "exhaustive",
+      "feature_id": 3,
+      "feature_type": "circuit_breaker",
+      "branch_id": "cb_normal",
+      "path": "/s33/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0278,
+      "covered_branches": [
+        "f3:cb_normal"
+      ]
+    },
+    {
+      "case_id": "exh_f6_routing_default",
+      "method": "exhaustive",
+      "feature_id": 6,
+      "feature_type": "routing",
+      "branch_id": "routing_default",
+      "path": "/s11/route-6/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0147,
+      "covered_branches": [
+        "f6:routing_default"
+      ]
+    },
+    {
+      "case_id": "exh_f5_rl_under_limit",
+      "method": "exhaustive",
+      "feature_id": 5,
+      "feature_type": "rate_limit",
+      "branch_id": "rl_under_limit",
+      "path": "/s12/rl-5/",
+      "repeat": 3,
+      "statuses": [
+        200,
+        200,
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0136,
+      "covered_branches": [
+        "f5:rl_under_limit"
+      ]
+    },
+    {
+      "case_id": "exh_f8_cb_normal",
+      "method": "exhaustive",
+      "feature_id": 8,
+      "feature_type": "circuit_breaker",
+      "branch_id": "cb_normal",
+      "path": "/s11/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0223,
+      "covered_branches": [
+        "f8:cb_normal"
+      ]
+    },
+    {
+      "case_id": "exh_f9_retry_ok",
+      "method": "exhaustive",
+      "feature_id": 9,
+      "feature_type": "retry",
+      "branch_id": "retry_ok",
+      "path": "/s3/retry-9/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0242,
+      "covered_branches": [
+        "f9:retry_ok"
+      ]
+    },
+    {
+      "case_id": "exh_f11_routing_match",
+      "method": "exhaustive",
+      "feature_id": 11,
+      "feature_type": "routing",
+      "branch_id": "routing_match",
+      "path": "/s31/route-11/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0164,
+      "covered_branches": [
+        "f11:routing_match"
+      ]
+    },
+    {
+      "case_id": "exh_f11_routing_default",
+      "method": "exhaustive",
+      "feature_id": 11,
+      "feature_type": "routing",
+      "branch_id": "routing_default",
+      "path": "/s31/route-11/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0125,
+      "covered_branches": [
+        "f11:routing_default"
+      ]
+    },
+    {
+      "case_id": "exh_f10_rl_under_limit",
+      "method": "exhaustive",
+      "feature_id": 10,
+      "feature_type": "rate_limit",
+      "branch_id": "rl_under_limit",
+      "path": "/s28/rl-10/",
+      "repeat": 3,
+      "statuses": [
+        200,
+        200,
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0127,
+      "covered_branches": [
+        "f10:rl_under_limit"
+      ]
+    },
+    {
+      "case_id": "exh_f13_cb_normal",
+      "method": "exhaustive",
+      "feature_id": 13,
+      "feature_type": "circuit_breaker",
+      "branch_id": "cb_normal",
+      "path": "/s7/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0172,
+      "covered_branches": [
+        "f13:cb_normal"
+      ]
+    },
+    {
+      "case_id": "exh_f14_retry_ok",
+      "method": "exhaustive",
+      "feature_id": 14,
+      "feature_type": "retry",
+      "branch_id": "retry_ok",
+      "path": "/s13/retry-14/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.018,
+      "covered_branches": [
+        "f14:retry_ok"
+      ]
+    },
+    {
+      "case_id": "exh_f16_routing_match",
+      "method": "exhaustive",
+      "feature_id": 16,
+      "feature_type": "routing",
+      "branch_id": "routing_match",
+      "path": "/s36/route-16/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0156,
+      "covered_branches": [
+        "f16:routing_match"
+      ]
+    },
+    {
+      "case_id": "exh_f15_rl_under_limit",
+      "method": "exhaustive",
+      "feature_id": 15,
+      "feature_type": "rate_limit",
+      "branch_id": "rl_under_limit",
+      "path": "/s20/rl-15/",
+      "repeat": 3,
+      "statuses": [
+        200,
+        200,
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0115,
+      "covered_branches": [
+        "f15:rl_under_limit"
+      ]
+    },
+    {
+      "case_id": "exh_f16_routing_default",
+      "method": "exhaustive",
+      "feature_id": 16,
+      "feature_type": "routing",
+      "branch_id": "routing_default",
+      "path": "/s36/route-16/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0249,
+      "covered_branches": [
+        "f16:routing_default"
+      ]
+    },
+    {
+      "case_id": "exh_f18_cb_normal",
+      "method": "exhaustive",
+      "feature_id": 18,
+      "feature_type": "circuit_breaker",
+      "branch_id": "cb_normal",
+      "path": "/s8/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0213,
+      "covered_branches": [
+        "f18:cb_normal"
+      ]
+    },
+    {
+      "case_id": "exh_f19_retry_ok",
+      "method": "exhaustive",
+      "feature_id": 19,
+      "feature_type": "retry",
+      "branch_id": "retry_ok",
+      "path": "/s31/retry-19/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0081,
+      "covered_branches": [
+        "f19:retry_ok"
+      ]
+    },
+    {
+      "case_id": "exh_f5_rl_burst",
+      "method": "exhaustive",
+      "feature_id": 5,
+      "feature_type": "rate_limit",
+      "branch_id": "rl_burst",
+      "path": "/s12/rl-5/",
+      "repeat": 20,
+      "statuses": [
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0092,
+      "covered_branches": [
+        "f5:rl_burst"
+      ]
+    },
+    {
+      "case_id": "exh_f7_split_sample",
+      "method": "exhaustive",
+      "feature_id": 7,
+      "feature_type": "traffic_shifting",
+      "branch_id": "split_sample",
+      "path": "/s17/split-7/",
+      "repeat": 20,
+      "statuses": [
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0082,
+      "covered_branches": [
+        "f7:split_sample"
+      ]
+    },
+    {
+      "case_id": "exh_f20_rl_under_limit",
+      "method": "exhaustive",
+      "feature_id": 20,
+      "feature_type": "rate_limit",
+      "branch_id": "rl_under_limit",
+      "path": "/s6/rl-20/",
+      "repeat": 3,
+      "statuses": [
+        200,
+        200,
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0141,
+      "covered_branches": [
+        "f20:rl_under_limit"
+      ]
+    },
+    {
+      "case_id": "exh_f2_split_sample",
+      "method": "exhaustive",
+      "feature_id": 2,
+      "feature_type": "traffic_shifting",
+      "branch_id": "split_sample",
+      "path": "/s32/split-2/",
+      "repeat": 20,
+      "statuses": [
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0097,
+      "covered_branches": [
+        "f2:split_sample"
+      ]
+    },
+    {
+      "case_id": "exh_f21_routing_match",
+      "method": "exhaustive",
+      "feature_id": 21,
+      "feature_type": "routing",
+      "branch_id": "routing_match",
+      "path": "/s21/route-21/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.013,
+      "covered_branches": [
+        "f21:routing_match"
+      ]
+    },
+    {
+      "case_id": "exh_f21_routing_default",
+      "method": "exhaustive",
+      "feature_id": 21,
+      "feature_type": "routing",
+      "branch_id": "routing_default",
+      "path": "/s21/route-21/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0164,
+      "covered_branches": [
+        "f21:routing_default"
+      ]
+    },
+    {
+      "case_id": "exh_f23_cb_normal",
+      "method": "exhaustive",
+      "feature_id": 23,
+      "feature_type": "circuit_breaker",
+      "branch_id": "cb_normal",
+      "path": "/s32/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0065,
+      "covered_branches": [
+        "f23:cb_normal"
+      ]
+    },
+    {
+      "case_id": "exh_f10_rl_burst",
+      "method": "exhaustive",
+      "feature_id": 10,
+      "feature_type": "rate_limit",
+      "branch_id": "rl_burst",
+      "path": "/s28/rl-10/",
+      "repeat": 20,
+      "statuses": [
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0087,
+      "covered_branches": [
+        "f10:rl_burst"
+      ]
+    },
+    {
+      "case_id": "exh_f24_retry_ok",
+      "method": "exhaustive",
+      "feature_id": 24,
+      "feature_type": "retry",
+      "branch_id": "retry_ok",
+      "path": "/s6/retry-24/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0043,
+      "covered_branches": [
+        "f24:retry_ok"
+      ]
+    },
+    {
+      "case_id": "exh_f26_routing_match",
+      "method": "exhaustive",
+      "feature_id": 26,
+      "feature_type": "routing",
+      "branch_id": "routing_match",
+      "path": "/s12/route-26/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0125,
+      "covered_branches": [
+        "f26:routing_match"
+      ]
+    },
+    {
+      "case_id": "exh_f12_split_sample",
+      "method": "exhaustive",
+      "feature_id": 12,
+      "feature_type": "traffic_shifting",
+      "branch_id": "split_sample",
+      "path": "/s38/split-12/",
+      "repeat": 20,
+      "statuses": [
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0088,
+      "covered_branches": [
+        "f12:split_sample"
+      ]
+    },
+    {
+      "case_id": "exh_f25_rl_under_limit",
+      "method": "exhaustive",
+      "feature_id": 25,
+      "feature_type": "rate_limit",
+      "branch_id": "rl_under_limit",
+      "path": "/s32/rl-25/",
+      "repeat": 3,
+      "statuses": [
+        200,
+        200,
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0066,
+      "covered_branches": [
+        "f25:rl_under_limit"
+      ]
+    },
+    {
+      "case_id": "exh_f26_routing_default",
+      "method": "exhaustive",
+      "feature_id": 26,
+      "feature_type": "routing",
+      "branch_id": "routing_default",
+      "path": "/s12/route-26/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0087,
+      "covered_branches": [
+        "f26:routing_default"
+      ]
+    },
+    {
+      "case_id": "exh_f29_retry_ok",
+      "method": "exhaustive",
+      "feature_id": 29,
+      "feature_type": "retry",
+      "branch_id": "retry_ok",
+      "path": "/s23/retry-29/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0043,
+      "covered_branches": [
+        "f29:retry_ok"
+      ]
+    },
+    {
+      "case_id": "exh_f28_cb_normal",
+      "method": "exhaustive",
+      "feature_id": 28,
+      "feature_type": "circuit_breaker",
+      "branch_id": "cb_normal",
+      "path": "/s16/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0161,
+      "covered_branches": [
+        "f28:cb_normal"
+      ]
+    },
+    {
+      "case_id": "exh_f15_rl_burst",
+      "method": "exhaustive",
+      "feature_id": 15,
+      "feature_type": "rate_limit",
+      "branch_id": "rl_burst",
+      "path": "/s20/rl-15/",
+      "repeat": 20,
+      "statuses": [
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0085,
+      "covered_branches": [
+        "f15:rl_burst"
+      ]
+    },
+    {
+      "case_id": "exh_f31_routing_match",
+      "method": "exhaustive",
+      "feature_id": 31,
+      "feature_type": "routing",
+      "branch_id": "routing_match",
+      "path": "/s2/route-31/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0142,
+      "covered_branches": [
+        "f31:routing_match"
+      ]
+    },
+    {
+      "case_id": "exh_f30_rl_under_limit",
+      "method": "exhaustive",
+      "feature_id": 30,
+      "feature_type": "rate_limit",
+      "branch_id": "rl_under_limit",
+      "path": "/s20/rl-30/",
+      "repeat": 3,
+      "statuses": [
+        200,
+        200,
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0075,
+      "covered_branches": [
+        "f30:rl_under_limit"
+      ]
+    },
+    {
+      "case_id": "exh_f31_routing_default",
+      "method": "exhaustive",
+      "feature_id": 31,
+      "feature_type": "routing",
+      "branch_id": "routing_default",
+      "path": "/s2/route-31/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0188,
+      "covered_branches": [
+        "f31:routing_default"
+      ]
+    },
+    {
+      "case_id": "exh_f33_cb_normal",
+      "method": "exhaustive",
+      "feature_id": 33,
+      "feature_type": "circuit_breaker",
+      "branch_id": "cb_normal",
+      "path": "/s24/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0171,
+      "covered_branches": [
+        "f33:cb_normal"
+      ]
+    },
+    {
+      "case_id": "exh_f17_split_sample",
+      "method": "exhaustive",
+      "feature_id": 17,
+      "feature_type": "traffic_shifting",
+      "branch_id": "split_sample",
+      "path": "/s9/split-17/",
+      "repeat": 20,
+      "statuses": [
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0102,
+      "covered_branches": [
+        "f17:split_sample"
+      ]
+    },
+    {
+      "case_id": "exh_f34_retry_ok",
+      "method": "exhaustive",
+      "feature_id": 34,
+      "feature_type": "retry",
+      "branch_id": "retry_ok",
+      "path": "/s36/retry-34/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0117,
+      "covered_branches": [
+        "f34:retry_ok"
+      ]
+    },
+    {
+      "case_id": "exh_f20_rl_burst",
+      "method": "exhaustive",
+      "feature_id": 20,
+      "feature_type": "rate_limit",
+      "branch_id": "rl_burst",
+      "path": "/s6/rl-20/",
+      "repeat": 20,
+      "statuses": [
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0066,
+      "covered_branches": [
+        "f20:rl_burst"
+      ]
+    },
+    {
+      "case_id": "exh_f36_routing_match",
+      "method": "exhaustive",
+      "feature_id": 36,
+      "feature_type": "routing",
+      "branch_id": "routing_match",
+      "path": "/s27/route-36/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0121,
+      "covered_branches": [
+        "f36:routing_match"
+      ]
+    },
+    {
+      "case_id": "exh_f35_rl_under_limit",
+      "method": "exhaustive",
+      "feature_id": 35,
+      "feature_type": "rate_limit",
+      "branch_id": "rl_under_limit",
+      "path": "/s29/rl-35/",
+      "repeat": 3,
+      "statuses": [
+        200,
+        200,
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0105,
+      "covered_branches": [
+        "f35:rl_under_limit"
+      ]
+    },
+    {
+      "case_id": "exh_f36_routing_default",
+      "method": "exhaustive",
+      "feature_id": 36,
+      "feature_type": "routing",
+      "branch_id": "routing_default",
+      "path": "/s27/route-36/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0163,
+      "covered_branches": [
+        "f36:routing_default"
+      ]
+    },
+    {
+      "case_id": "exh_f38_cb_normal",
+      "method": "exhaustive",
+      "feature_id": 38,
+      "feature_type": "circuit_breaker",
+      "branch_id": "cb_normal",
+      "path": "/s19/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0132,
+      "covered_branches": [
+        "f38:cb_normal"
+      ]
+    },
+    {
+      "case_id": "exh_f25_rl_burst",
+      "method": "exhaustive",
+      "feature_id": 25,
+      "feature_type": "rate_limit",
+      "branch_id": "rl_burst",
+      "path": "/s32/rl-25/",
+      "repeat": 20,
+      "statuses": [
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0077,
+      "covered_branches": [
+        "f25:rl_burst"
+      ]
+    },
+    {
+      "case_id": "exh_f39_retry_ok",
+      "method": "exhaustive",
+      "feature_id": 39,
+      "feature_type": "retry",
+      "branch_id": "retry_ok",
+      "path": "/s26/retry-39/",
+      "repeat": 1,
+      "statuses": [
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0148,
+      "covered_branches": [
+        "f39:retry_ok"
+      ]
+    },
+    {
+      "case_id": "exh_f40_rl_under_limit",
+      "method": "exhaustive",
+      "feature_id": 40,
+      "feature_type": "rate_limit",
+      "branch_id": "rl_under_limit",
+      "path": "/s17/rl-40/",
+      "repeat": 3,
+      "statuses": [
+        200,
+        200,
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0062,
+      "covered_branches": [
+        "f40:rl_under_limit"
+      ]
+    },
+    {
+      "case_id": "exh_f22_split_sample",
+      "method": "exhaustive",
+      "feature_id": 22,
+      "feature_type": "traffic_shifting",
+      "branch_id": "split_sample",
+      "path": "/s23/split-22/",
+      "repeat": 20,
+      "statuses": [
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0096,
+      "covered_branches": [
+        "f22:split_sample"
+      ]
+    },
+    {
+      "case_id": "exh_f27_split_sample",
+      "method": "exhaustive",
+      "feature_id": 27,
+      "feature_type": "traffic_shifting",
+      "branch_id": "split_sample",
+      "path": "/s1/split-27/",
+      "repeat": 20,
+      "statuses": [
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0082,
+      "covered_branches": [
+        "f27:split_sample"
+      ]
+    },
+    {
+      "case_id": "exh_f30_rl_burst",
+      "method": "exhaustive",
+      "feature_id": 30,
+      "feature_type": "rate_limit",
+      "branch_id": "rl_burst",
+      "path": "/s20/rl-30/",
+      "repeat": 20,
+      "statuses": [
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0074,
+      "covered_branches": [
+        "f30:rl_burst"
+      ]
+    },
+    {
+      "case_id": "exh_f32_split_sample",
+      "method": "exhaustive",
+      "feature_id": 32,
+      "feature_type": "traffic_shifting",
+      "branch_id": "split_sample",
+      "path": "/s35/split-32/",
+      "repeat": 20,
+      "statuses": [
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0077,
+      "covered_branches": [
+        "f32:split_sample"
+      ]
+    },
+    {
+      "case_id": "exh_f35_rl_burst",
+      "method": "exhaustive",
+      "feature_id": 35,
+      "feature_type": "rate_limit",
+      "branch_id": "rl_burst",
+      "path": "/s29/rl-35/",
+      "repeat": 20,
+      "statuses": [
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0065,
+      "covered_branches": [
+        "f35:rl_burst"
+      ]
+    },
+    {
+      "case_id": "exh_f37_split_sample",
+      "method": "exhaustive",
+      "feature_id": 37,
+      "feature_type": "traffic_shifting",
+      "branch_id": "split_sample",
+      "path": "/s25/split-37/",
+      "repeat": 20,
+      "statuses": [
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0057,
+      "covered_branches": [
+        "f37:split_sample"
+      ]
+    },
+    {
+      "case_id": "exh_f40_rl_burst",
+      "method": "exhaustive",
+      "feature_id": 40,
+      "feature_type": "rate_limit",
+      "branch_id": "rl_burst",
+      "path": "/s17/rl-40/",
+      "repeat": 20,
+      "statuses": [
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "ok": true,
+      "avg_latency_s": 0.0041,
+      "covered_branches": [
+        "f40:rl_burst"
+      ]
+    }
+  ]
+}

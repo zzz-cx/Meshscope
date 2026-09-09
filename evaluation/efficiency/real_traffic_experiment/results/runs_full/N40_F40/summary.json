@@ -1,0 +1,90 @@
+{
+  "namespace": "meshscope-exp-n40",
+  "n_services": 40,
+  "n_features": 40,
+  "generation": {
+    "exhaustive": {
+      "total_branches": 56,
+      "covered_branches": 56,
+      "coverage_pct": 100.0,
+      "num_cases": 56,
+      "uncovered": []
+    },
+    "orthogonal": {
+      "total_branches": 56,
+      "covered_branches": 13,
+      "coverage_pct": 23.21,
+      "num_cases": 13,
+      "uncovered": [
+        "f10:rl_burst",
+        "f11:routing_default",
+        "f14:retry_ok",
+        "f15:rl_burst",
+        "f15:rl_under_limit",
+        "f16:routing_default",
+        "f16:routing_match",
+        "f17:split_sample",
+        "f18:cb_normal",
+        "f19:retry_ok",
+        "f1:routing_default",
+        "f20:rl_burst",
+        "f20:rl_under_limit",
+        "f21:routing_default",
+        "f21:routing_match",
+        "f22:split_sample",
+        "f23:cb_normal",
+        "f24:retry_ok",
+        "f25:rl_burst",
+        "f25:rl_under_limit",
+        "f26:routing_default",
+        "f26:routing_match",
+        "f27:split_sample",
+        "f28:cb_normal",
+        "f29:retry_ok",
+        "f30:rl_burst",
+        "f30:rl_under_limit",
+        "f31:routing_default",
+        "f31:routing_match",
+        "f32:split_sample",
+        "f33:cb_normal",
+        "f34:retry_ok",
+        "f35:rl_burst",
+        "f35:rl_under_limit",
+        "f36:routing_default",
+        "f36:routing_match",
+        "f37:split_sample",
+        "f38:cb_normal",
+        "f39:retry_ok",
+        "f40:rl_burst",
+        "f40:rl_under_limit",
+        "f5:rl_burst",
+        "f6:routing_default"
+      ]
+    }
+  },
+  "traffic": {
+    "exhaustive": {
+      "base_url": "http://192.168.1.69:31605",
+      "method": "exhaustive",
+      "num_cases": 56,
+      "num_ok": 56,
+      "success_rate_pct": 100.0,
+      "runtime_s": 0.461,
+      "branch_coverage_pct": 100.0,
+      "covered_branches": 56,
+      "total_branches": 56
+    },
+    "orthogonal": {
+      "base_url": "http://192.168.1.69:31605",
+      "method": "orthogonal",
+      "num_cases": 13,
+      "num_ok": 13,
+      "success_rate_pct": 100.0,
+      "runtime_s": 0.032,
+      "branch_coverage_pct": 23.21,
+      "covered_branches": 13,
+      "total_branches": 56
+    }
+  },
+  "elapsed_s": 29.73
+}

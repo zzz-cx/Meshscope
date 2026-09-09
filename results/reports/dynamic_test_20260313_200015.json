@@ -1,0 +1,131 @@
+{
+  "generated_at": "2026-03-13T20:00:15.357051",
+  "total_cases": 4,
+  "passed": 3,
+  "failed": 1,
+  "pass_rate": "75.0%",
+  "cases": [
+    {
+      "case_id": "case_001",
+      "description": "正向匹配路由测试 for host '*'",
+      "policy_types": [
+        "routing"
+      ],
+      "execution": {
+        "status_codes": {
+          "200": 1
+        },
+        "total_requests": 1,
+        "success_rate": 100.0,
+        "avg_response_time": 0.21982645988464355
+      },
+      "validation": {
+        "overall_status": "passed",
+        "summary": "路由验证通过",
+        "details": [
+          {
+            "dimension": "[routing] HTTP状态码",
+            "status": "passed",
+            "message": "status_codes={'200': 1}"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "case_002",
+      "description": "正向匹配路由测试 for host 'productpage'",
+      "policy_types": [
+        "routing"
+      ],
+      "execution": {
+        "status_codes": {
+          "200": 1
+        },
+        "total_requests": 1,
+        "success_rate": 100.0,
+        "avg_response_time": 0.10401391983032227
+      },
+      "validation": {
+        "overall_status": "passed",
+        "summary": "路由验证通过",
+        "details": [
+          {
+            "dimension": "[routing] HTTP状态码",
+            "status": "passed",
+            "message": "status_codes={'200': 1}"
+          },
+          {
+            "dimension": "[routing] 路由目标",
+            "status": "passed",
+            "message": "目标版本 v1 已命中"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "case_003",
+      "description": "正交组合测试(traffic_split) for host 'reviews'",
+      "policy_types": [
+        "traffic_split"
+      ],
+      "execution": {
+        "status_codes": {
+          "200": 100
+        },
+        "total_requests": 100,
+        "success_rate": 100.0,
+        "avg_response_time": 0.26824326753616334
+      },
+      "validation": {
+        "overall_status": "failed",
+        "summary": "流量分割验证未通过",
+        "details": [
+          {
+            "dimension": "[traffic_split] 流量分布",
+            "status": "failed",
+            "message": "容错±15.0% | v1: 49.3% (期望 20.0%, 偏差 29.3%) [FAIL] | v2: 50.7% (期望 80.0%, 偏差 29.3%) [FAIL]"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "case_004",
+      "description": "全局/局部正交组合测试(circuit_breaker+connection_pool+routing) for host 'productpage'",
+      "policy_types": [
+        "circuit_breaker",
+        "connection_pool",
+        "routing"
+      ],
+      "execution": {
+        "status_codes": {
+          "503": 61,
+          "200": 14
+        },
+        "total_requests": 75,
+        "success_rate": 18.666666666666668,
+        "avg_response_time": 0.10375651041666667
+      },
+      "validation": {
+        "overall_status": "passed",
+        "summary": "熔断验证: passed | 路由验证通过",
+        "details": [
+          {
+            "dimension": "[circuit_breaker] HTTP错误率",
+            "status": "passed",
+            "message": "503数量=61, 错误率=81.3%"
+          },
+          {
+            "dimension": "[circuit_breaker] 熔断行为",
+            "status": "warning",
+            "message": "未检测到明确熔断特征"
+          },
+          {
+            "dimension": "[routing] HTTP状态码",
+            "status": "passed",
+            "message": "status_codes={'503': 61, '200': 14}"
+          }
+        ]
+      }
+    }
+  ]
+}

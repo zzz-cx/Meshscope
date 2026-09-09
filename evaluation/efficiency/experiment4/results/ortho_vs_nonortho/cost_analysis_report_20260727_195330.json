@@ -1,0 +1,192 @@
+{
+  "cost_analysis": {
+    "resource_monitoring": {
+      "duration": 0.0002589225769042969,
+      "avg_cpu_percent": 4.3,
+      "max_cpu_percent": 5.0,
+      "avg_memory_mb": 1739.302734375,
+      "max_memory_mb": 1739.56640625,
+      "total_network_bytes": 783,
+      "avg_network_rate": 86100062.29097606
+    },
+    "cost_results": [
+      {
+        "method": "orthogonal",
+        "total_requests": 2,
+        "execution_time": 0.0006668567657470703,
+        "cpu_usage": 4.3,
+        "memory_usage": 1739.302734375,
+        "network_traffic": 783,
+        "storage_usage": 0.30085830688476567,
+        "cost_per_test_case": 0.00033342838287353516
+      },
+      {
+        "method": "exhaustive",
+        "total_requests": 4,
+        "execution_time": 0.00011014938354492188,
+        "cpu_usage": 4.3,
+        "memory_usage": 1739.302734375,
+        "network_traffic": 783,
+        "storage_usage": 0.602096176147461,
+        "cost_per_test_case": 2.753734588623047e-05
+      },
+      {
+        "method": "pairwise",
+        "total_requests": 58,
+        "execution_time": 0.004628181457519531,
+        "cpu_usage": 4.3,
+        "memory_usage": 1739.302734375,
+        "network_traffic": 783,
+        "storage_usage": 7.518291473388672,
+        "cost_per_test_case": 9.256362915039063e-05
+      },
+      {
+        "method": "random",
+        "total_requests": 67,
+        "execution_time": 0.0021483898162841797,
+        "cpu_usage": 4.3,
+        "memory_usage": 1739.302734375,
+        "network_traffic": 783,
+        "storage_usage": 4.51644229888916,
+        "cost_per_test_case": 7.161299387613932e-05
+      }
+    ],
+    "efficiency_results": [
+      {
+        "method": "orthogonal",
+        "test_cases_generated": 2,
+        "coverage_achieved": 57.14285714285714,
+        "time_to_generate": 0.0006668567657470703,
+        "time_to_execute": 7.152557373046875e-06,
+        "total_time": 0.0006740093231201172,
+        "efficiency_score": 84780.51442720703,
+        "scalability_score": 2967.318004952246
+      },
+      {
+        "method": "exhaustive",
+        "test_cases_generated": 4,
+        "coverage_achieved": 38.095238095238095,
+        "time_to_generate": 0.00011014938354492188,
+        "time_to_execute": 8.821487426757812e-06,
+        "total_time": 0.00011897087097167969,
+        "efficiency_score": 320206.4319114419,
+        "scalability_score": 33621.6753507014
+      },
+      {
+        "method": "pairwise",
+        "test_cases_generated": 50,
+        "coverage_achieved": 71.42857142857143,
+        "time_to_generate": 0.004628181457519531,
+        "time_to_execute": 1.9550323486328125e-05,
+        "total_time": 0.004647731781005859,
+        "efficiency_score": 15368.479678728987,
+        "scalability_score": 10757.93577511029
+      },
+      {
+        "method": "random",
+        "test_cases_generated": 30,
+        "coverage_achieved": 71.42857142857143,
+        "time_to_generate": 0.0021483898162841797,
+        "time_to_execute": 1.5497207641601562e-05,
+        "total_time": 0.0021638870239257812,
+        "efficiency_score": 33009.38109928855,
+        "scalability_score": 13863.94006170119
+      }
+    ]
+  },
+  "method_comparison": {
+    "cost_comparison": {
+      "orthogonal": {
+        "total_requests": 2,
+        "execution_time": 0.0006668567657470703,
+        "cpu_usage": 4.3,
+        "memory_usage": 1739.302734375,
+        "cost_per_test_case": 0.00033342838287353516
+      },
+      "exhaustive": {
+        "total_requests": 4,
+        "execution_time": 0.00011014938354492188,
+        "cpu_usage": 4.3,
+        "memory_usage": 1739.302734375,
+        "cost_per_test_case": 2.753734588623047e-05
+      },
+      "pairwise": {
+        "total_requests": 58,
+        "execution_time": 0.004628181457519531,
+        "cpu_usage": 4.3,
+        "memory_usage": 1739.302734375,
+        "cost_per_test_case": 9.256362915039063e-05
+      },
+      "random": {
+        "total_requests": 67,
+        "execution_time": 0.0021483898162841797,
+        "cpu_usage": 4.3,
+        "memory_usage": 1739.302734375,
+        "cost_per_test_case": 7.161299387613932e-05
+      }
+    },
+    "efficiency_comparison": {
+      "orthogonal": {
+        "test_cases_generated": 2,
+        "coverage_achieved": 57.14285714285714,
+        "total_time": 0.0006740093231201172,
+        "efficiency_score": 84780.51442720703,
+        "scalability_score": 2967.318004952246
+      },
+      "exhaustive": {
+        "test_cases_generated": 4,
+        "coverage_achieved": 38.095238095238095,
+        "total_time": 0.00011897087097167969,
+        "efficiency_score": 320206.4319114419,
+        "scalability_score": 33621.6753507014
+      },
+      "pairwise": {
+        "test_cases_generated": 50,
+        "coverage_achieved": 71.42857142857143,
+        "total_time": 0.004647731781005859,
+        "efficiency_score": 15368.479678728987,
+        "scalability_score": 10757.93577511029
+      },
+      "random": {
+        "test_cases_generated": 30,
+        "coverage_achieved": 71.42857142857143,
+        "total_time": 0.0021638870239257812,
+        "efficiency_score": 33009.38109928855,
+        "scalability_score": 13863.94006170119
+      }
+    },
+    "ranking": {
+      "efficiency": [
+        "exhaustive",
+        "orthogonal",
+        "random",
+        "pairwise"
+      ],
+      "cost": [
+        "exhaustive",
+        "orthogonal",
+        "random",
+        "pairwise"
+      ]
+    },
+    "statistical_analysis": {
+      "efficiency_stats": {
+        "mean": 113341.2017791666,
+        "std": 122127.79371339809,
+        "max": 320206.4319114419,
+        "min": 15368.479678728987
+      },
+      "cost_stats": {
+        "mean_time": 0.0018883943557739258,
+        "std_time": 0.0017484521917601773,
+        "max_time": 0.004628181457519531,
+        "min_time": 0.00011014938354492188
+      }
+    }
+  },
+  "recommendations": [
+    "最佳效率方法: exhaustive",
+    "最低成本方法: exhaustive",
+    "方法间效率差异较大，建议根据具体场景选择"
+  ]
+}

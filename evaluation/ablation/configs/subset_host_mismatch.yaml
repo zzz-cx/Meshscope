@@ -1,0 +1,29 @@
+# 测试用例: VS 和 DR 的 host 不匹配
+# VS host = reviews, DR host = ratings (不同服务)
+# 预期: 静态检测应发现 VS 引用的 subset 在 DR 中不存在（因为 DR 对应不同 host）
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: reviews
+  namespace: default
+spec:
+  hosts:
+  - reviews.default.svc.cluster.local
+  http:
+  - route:
+    - destination:
+        host: reviews.default.svc.cluster.local
+        subset: v1
+      weight: 100
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: ratings
+  namespace: default
+spec:
+  host: ratings.default.svc.cluster.local
+  subsets:
+  - labels:
+      version: v1
+    name: v1

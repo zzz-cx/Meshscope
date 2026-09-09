@@ -12,7 +12,7 @@ import logging
 from typing import Optional, Dict, Any
 
 try:
-    from flask import Flask, render_template, jsonify, request, send_from_directory
+    from flask import Flask, render_template, jsonify, request, send_from_directory, send_file
     FLASK_AVAILABLE = True
 except ImportError:
     FLASK_AVAILABLE = False
@@ -26,6 +26,7 @@ from consistency_checker.core.orchestrator import Pipeline
 from consistency_checker.core.static_analyzer import StaticAnalyzer
 from consistency_checker.core.dynamic_analyzer import DynamicAnalyzer
 from consistency_checker.web.connectivity import probe_connectivity, invalidate_cache
+from consistency_checker.storage import get_store
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +82,10 @@ class WebServer:
         )
         
         self._setup_routes()
+        self.store = get_store(self.config.database_path)
+        imported = self.store.import_json_reports(self.config.consistency_output_dir)
+        if imported:
+            logger.info("已从 JSON 导入 %s 份报告到 SQLite", imported)
     
     def _setup_routes(self):
         """设置路由"""
@@ -104,7 +109,13 @@ class WebServer:
                 'report_count': len(reports),
                 'latest': latest,
                 'namespace': self.namespace,
+                'storage': self.store.stats(),
             })
+
+        @self.app.route('/api/storage')
+        def storage_info():
+            """SQLite 存储状态。"""
+            return jsonify(self.store.stats())
 
         @self.app.route('/api/connectivity')
         def connectivity():
@@ -127,11 +138,22 @@ class WebServer:
             payload = export_endpoints(self.config)
             payload['connectivity'] = probe_connectivity(self.config, force=True)
             return jsonify(payload)
-        
+
         @self.app.route('/api/report/<report_id>')
         def get_report(report_id):
             """获取指定报告"""
             return jsonify(self._load_report(report_id))
+
+        @self.app.route('/api/report/<report_id>/html')
+        def get_report_html(report_id):
+            """打开流水线写出的 HTML 报告。"""
+            path = os.path.join(
+                self.config.visualization_output_dir,
+                f"{report_id}_report.html",
+            )
+            if not os.path.exists(path):
+                return jsonify({"error": "HTML 报告不存在，请先执行完整流水线"}), 404
+            return send_file(path, mimetype="text/html")
         
         @self.app.route('/api/run_pipeline', methods=['POST'])
         def run_pipeline():
@@ -158,20 +180,24 @@ class WebServer:
         @self.app.route('/api/graph/<report_id>')
         def get_graph(report_id):
             """获取图数据"""
+            data = self.store.get_graph(report_id, "topology")
+            if data:
+                return jsonify(data)
             graph_file = os.path.join(
                 self.config.visualization_output_dir,
                 f"{report_id}_graph.json"
             )
-            
             if os.path.exists(graph_file):
                 with open(graph_file, 'r', encoding='utf-8') as f:
                     return jsonify(json.load(f))
-            else:
-                return jsonify({"error": "图数据不存在"}), 404
+            return jsonify({"error": "图数据不存在"}), 404
 
         @self.app.route('/api/three_layer_graph/<report_id>')
         def get_three_layer_graph(report_id):
             """获取三层空间配置依赖图数据。report_id=latest 时取最近一次生成的图。"""
+            data = self.store.get_graph(report_id, "three_layer")
+            if data:
+                return jsonify(data)
             vis_dir = self.config.visualization_output_dir
             graph_file = None
             if report_id == "latest":
@@ -201,6 +227,29 @@ class WebServer:
                 'three_layer_graph_viewer.html'
             )
         
+        @self.app.route('/api/static/snapshot', methods=['GET'])
+        def static_snapshot():
+            """返回已采集的对齐产物图，不重新解析。"""
+            try:
+                if load_aligned_semantic is None:
+                    return jsonify({"success": False, "error": "parser 模块不可用"}), 500
+                artifact = load_aligned_semantic()
+                graph = artifact.get("graph_data") or {"nodes": [], "edges": []}
+                summary = artifact.get("summary") or {}
+                return jsonify({
+                    "success": True,
+                    "source": "aligned_semantic",
+                    "generated_at": artifact.get("generated_at"),
+                    "summary": summary,
+                    "conflicts": artifact.get("conflicts") or [],
+                    "expected_tuple_count": len(artifact.get("expected_tuples") or []),
+                    "graph_data": graph,
+                    "namespaces": (graph.get("metadata") or {}).get("namespaces") or [],
+                })
+            except Exception as e:
+                logger.error("读取集群快照失败: %s", e, exc_info=True)
+                return jsonify({"success": False, "error": str(e)}), 500
+
         # parser：静态对齐 + 跨资源冲突
         @self.app.route('/api/static/analyze', methods=['POST'])
         def run_static_analysis():
@@ -491,41 +540,20 @@ class WebServer:
         )
 
     def _get_report_list(self):
-        """获取报告列表"""
-        reports = []
-        output_dir = self.config.consistency_output_dir
-        
-        if not os.path.exists(output_dir):
-            return {"reports": []}
-        
-        for filename in os.listdir(output_dir):
-            if filename.startswith('report_') and filename.endswith('.json'):
-                filepath = os.path.join(output_dir, filename)
-                try:
-                    with open(filepath, 'r', encoding='utf-8') as f:
-                        data = json.load(f)
-                        reports.append({
-                            "id": data.get('report_id', ''),
-                            "title": data.get('title', ''),
-                            "timestamp": data.get('timestamp', ''),
-                            "status": data.get('consistency_check', {}).get('overall_status', 'unknown'),
-                            "consistency_rate": data.get('consistency_check', {}).get('consistency_rate', 0.0)
-                        })
-                except Exception as e:
-                    logger.error(f"读取报告失败 {filename}: {e}")
-        
-        # 按时间排序
-        reports.sort(key=lambda x: x['timestamp'], reverse=True)
-        
-        return {"reports": reports}
-    
+        """获取报告列表（SQLite 优先）。"""
+        reports = self.store.list_reports()
+        if reports:
+            return {"reports": reports}
+        return {"reports": []}
+
     def _load_report(self, report_id: str):
         """加载指定报告"""
+        data = self.store.get_report(report_id)
+        if data:
+            return data
         filepath = os.path.join(self.config.consistency_output_dir, f"{report_id}.json")
-        
         if not os.path.exists(filepath):
             return {"error": "报告不存在"}
-        
         with open(filepath, 'r', encoding='utf-8') as f:
             return json.load(f)
     

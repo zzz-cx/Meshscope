@@ -1,0 +1,661 @@
+{
+  "method": "D-Naive",
+  "results": [
+    {
+      "method": "D-Naive",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F10_runtime_policy_gap.yaml",
+      "detected_faults": [
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F10_runtime_policy_gap.yaml",
+          "fault_type": "policy_enforcement_gap",
+          "confidence": 0.75,
+          "description": "naive probe high fail rate status5xx=0 body_fail=15/15",
+          "details": {
+            "tool": "D-Naive"
+          },
+          "detection_time": "2026-07-29T17:20:24.679562"
+        },
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F10_runtime_policy_gap.yaml",
+          "fault_type": "fault_injection_error",
+          "confidence": 0.75,
+          "description": "naive probe high fail rate status5xx=0 body_fail=15/15",
+          "details": {
+            "tool": "D-Naive"
+          },
+          "detection_time": "2026-07-29T17:20:24.679586"
+        },
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F10_runtime_policy_gap.yaml",
+          "fault_type": "missing_service_ref",
+          "confidence": 0.7,
+          "description": "naive probe high fail rate status5xx=0 body_fail=15/15",
+          "details": {
+            "tool": "D-Naive"
+          },
+          "detection_time": "2026-07-29T17:20:24.679588"
+        }
+      ],
+      "raw": {
+        "apply_rc": 0,
+        "apply_out": "virtualservice.networking.istio.io/reviews-f10 created\ndestinationrule.networking.istio.io/reviews-f10 created\n",
+        "mode": "cluster",
+        "namespace": "baseline-bookinfo",
+        "http_codes": [
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200
+        ],
+        "body_fails": 15,
+        "touched": [
+          "reviews"
+        ],
+        "url": "http://192.168.1.69:31605/productpage"
+      },
+      "t_detect_sec": 4.7684,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "D-Naive",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F1_missing_subset.yaml",
+      "detected_faults": [
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F1_missing_subset.yaml",
+          "fault_type": "policy_enforcement_gap",
+          "confidence": 0.75,
+          "description": "naive probe high fail rate status5xx=0 body_fail=15/15",
+          "details": {
+            "tool": "D-Naive"
+          },
+          "detection_time": "2026-07-29T17:20:29.693137"
+        },
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F1_missing_subset.yaml",
+          "fault_type": "fault_injection_error",
+          "confidence": 0.75,
+          "description": "naive probe high fail rate status5xx=0 body_fail=15/15",
+          "details": {
+            "tool": "D-Naive"
+          },
+          "detection_time": "2026-07-29T17:20:29.693166"
+        },
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F1_missing_subset.yaml",
+          "fault_type": "missing_service_ref",
+          "confidence": 0.7,
+          "description": "naive probe high fail rate status5xx=0 body_fail=15/15",
+          "details": {
+            "tool": "D-Naive"
+          },
+          "detection_time": "2026-07-29T17:20:29.693168"
+        }
+      ],
+      "raw": {
+        "apply_rc": 0,
+        "apply_out": "virtualservice.networking.istio.io/reviews-f1 created\ndestinationrule.networking.istio.io/reviews-f1 created\n",
+        "mode": "cluster",
+        "namespace": "baseline-bookinfo",
+        "http_codes": [
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200
+        ],
+        "body_fails": 15,
+        "touched": [
+          "reviews"
+        ],
+        "url": "http://192.168.1.69:31605/productpage"
+      },
+      "t_detect_sec": 5.0135,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "D-Naive",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F2_authorization_conflict.yaml",
+      "detected_faults": [],
+      "raw": {
+        "apply_rc": 0,
+        "apply_out": "authorizationpolicy.security.istio.io/reviews-allow-all created\nauthorizationpolicy.security.istio.io/reviews-deny-productpage created\nvirtualservice.networking.istio.io/reviews-f2 created\ndestinationrule.networking.istio.io/reviews-f2 created\nWarning: configured AuthorizationPolicy will deny all traffic to TCP ports under its scope due to the use of only HTTP attributes in a DENY rule; it is recommended to explicitly specify the port\n",
+        "mode": "cluster",
+        "namespace": "baseline-bookinfo",
+        "http_codes": [
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200
+        ],
+        "body_fails": 0,
+        "touched": [
+          "reviews"
+        ],
+        "url": "http://192.168.1.69:31605/productpage"
+      },
+      "t_detect_sec": 4.7943,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "D-Naive",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F3_mtls_inconsistent.yaml",
+      "detected_faults": [
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F3_mtls_inconsistent.yaml",
+          "fault_type": "policy_enforcement_gap",
+          "confidence": 0.75,
+          "description": "naive probe high fail rate status5xx=0 body_fail=15/15",
+          "details": {
+            "tool": "D-Naive"
+          },
+          "detection_time": "2026-07-29T17:20:39.220067"
+        },
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F3_mtls_inconsistent.yaml",
+          "fault_type": "fault_injection_error",
+          "confidence": 0.75,
+          "description": "naive probe high fail rate status5xx=0 body_fail=15/15",
+          "details": {
+            "tool": "D-Naive"
+          },
+          "detection_time": "2026-07-29T17:20:39.220092"
+        },
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F3_mtls_inconsistent.yaml",
+          "fault_type": "missing_service_ref",
+          "confidence": 0.7,
+          "description": "naive probe high fail rate status5xx=0 body_fail=15/15",
+          "details": {
+            "tool": "D-Naive"
+          },
+          "detection_time": "2026-07-29T17:20:39.220094"
+        }
+      ],
+      "raw": {
+        "apply_rc": 0,
+        "apply_out": "peerauthentication.security.istio.io/default created\ndestinationrule.networking.istio.io/reviews-f3 created\nvirtualservice.networking.istio.io/reviews-f3 created\n",
+        "mode": "cluster",
+        "namespace": "baseline-bookinfo",
+        "http_codes": [
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200
+        ],
+        "body_fails": 15,
+        "touched": [
+          "reviews"
+        ],
+        "url": "http://192.168.1.69:31605/productpage"
+      },
+      "t_detect_sec": 4.7325,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "D-Naive",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F4_timeout_mismatch.yaml",
+      "detected_faults": [],
+      "raw": {
+        "apply_rc": 0,
+        "apply_out": "virtualservice.networking.istio.io/reviews-f4 created\ndestinationrule.networking.istio.io/reviews-f4 created\n",
+        "mode": "cluster",
+        "namespace": "baseline-bookinfo",
+        "http_codes": [
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200
+        ],
+        "body_fails": 0,
+        "touched": [
+          "reviews"
+        ],
+        "url": "http://192.168.1.69:31605/productpage"
+      },
+      "t_detect_sec": 5.0232,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "D-Naive",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F5_traffic_split_drift.yaml",
+      "detected_faults": [],
+      "raw": {
+        "apply_rc": 0,
+        "apply_out": "virtualservice.networking.istio.io/reviews-f5 created\ndestinationrule.networking.istio.io/reviews-f5 created\n",
+        "mode": "cluster",
+        "namespace": "baseline-bookinfo",
+        "http_codes": [
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200
+        ],
+        "body_fails": 0,
+        "touched": [
+          "reviews"
+        ],
+        "url": "http://192.168.1.69:31605/productpage"
+      },
+      "t_detect_sec": 4.9017,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "D-Naive",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F6_retry_omission.yaml",
+      "detected_faults": [],
+      "raw": {
+        "apply_rc": 0,
+        "apply_out": "virtualservice.networking.istio.io/reviews-f6 created\ndestinationrule.networking.istio.io/reviews-f6 created\n",
+        "mode": "cluster",
+        "namespace": "baseline-bookinfo",
+        "http_codes": [
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200
+        ],
+        "body_fails": 2,
+        "touched": [
+          "reviews"
+        ],
+        "url": "http://192.168.1.69:31605/productpage"
+      },
+      "t_detect_sec": 4.7825,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "D-Naive",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F7_circuit_breaker_ineffective.yaml",
+      "detected_faults": [],
+      "raw": {
+        "apply_rc": 0,
+        "apply_out": "destinationrule.networking.istio.io/reviews-f7 created\nvirtualservice.networking.istio.io/reviews-f7 created\n",
+        "mode": "cluster",
+        "namespace": "baseline-bookinfo",
+        "http_codes": [
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200
+        ],
+        "body_fails": 0,
+        "touched": [
+          "reviews"
+        ],
+        "url": "http://192.168.1.69:31605/productpage"
+      },
+      "t_detect_sec": 5.3948,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "D-Naive",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F8_partial_timeout_propagation.yaml",
+      "detected_faults": [
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F8_partial_timeout_propagation.yaml",
+          "fault_type": "policy_enforcement_gap",
+          "confidence": 0.75,
+          "description": "naive probe high fail rate status5xx=0 body_fail=15/15",
+          "details": {
+            "tool": "D-Naive"
+          },
+          "detection_time": "2026-07-29T17:21:04.454055"
+        },
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F8_partial_timeout_propagation.yaml",
+          "fault_type": "fault_injection_error",
+          "confidence": 0.75,
+          "description": "naive probe high fail rate status5xx=0 body_fail=15/15",
+          "details": {
+            "tool": "D-Naive"
+          },
+          "detection_time": "2026-07-29T17:21:04.454080"
+        },
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F8_partial_timeout_propagation.yaml",
+          "fault_type": "missing_service_ref",
+          "confidence": 0.7,
+          "description": "naive probe high fail rate status5xx=0 body_fail=15/15",
+          "details": {
+            "tool": "D-Naive"
+          },
+          "detection_time": "2026-07-29T17:21:04.454082"
+        }
+      ],
+      "raw": {
+        "apply_rc": 0,
+        "apply_out": "virtualservice.networking.istio.io/productpage-f8 created\nvirtualservice.networking.istio.io/reviews-f8 created\ndestinationrule.networking.istio.io/reviews-f8 created\ndestinationrule.networking.istio.io/ratings-f8 created\n",
+        "mode": "cluster",
+        "namespace": "baseline-bookinfo",
+        "http_codes": [
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200
+        ],
+        "body_fails": 15,
+        "touched": [
+          "productpage",
+          "ratings",
+          "reviews"
+        ],
+        "url": "http://192.168.1.69:31605/productpage"
+      },
+      "t_detect_sec": 5.1315,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "D-Naive",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F9_incorrect_routing_dependency.yaml",
+      "detected_faults": [],
+      "raw": {
+        "apply_rc": 0,
+        "apply_out": "virtualservice.networking.istio.io/productpage-f9 created\ndestinationrule.networking.istio.io/productpage-f9 created\n",
+        "mode": "cluster",
+        "namespace": "baseline-bookinfo",
+        "http_codes": [
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200
+        ],
+        "body_fails": 0,
+        "touched": [
+          "productpage"
+        ],
+        "url": "http://192.168.1.69:31605/productpage"
+      },
+      "t_detect_sec": 4.965,
+      "error": null,
+      "available": true
+    }
+  ],
+  "metrics": {
+    "overall": {
+      "precision": 0.25,
+      "recall": 0.1429,
+      "f1": 0.1818,
+      "accuracy": 0.1,
+      "tp": 1,
+      "fp": 3,
+      "fn": 6,
+      "tn": 0
+    },
+    "stratified_recall": {
+      "static_only": 0.0,
+      "dynamic_only": 0.3333,
+      "both": 0.0
+    },
+    "stratified": {
+      "static_only": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "accuracy": 0.0,
+        "tp": 0,
+        "fp": 1,
+        "fn": 2,
+        "tn": 0
+      },
+      "dynamic_only": {
+        "precision": 0.5,
+        "recall": 0.3333,
+        "f1": 0.4,
+        "accuracy": 0.25,
+        "tp": 1,
+        "fp": 1,
+        "fn": 2,
+        "tn": 0
+      },
+      "both": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "accuracy": 0.0,
+        "tp": 0,
+        "fp": 1,
+        "fn": 2,
+        "tn": 0
+      }
+    },
+    "t_detect_avg_sec": 4.9507,
+    "t_detect_sum_sec": 49.5074,
+    "n_samples": 10,
+    "rows": [
+      {
+        "sample": "f_suite/F10_runtime_policy_gap.yaml",
+        "detectability": "dynamic_only",
+        "gt_fault": "policy_enforcement_gap",
+        "detected": [
+          "policy_enforcement_gap",
+          "fault_injection_error",
+          "missing_service_ref"
+        ],
+        "label": "TP",
+        "t_detect_sec": 4.7684,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "f_suite/F1_missing_subset.yaml",
+        "detectability": "static_only",
+        "gt_fault": "missing_subset",
+        "detected": [
+          "policy_enforcement_gap",
+          "fault_injection_error",
+          "missing_service_ref"
+        ],
+        "label": "FP_type",
+        "t_detect_sec": 5.0135,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "f_suite/F2_authorization_conflict.yaml",
+        "detectability": "static_only",
+        "gt_fault": "authorization_conflict",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 4.7943,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "f_suite/F3_mtls_inconsistent.yaml",
+        "detectability": "both",
+        "gt_fault": "mtls_inconsistency",
+        "detected": [
+          "policy_enforcement_gap",
+          "fault_injection_error",
+          "missing_service_ref"
+        ],
+        "label": "FP_type",
+        "t_detect_sec": 4.7325,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "f_suite/F4_timeout_mismatch.yaml",
+        "detectability": "both",
+        "gt_fault": "timeout_error",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 5.0232,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "f_suite/F5_traffic_split_drift.yaml",
+        "detectability": "both",
+        "gt_fault": "weight_error",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 4.9017,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "f_suite/F6_retry_omission.yaml",
+        "detectability": "dynamic_only",
+        "gt_fault": "retry_policy_error",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 4.7825,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "f_suite/F7_circuit_breaker_ineffective.yaml",
+        "detectability": "dynamic_only",
+        "gt_fault": "circuit_breaker_error",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 5.3948,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "f_suite/F8_partial_timeout_propagation.yaml",
+        "detectability": "dynamic_only",
+        "gt_fault": "timeout_propagation",
+        "detected": [
+          "policy_enforcement_gap",
+          "fault_injection_error",
+          "missing_service_ref"
+        ],
+        "label": "FP_type",
+        "t_detect_sec": 5.1315,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "f_suite/F9_incorrect_routing_dependency.yaml",
+        "detectability": "static_only",
+        "gt_fault": "missing_service_ref",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 4.965,
+        "available": true,
+        "error": null
+      }
+    ]
+  }
+}

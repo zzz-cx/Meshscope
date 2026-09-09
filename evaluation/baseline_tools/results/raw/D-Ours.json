@@ -1,0 +1,649 @@
+{
+  "method": "D-Ours",
+  "results": [
+    {
+      "method": "D-Ours",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/correct/baseline_config.yaml",
+      "detected_faults": [],
+      "raw": {
+        "mode": "yaml_oracle"
+      },
+      "t_detect_sec": 0.0115,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "D-Ours",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/dynamic_only/aggressive_outlier.yaml",
+      "detected_faults": [
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/dynamic_only/aggressive_outlier.yaml",
+          "fault_type": "circuit_breaker_error",
+          "confidence": 0.85,
+          "description": "premature eject at runtime",
+          "details": {
+            "tool": "D-Ours",
+            "mode": "yaml_oracle"
+          },
+          "detection_time": "2026-07-29T16:56:23.487823"
+        }
+      ],
+      "raw": {
+        "mode": "yaml_oracle"
+      },
+      "t_detect_sec": 0.0044,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "D-Ours",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/dynamic_only/always_abort.yaml",
+      "detected_faults": [
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/dynamic_only/always_abort.yaml",
+          "fault_type": "policy_enforcement_gap",
+          "confidence": 0.9,
+          "description": "100% abort \u2192 always 5xx at runtime",
+          "details": {
+            "tool": "D-Ours",
+            "mode": "yaml_oracle"
+          },
+          "detection_time": "2026-07-29T16:56:23.490929"
+        },
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/dynamic_only/always_abort.yaml",
+          "fault_type": "fault_injection_error",
+          "confidence": 0.9,
+          "description": "100% abort at runtime",
+          "details": {
+            "tool": "D-Ours",
+            "mode": "yaml_oracle"
+          },
+          "detection_time": "2026-07-29T16:56:23.490933"
+        }
+      ],
+      "raw": {
+        "mode": "yaml_oracle"
+      },
+      "t_detect_sec": 0.0031,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "D-Ours",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/dynamic_only/retry_storm.yaml",
+      "detected_faults": [
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/dynamic_only/retry_storm.yaml",
+          "fault_type": "retry_policy_error",
+          "confidence": 0.8,
+          "description": "retry amplification risk",
+          "details": {
+            "tool": "D-Ours",
+            "mode": "yaml_oracle"
+          },
+          "detection_time": "2026-07-29T16:56:23.494023"
+        }
+      ],
+      "raw": {
+        "mode": "yaml_oracle"
+      },
+      "t_detect_sec": 0.0031,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "D-Ours",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/dynamic_only/skewed_split.yaml",
+      "detected_faults": [
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/dynamic_only/skewed_split.yaml",
+          "fault_type": "weight_error",
+          "confidence": 0.85,
+          "description": "runtime split vs intent",
+          "details": {
+            "tool": "D-Ours",
+            "mode": "yaml_oracle"
+          },
+          "detection_time": "2026-07-29T16:56:23.497508"
+        }
+      ],
+      "raw": {
+        "mode": "yaml_oracle"
+      },
+      "t_detect_sec": 0.0035,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "D-Ours",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/dynamic_only/tiny_pool.yaml",
+      "detected_faults": [
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/dynamic_only/tiny_pool.yaml",
+          "fault_type": "circuit_breaker_error",
+          "confidence": 0.8,
+          "description": "pool exhaustion under load",
+          "details": {
+            "tool": "D-Ours",
+            "mode": "yaml_oracle"
+          },
+          "detection_time": "2026-07-29T16:56:23.500742"
+        }
+      ],
+      "raw": {
+        "mode": "yaml_oracle"
+      },
+      "t_detect_sec": 0.0032,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "D-Ours",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/dynamic_only/tiny_ratelimit.yaml",
+      "detected_faults": [
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/dynamic_only/tiny_ratelimit.yaml",
+          "fault_type": "rate_limit_error",
+          "confidence": 0.85,
+          "description": "token bucket starves traffic",
+          "details": {
+            "tool": "D-Ours",
+            "mode": "yaml_oracle"
+          },
+          "detection_time": "2026-07-29T16:56:23.506683"
+        }
+      ],
+      "raw": {
+        "mode": "yaml_oracle"
+      },
+      "t_detect_sec": 0.0059,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "D-Ours",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/dynamic_only/tiny_timeout.yaml",
+      "detected_faults": [
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/dynamic_only/tiny_timeout.yaml",
+          "fault_type": "timeout_error",
+          "confidence": 0.8,
+          "description": "runtime timeout risk: 1ms",
+          "details": {
+            "tool": "D-Ours",
+            "mode": "yaml_oracle"
+          },
+          "detection_time": "2026-07-29T16:56:23.509687"
+        }
+      ],
+      "raw": {
+        "mode": "yaml_oracle"
+      },
+      "t_detect_sec": 0.003,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "D-Ours",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/human_errors/conflict_vs.yaml",
+      "detected_faults": [],
+      "raw": {
+        "mode": "yaml_oracle"
+      },
+      "t_detect_sec": 0.0049,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "D-Ours",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/human_errors/duplicate_envoyfilter.yaml",
+      "detected_faults": [
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/human_errors/duplicate_envoyfilter.yaml",
+          "fault_type": "rate_limit_error",
+          "confidence": 0.85,
+          "description": "token bucket starves traffic",
+          "details": {
+            "tool": "D-Ours",
+            "mode": "yaml_oracle"
+          },
+          "detection_time": "2026-07-29T16:56:23.521081"
+        }
+      ],
+      "raw": {
+        "mode": "yaml_oracle"
+      },
+      "t_detect_sec": 0.0065,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "D-Ours",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/human_errors/gateway_selector_error.yaml",
+      "detected_faults": [],
+      "raw": {
+        "mode": "yaml_oracle"
+      },
+      "t_detect_sec": 0.0042,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "D-Ours",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/human_errors/missing_service_ref.yaml",
+      "detected_faults": [],
+      "raw": {
+        "mode": "yaml_oracle"
+      },
+      "t_detect_sec": 0.0039,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "D-Ours",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/human_errors/missing_subset.yaml",
+      "detected_faults": [],
+      "raw": {
+        "mode": "yaml_oracle"
+      },
+      "t_detect_sec": 0.0031,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "D-Ours",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/human_errors/weight_error.yaml",
+      "detected_faults": [],
+      "raw": {
+        "mode": "yaml_oracle"
+      },
+      "t_detect_sec": 0.0033,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "D-Ours",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/mutated/dr_mut_01.yaml",
+      "detected_faults": [
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/mutated/dr_mut_01.yaml",
+          "fault_type": "circuit_breaker_error",
+          "confidence": 0.85,
+          "description": "premature eject at runtime",
+          "details": {
+            "tool": "D-Ours",
+            "mode": "yaml_oracle"
+          },
+          "detection_time": "2026-07-29T16:56:23.538742"
+        }
+      ],
+      "raw": {
+        "mode": "yaml_oracle"
+      },
+      "t_detect_sec": 0.0031,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "D-Ours",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/mutated/timeout_mut_01.yaml",
+      "detected_faults": [
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/mutated/timeout_mut_01.yaml",
+          "fault_type": "timeout_error",
+          "confidence": 0.8,
+          "description": "runtime timeout risk: 0.1s",
+          "details": {
+            "tool": "D-Ours",
+            "mode": "yaml_oracle"
+          },
+          "detection_time": "2026-07-29T16:56:23.542491"
+        }
+      ],
+      "raw": {
+        "mode": "yaml_oracle"
+      },
+      "t_detect_sec": 0.0037,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "D-Ours",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/mutated/vs_mut_01.yaml",
+      "detected_faults": [
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/mutated/vs_mut_01.yaml",
+          "fault_type": "retry_policy_error",
+          "confidence": 0.8,
+          "description": "retry amplification risk",
+          "details": {
+            "tool": "D-Ours",
+            "mode": "yaml_oracle"
+          },
+          "detection_time": "2026-07-29T16:56:23.546518"
+        }
+      ],
+      "raw": {
+        "mode": "yaml_oracle"
+      },
+      "t_detect_sec": 0.004,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "D-Ours",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/real_world/case1.yaml",
+      "detected_faults": [],
+      "raw": {
+        "mode": "yaml_oracle"
+      },
+      "t_detect_sec": 0.0042,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "D-Ours",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/real_world/case2.yaml",
+      "detected_faults": [
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/real_world/case2.yaml",
+          "fault_type": "rate_limit_error",
+          "confidence": 0.85,
+          "description": "token bucket starves traffic",
+          "details": {
+            "tool": "D-Ours",
+            "mode": "yaml_oracle"
+          },
+          "detection_time": "2026-07-29T16:56:23.555517"
+        }
+      ],
+      "raw": {
+        "mode": "yaml_oracle"
+      },
+      "t_detect_sec": 0.0048,
+      "error": null,
+      "available": true
+    }
+  ],
+  "metrics": {
+    "overall": {
+      "precision": 0.9167,
+      "recall": 0.6471,
+      "f1": 0.7586,
+      "accuracy": 0.6316,
+      "tp": 11,
+      "fp": 1,
+      "fn": 6,
+      "tn": 1
+    },
+    "stratified_recall": {
+      "static_only": 0.0,
+      "dynamic_only": 1.0,
+      "both": 0.5,
+      "none": 0.0
+    },
+    "stratified": {
+      "static_only": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "accuracy": 0.0,
+        "tp": 0,
+        "fp": 1,
+        "fn": 2,
+        "tn": 0
+      },
+      "dynamic_only": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "accuracy": 1.0,
+        "tp": 7,
+        "fp": 0,
+        "fn": 0,
+        "tn": 0
+      },
+      "both": {
+        "precision": 1.0,
+        "recall": 0.5,
+        "f1": 0.6667,
+        "accuracy": 0.5,
+        "tp": 4,
+        "fp": 0,
+        "fn": 4,
+        "tn": 0
+      },
+      "none": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "accuracy": 1.0,
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "tn": 1
+      }
+    },
+    "t_detect_avg_sec": 0.0044,
+    "t_detect_sum_sec": 0.0834,
+    "n_samples": 19,
+    "rows": [
+      {
+        "sample": "correct/baseline_config.yaml",
+        "detectability": "none",
+        "gt_fault": "correct",
+        "detected": [],
+        "label": "TN",
+        "t_detect_sec": 0.0115,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "dynamic_only/aggressive_outlier.yaml",
+        "detectability": "dynamic_only",
+        "gt_fault": "circuit_breaker_error",
+        "detected": [
+          "circuit_breaker_error"
+        ],
+        "label": "TP",
+        "t_detect_sec": 0.0044,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "dynamic_only/always_abort.yaml",
+        "detectability": "dynamic_only",
+        "gt_fault": "fault_injection_error",
+        "detected": [
+          "policy_enforcement_gap",
+          "fault_injection_error"
+        ],
+        "label": "TP",
+        "t_detect_sec": 0.0031,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "dynamic_only/retry_storm.yaml",
+        "detectability": "dynamic_only",
+        "gt_fault": "retry_policy_error",
+        "detected": [
+          "retry_policy_error"
+        ],
+        "label": "TP",
+        "t_detect_sec": 0.0031,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "dynamic_only/skewed_split.yaml",
+        "detectability": "dynamic_only",
+        "gt_fault": "weight_error",
+        "detected": [
+          "weight_error"
+        ],
+        "label": "TP",
+        "t_detect_sec": 0.0035,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "dynamic_only/tiny_pool.yaml",
+        "detectability": "dynamic_only",
+        "gt_fault": "circuit_breaker_error",
+        "detected": [
+          "circuit_breaker_error"
+        ],
+        "label": "TP",
+        "t_detect_sec": 0.0032,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "dynamic_only/tiny_ratelimit.yaml",
+        "detectability": "dynamic_only",
+        "gt_fault": "rate_limit_error",
+        "detected": [
+          "rate_limit_error"
+        ],
+        "label": "TP",
+        "t_detect_sec": 0.0059,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "dynamic_only/tiny_timeout.yaml",
+        "detectability": "dynamic_only",
+        "gt_fault": "timeout_error",
+        "detected": [
+          "timeout_error"
+        ],
+        "label": "TP",
+        "t_detect_sec": 0.003,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "human_errors/conflict_vs.yaml",
+        "detectability": "both",
+        "gt_fault": "routing_conflict",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.0049,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "human_errors/duplicate_envoyfilter.yaml",
+        "detectability": "static_only",
+        "gt_fault": "duplicate_config",
+        "detected": [
+          "rate_limit_error"
+        ],
+        "label": "FP_type",
+        "t_detect_sec": 0.0065,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "human_errors/gateway_selector_error.yaml",
+        "detectability": "static_only",
+        "gt_fault": "gateway_selector_error",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.0042,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "human_errors/missing_service_ref.yaml",
+        "detectability": "both",
+        "gt_fault": "missing_service_ref",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.0039,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "human_errors/missing_subset.yaml",
+        "detectability": "both",
+        "gt_fault": "missing_subset",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.0031,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "human_errors/weight_error.yaml",
+        "detectability": "static_only",
+        "gt_fault": "weight_error",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.0033,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "mutated/dr_mut_01.yaml",
+        "detectability": "both",
+        "gt_fault": "circuit_breaker_error",
+        "detected": [
+          "circuit_breaker_error"
+        ],
+        "label": "TP",
+        "t_detect_sec": 0.0031,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "mutated/timeout_mut_01.yaml",
+        "detectability": "both",
+        "gt_fault": "timeout_error",
+        "detected": [
+          "timeout_error"
+        ],
+        "label": "TP",
+        "t_detect_sec": 0.0037,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "mutated/vs_mut_01.yaml",
+        "detectability": "both",
+        "gt_fault": "retry_policy_error",
+        "detected": [
+          "retry_policy_error"
+        ],
+        "label": "TP",
+        "t_detect_sec": 0.004,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "real_world/case1.yaml",
+        "detectability": "both",
+        "gt_fault": "fault_injection_error",
+        "detected": [],
+        "label": "FN",
+        "t_detect_sec": 0.0042,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "real_world/case2.yaml",
+        "detectability": "both",
+        "gt_fault": "rate_limit_error",
+        "detected": [
+          "rate_limit_error"
+        ],
+        "label": "TP",
+        "t_detect_sec": 0.0048,
+        "available": true,
+        "error": null
+      }
+    ]
+  }
+}

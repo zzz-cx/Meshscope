@@ -1,0 +1,950 @@
+{
+  "metadata": {
+    "generated_at": "2025-11-10T00:30:40.939469",
+    "total_test_cases": 4,
+    "tool_version": "1.0.0",
+    "test_config": {
+      "global_settings": {
+        "ingress_url": "http://192.168.92.131:30476/productpage"
+      },
+      "test_cases": [
+        {
+          "case_id": "case_001",
+          "description": "正向匹配路由测试 for host '*'",
+          "type": "single_request",
+          "request_params": {
+            "host": "*",
+            "path": ""
+          },
+          "expected_outcome": {
+            "destination": "productpage",
+            "note": "验证正向命中路由。"
+          },
+          "source_service": "*"
+        },
+        {
+          "case_id": "case_002",
+          "description": "正向匹配路由测试 for host 'productpage'",
+          "type": "single_request",
+          "request_params": {
+            "host": "productpage",
+            "headers": {
+              "end-user": "zcx"
+            }
+          },
+          "expected_outcome": {
+            "destination": "v1",
+            "note": "验证正向命中路由。"
+          },
+          "source_service": "productpage"
+        },
+        {
+          "case_id": "case_003",
+          "description": "正交组合测试(traffic_split) for host 'reviews'",
+          "type": "load_test",
+          "request_params": {
+            "host": "reviews",
+            "path": "/"
+          },
+          "load_params": {
+            "num_requests": 62,
+            "concurrency": 1
+          },
+          "expected_outcome": {
+            "distribution": {
+              "v1": "approx 0.20",
+              "v2": "approx 0.80"
+            },
+            "margin_of_error": "0.05",
+            "behaviors": [
+              "验证流量分割：v1(20%), v2(80%)"
+            ]
+          },
+          "source_service": "reviews",
+          "test_strategies": [
+            "traffic_split"
+          ]
+        },
+        {
+          "case_id": "case_004",
+          "description": "全局/局部正交组合测试(circuit_breaker+connection_pool+routing) for host 'productpage'",
+          "type": "load_test",
+          "request_params": {
+            "host": "productpage",
+            "trigger_condition": "simulate_high_load_with_errors",
+            "connection_pool_test": true
+          },
+          "load_params": {
+            "concurrency": 20,
+            "num_requests": 75,
+            "ramp_up_time": "10s"
+          },
+          "expected_outcome": {
+            "behaviors": [
+              "连接池限制：最大TCP连接1，HTTP挂起请求1",
+              "熔断触发：5次连续错误后熔断",
+              "路由匹配：验证请求正确路由到目标版本"
+            ],
+            "circuit_breaker_threshold": 5,
+            "connection_limits": {
+              "tcp": 1,
+              "http_pending": 1
+            },
+            "orthogonal_note": "全局策略(DR)与局部策略(VS)的正交验证"
+          },
+          "source_service": "productpage",
+          "test_strategies": [
+            "circuit_breaker",
+            "connection_pool",
+            "routing"
+          ]
+        }
+      ],
+      "verification_process": {
+        "start_time": "2025-11-10T00:30:40.913166",
+        "matrix_file": "D:\\python_code\\istio_check\\results\\monitoring\\output_matrix.json",
+        "log_dir": "D:\\python_code\\istio_check\\results\\envoy_logs",
+        "istio_config_file": null,
+        "steps": [
+          {
+            "step": 1,
+            "name": "解析测试矩阵",
+            "start_time": "2025-11-10T00:30:40.913166",
+            "end_time": "2025-11-10T00:30:40.913166",
+            "duration_ms": 0.0,
+            "matrix_file": "D:\\python_code\\istio_check\\results\\monitoring\\output_matrix.json",
+            "istio_config_file": null,
+            "parsed_behaviors_count": 4,
+            "behaviors_summary": [
+              {
+                "case_id": "case_001",
+                "test_type": "single_request",
+                "policy_type": "routing",
+                "description": "正向匹配路由测试 for host '*'",
+                "expected_destination": "productpage",
+                "expected_distribution": null,
+                "expected_retry_attempts": null,
+                "expected_per_try_timeout": null,
+                "expected_trip_threshold": null,
+                "expected_trip_timeout": null,
+                "expected_recovery_time": null
+              },
+              {
+                "case_id": "case_002",
+                "test_type": "single_request",
+                "policy_type": "routing",
+                "description": "正向匹配路由测试 for host 'productpage'",
+                "expected_destination": "v1",
+                "expected_distribution": null,
+                "expected_retry_attempts": null,
+                "expected_per_try_timeout": null,
+                "expected_trip_threshold": null,
+                "expected_trip_timeout": null,
+                "expected_recovery_time": null
+              },
+              {
+                "case_id": "case_003",
+                "test_type": "load_test",
+                "policy_type": "traffic_split",
+                "description": "正交组合测试(traffic_split) for host 'reviews'",
+                "expected_destination": null,
+                "expected_distribution": {
+                  "v1": 0.2,
+                  "v2": 0.8
+                },
+                "expected_retry_attempts": null,
+                "expected_per_try_timeout": null,
+                "expected_trip_threshold": null,
+                "expected_trip_timeout": null,
+                "expected_recovery_time": null
+              },
+              {
+                "case_id": "case_004",
+                "test_type": "load_test",
+                "policy_type": "circuit_breaker",
+                "description": "全局/局部正交组合测试(circuit_breaker+connection_pool+routing) for host 'productpage'",
+                "expected_destination": null,
+                "expected_distribution": null,
+                "expected_retry_attempts": null,
+                "expected_per_try_timeout": null,
+                "expected_trip_threshold": 5,
+                "expected_trip_timeout": 30.0,
+                "expected_recovery_time": 60.0
+              }
+            ]
+          },
+          {
+            "step": 2,
+            "name": "加载和解析日志",
+            "start_time": "2025-11-10T00:30:40.913166",
+            "end_time": "2025-11-10T00:30:40.921495",
+            "duration_ms": 8.328999999999999,
+            "log_dir": "D:\\python_code\\istio_check\\results\\envoy_logs",
+            "cases_with_logs_count": 4,
+            "log_summary": [
+              {
+                "case_id": "case_001",
+                "total_entries": 191,
+                "pod_count": 2,
+                "success_entries": 191,
+                "error_entries": 0,
+                "success_rate": 1.0,
+                "pods": [
+                  "productpage_productpage-v1-55f788cfdf-xndnp",
+                  "productpage_productpage-v2-6bf858447c-zzbjv"
+                ]
+              },
+              {
+                "case_id": "case_002",
+                "total_entries": 93,
+                "pod_count": 1,
+                "success_entries": 93,
+                "error_entries": 0,
+                "success_rate": 1.0,
+                "pods": [
+                  "productpage_vv1_productpage-v1-55f788cfdf-xndnp"
+                ]
+              },
+              {
+                "case_id": "case_003",
+                "total_entries": 378,
+                "pod_count": 3,
+                "success_entries": 378,
+                "error_entries": 0,
+                "success_rate": 1.0,
+                "pods": [
+                  "reviews_reviews-v1-5c644b7c86-rlj6j",
+                  "reviews_reviews-v2-7c6798f6c7-fcfsq",
+                  "reviews_reviews-v3-597997f8-2m9nt"
+                ]
+              },
+              {
+                "case_id": "case_004",
+                "total_entries": 590,
+                "pod_count": 3,
+                "success_entries": 480,
+                "error_entries": 110,
+                "success_rate": 0.8135593220338984,
+                "pods": [
+                  "gateway_istio-ingressgateway-5b58cb5c79-r7tg4",
+                  "productpage_productpage-v1-55f788cfdf-xndnp",
+                  "productpage_productpage-v2-6bf858447c-zzbjv"
+                ]
+              }
+            ],
+            "total_log_entries": 1252
+          },
+          {
+            "step": 3,
+            "name": "执行对比验证",
+            "start_time": "2025-11-10T00:30:40.922372",
+            "end_time": "2025-11-10T00:30:40.939469",
+            "duration_ms": 17.097,
+            "verification_results_count": 4,
+            "verification_summary": [
+              {
+                "case_id": "case_001",
+                "test_description": "正向匹配路由测试 for host '*'",
+                "overall_status": "warning",
+                "dimension_results": {
+                  "HTTP状态码验证": {
+                    "status": "passed",
+                    "message": "HTTP验证通过: 成功率100.0% >= 1.0%, 平均响应时间0.392s <= 5.0s",
+                    "expected_value": "成功率>=1.0%, 响应时间<=5.0s",
+                    "actual_value": "成功率100.0%, 响应时间0.392s",
+                    "deviation": null,
+                    "details": {
+                      "status_codes": {
+                        "200": 1
+                      },
+                      "status_details": [
+                        "200: 1个请求 (100.0%)"
+                      ],
+                      "total_requests": 1,
+                      "success_rate": 100.0,
+                      "avg_response_time": 0.3916339874267578
+                    }
+                  },
+                  "基本指标验证": {
+                    "status": "passed",
+                    "message": "请求数量充足: 191 >= 1",
+                    "expected_value": 1,
+                    "actual_value": 191,
+                    "deviation": null,
+                    "details": {}
+                  },
+                  "路由验证": {
+                    "status": "failed",
+                    "message": "未找到版本 productpage 的 pod",
+                    "expected_value": "productpage",
+                    "actual_value": [],
+                    "deviation": null,
+                    "details": {
+                      "available_pods": [
+                        "productpage_productpage-v1-55f788cfdf-xndnp",
+                        "productpage_productpage-v2-6bf858447c-zzbjv"
+                      ]
+                    }
+                  },
+                  "性能指标验证": {
+                    "status": "passed",
+                    "message": "成功率符合预期: 100.00% ≈ 100.00%",
+                    "expected_value": 1.0,
+                    "actual_value": 1.0,
+                    "deviation": 0.0,
+                    "details": {
+                      "total_requests": 191,
+                      "success_requests": 191,
+                      "success_rate": 1.0
+                    }
+                  }
+                },
+                "summary": "验证完成: 3/4 项通过 | 总请求: 191 | 成功率: 100.00% | 多维度验证: HTTP验证✅, 日志验证✅, 其他验证⚠️ | 路由测试",
+                "metrics": {
+                  "total_requests": 191,
+                  "total_pods": 2,
+                  "success_count": 191,
+                  "error_count": 0,
+                  "success_rate": 1.0,
+                  "error_rate": 0.0,
+                  "avg_response_time": 0.02335602094240838,
+                  "pods_with_traffic": [
+                    "productpage_productpage-v1-55f788cfdf-xndnp",
+                    "productpage_productpage-v2-6bf858447c-zzbjv"
+                  ]
+                }
+              },
+              {
+                "case_id": "case_002",
+                "test_description": "正向匹配路由测试 for host 'productpage'",
+                "overall_status": "passed",
+                "dimension_results": {
+                  "HTTP状态码验证": {
+                    "status": "passed",
+                    "message": "HTTP验证通过: 成功率100.0% >= 1.0%, 平均响应时间0.013s <= 5.0s",
+                    "expected_value": "成功率>=1.0%, 响应时间<=5.0s",
+                    "actual_value": "成功率100.0%, 响应时间0.013s",
+                    "deviation": null,
+                    "details": {
+                      "status_codes": {
+                        "200": 62
+                      },
+                      "status_details": [
+                        "200: 62个请求 (100.0%)"
+                      ],
+                      "total_requests": 62,
+                      "success_rate": 100.0,
+                      "avg_response_time": 0.0131
+                    }
+                  },
+                  "基本指标验证": {
+                    "status": "passed",
+                    "message": "请求数量充足: 93 >= 1",
+                    "expected_value": 1,
+                    "actual_value": 93,
+                    "deviation": null,
+                    "details": {}
+                  },
+                  "路由验证": {
+                    "status": "passed",
+                    "message": "成功路由到目标版本 v1",
+                    "expected_value": "v1",
+                    "actual_value": [
+                      "productpage_vv1_productpage-v1-55f788cfdf-xndnp"
+                    ],
+                    "deviation": null,
+                    "details": {
+                      "target_pods": [
+                        "productpage_vv1_productpage-v1-55f788cfdf-xndnp"
+                      ],
+                      "target_requests": 93,
+                      "total_requests": 93,
+                      "routing_ratio": 1.0
+                    }
+                  },
+                  "性能指标验证": {
+                    "status": "passed",
+                    "message": "成功率符合预期: 100.00% ≈ 100.00%",
+                    "expected_value": 1.0,
+                    "actual_value": 1.0,
+                    "deviation": 0.0,
+                    "details": {
+                      "total_requests": 93,
+                      "success_requests": 93,
+                      "success_rate": 1.0
+                    }
+                  }
+                },
+                "summary": "验证完成: 4/4 项通过 | 总请求: 93 | 成功率: 100.00% | 多维度验证: HTTP验证✅, 日志验证✅, 其他验证✅ | 路由测试",
+                "metrics": {
+                  "total_requests": 93,
+                  "total_pods": 1,
+                  "success_count": 93,
+                  "error_count": 0,
+                  "success_rate": 1.0,
+                  "error_rate": 0.0,
+                  "avg_response_time": 0.026376344086021505,
+                  "pods_with_traffic": [
+                    "productpage_vv1_productpage-v1-55f788cfdf-xndnp"
+                  ]
+                }
+              },
+              {
+                "case_id": "case_003",
+                "test_description": "正交组合测试(traffic_split) for host 'reviews'",
+                "overall_status": "warning",
+                "dimension_results": {
+                  "HTTP状态码验证": {
+                    "status": "passed",
+                    "message": "HTTP验证通过: 成功率100.0% >= 0.9%, 平均响应时间0.384s <= 5.0s",
+                    "expected_value": "成功率>=0.9%, 响应时间<=5.0s",
+                    "actual_value": "成功率100.0%, 响应时间0.384s",
+                    "deviation": null,
+                    "details": {
+                      "status_codes": {
+                        "200": 1
+                      },
+                      "status_details": [
+                        "200: 1个请求 (100.0%)"
+                      ],
+                      "total_requests": 1,
+                      "success_rate": 100.0,
+                      "avg_response_time": 0.3837394714355469
+                    }
+                  },
+                  "基本指标验证": {
+                    "status": "passed",
+                    "message": "请求数量充足: 378 >= 62",
+                    "expected_value": 62,
+                    "actual_value": 378,
+                    "deviation": null,
+                    "details": {}
+                  },
+                  "流量分布验证": {
+                    "status": "failed",
+                    "message": "❌ 权重分布验证失败 - ❌ v1: 183个请求 (48.4%, 期望20.0%) | ❌ v2: 195个请求 (51.6%, 期望80.0%) (偏差超出容错范围: v1, v2)",
+                    "expected_value": {
+                      "v1": 0.2,
+                      "v2": 0.8
+                    },
+                    "actual_value": {
+                      "v1": 0.48412698412698413,
+                      "v2": 0.5158730158730159,
+                      "v3": 0.0
+                    },
+                    "deviation": 0.2841269841269841,
+                    "details": {
+                      "overall_passed": false,
+                      "total_requests": 378,
+                      "margin_of_error": 0.05032460879009335,
+                      "version_results": {
+                        "v1": {
+                          "expected_weight": 0.2,
+                          "actual_percentage": 0.48412698412698413,
+                          "deviation": 0.2841269841269841,
+                          "passed": false,
+                          "request_count": 183
+                        },
+                        "v2": {
+                          "expected_weight": 0.8,
+                          "actual_percentage": 0.5158730158730159,
+                          "deviation": 0.2841269841269841,
+                          "passed": false,
+                          "request_count": 195
+                        }
+                      },
+                      "summary": "❌ 权重分布验证失败 - ❌ v1: 183个请求 (48.4%, 期望20.0%) | ❌ v2: 195个请求 (51.6%, 期望80.0%) (偏差超出容错范围: v1, v2)",
+                      "configured_margin_of_error": 0.05,
+                      "effective_margin_of_error": 0.05032460879009335
+                    }
+                  },
+                  "性能指标验证": {
+                    "status": "passed",
+                    "message": "成功率符合预期: 100.00% ≈ 90.00%",
+                    "expected_value": 0.9,
+                    "actual_value": 1.0,
+                    "deviation": 0.09999999999999998,
+                    "details": {
+                      "total_requests": 378,
+                      "success_requests": 378,
+                      "success_rate": 1.0
+                    }
+                  }
+                },
+                "summary": "验证完成: 3/4 项通过 | 总请求: 378 | 成功率: 100.00% | 多维度验证: HTTP验证✅, 日志验证✅, 其他验证⚠️ | 流量分布测试",
+                "metrics": {
+                  "total_requests": 378,
+                  "total_pods": 3,
+                  "success_count": 378,
+                  "error_count": 0,
+                  "success_rate": 1.0,
+                  "error_rate": 0.0,
+                  "avg_response_time": 0.00248,
+                  "pods_with_traffic": [
+                    "reviews_reviews-v1-5c644b7c86-rlj6j",
+                    "reviews_reviews-v2-7c6798f6c7-fcfsq"
+                  ]
+                }
+              },
+              {
+                "case_id": "case_004",
+                "test_description": "全局/局部正交组合测试(circuit_breaker+connection_pool+routing) for host 'productpage'",
+                "overall_status": "passed",
+                "dimension_results": {
+                  "HTTP状态码验证": {
+                    "status": "passed",
+                    "message": "HTTP验证通过: 成功率100.0% >= 1.0%, 平均响应时间0.427s <= 5.0s",
+                    "expected_value": "成功率>=1.0%, 响应时间<=5.0s",
+                    "actual_value": "成功率100.0%, 响应时间0.427s",
+                    "deviation": null,
+                    "details": {
+                      "status_codes": {
+                        "200": 1
+                      },
+                      "status_details": [
+                        "200: 1个请求 (100.0%)"
+                      ],
+                      "total_requests": 1,
+                      "success_rate": 100.0,
+                      "avg_response_time": 0.42723965644836426
+                    }
+                  },
+                  "基本指标验证": {
+                    "status": "passed",
+                    "message": "请求数量充足: 590 >= 75",
+                    "expected_value": 75,
+                    "actual_value": 590,
+                    "deviation": null,
+                    "details": {}
+                  },
+                  "熔断器验证": {
+                    "status": "passed",
+                    "message": "检测到熔断行为: 110 个503错误, 错误聚集模式",
+                    "expected_value": "熔断行为",
+                    "actual_value": "18.64% 错误率, 2 个指标",
+                    "deviation": null,
+                    "details": {
+                      "total_requests": 590,
+                      "error_requests": 110,
+                      "circuit_breaker_errors": 110,
+                      "error_rate": 0.1864406779661017,
+                      "cb_indicators": [
+                        "110 个503错误",
+                        "错误聚集模式"
+                      ],
+                      "time_analysis": {
+                        "error_clustering_detected": true,
+                        "max_consecutive_errors": 49,
+                        "fast_fail_detected": false,
+                        "trip_detection_time": 0
+                      },
+                      "time_validation_results": [],
+                      "time_validation_passed": true,
+                      "expected_trip_threshold": 5,
+                      "expected_trip_timeout": 30.0,
+                      "expected_recovery_time": 60.0
+                    }
+                  },
+                  "性能指标验证": {
+                    "status": "warning",
+                    "message": "成功率偏差: 81.36% vs 100.00%",
+                    "expected_value": 1.0,
+                    "actual_value": 0.8135593220338984,
+                    "deviation": 0.18644067796610164,
+                    "details": {
+                      "total_requests": 590,
+                      "success_requests": 480,
+                      "success_rate": 0.8135593220338984
+                    }
+                  }
+                },
+                "summary": "验证完成: 3/4 项通过 | 总请求: 590 | 成功率: 81.36% | 多维度验证: HTTP验证✅, 日志验证✅, 其他验证⚠️",
+                "metrics": {
+                  "total_requests": 590,
+                  "total_pods": 3,
+                  "success_count": 480,
+                  "error_count": 110,
+                  "success_rate": 0.8135593220338984,
+                  "error_rate": 0.1864406779661017,
+                  "avg_response_time": 0.028974999999999997,
+                  "pods_with_traffic": [
+                    "gateway_istio-ingressgateway-5b58cb5c79-r7tg4",
+                    "productpage_productpage-v1-55f788cfdf-xndnp",
+                    "productpage_productpage-v2-6bf858447c-zzbjv"
+                  ]
+                }
+              }
+            ],
+            "passed_count": 2,
+            "failed_count": 0,
+            "warning_count": 2,
+            "total_count": 4
+          }
+        ],
+        "end_time": "2025-11-10T00:30:40.939469",
+        "total_duration_ms": 26.303
+      }
+    }
+  },
+  "overall_statistics": {
+    "total_cases": 4,
+    "passed_cases": 2,
+    "failed_cases": 0,
+    "warning_cases": 2,
+    "skipped_cases": 0,
+    "success_rate": 0.5,
+    "total_requests": 1252,
+    "total_success_requests": 1142,
+    "overall_success_rate": 0.9121405750798722
+  },
+  "test_results": [
+    {
+      "case_id": "case_001",
+      "description": "正向匹配路由测试 for host '*'",
+      "overall_status": "warning",
+      "summary": "验证完成: 3/4 项通过 | 总请求: 191 | 成功率: 100.00% | 多维度验证: HTTP验证✅, 日志验证✅, 其他验证⚠️ | 路由测试",
+      "metrics": {
+        "total_requests": 191,
+        "total_pods": 2,
+        "success_count": 191,
+        "error_count": 0,
+        "success_rate": 1.0,
+        "error_rate": 0.0,
+        "avg_response_time": 0.02335602094240838,
+        "pods_with_traffic": [
+          "productpage_productpage-v1-55f788cfdf-xndnp",
+          "productpage_productpage-v2-6bf858447c-zzbjv"
+        ]
+      },
+      "individual_verifications": [
+        {
+          "test_name": "HTTP状态码验证",
+          "status": "passed",
+          "expected_value": "成功率>=1.0%, 响应时间<=5.0s",
+          "actual_value": "成功率100.0%, 响应时间0.392s",
+          "deviation": null,
+          "message": "HTTP验证通过: 成功率100.0% >= 1.0%, 平均响应时间0.392s <= 5.0s",
+          "details": {
+            "status_codes": {
+              "200": 1
+            },
+            "status_details": [
+              "200: 1个请求 (100.0%)"
+            ],
+            "total_requests": 1,
+            "success_rate": 100.0,
+            "avg_response_time": 0.3916339874267578
+          }
+        },
+        {
+          "test_name": "基本指标验证",
+          "status": "passed",
+          "expected_value": 1,
+          "actual_value": 191,
+          "deviation": null,
+          "message": "请求数量充足: 191 >= 1",
+          "details": {}
+        },
+        {
+          "test_name": "路由验证",
+          "status": "failed",
+          "expected_value": "productpage",
+          "actual_value": [],
+          "deviation": null,
+          "message": "未找到版本 productpage 的 pod",
+          "details": {
+            "available_pods": [
+              "productpage_productpage-v1-55f788cfdf-xndnp",
+              "productpage_productpage-v2-6bf858447c-zzbjv"
+            ]
+          }
+        },
+        {
+          "test_name": "性能指标验证",
+          "status": "passed",
+          "expected_value": 1.0,
+          "actual_value": 1.0,
+          "deviation": 0.0,
+          "message": "成功率符合预期: 100.00% ≈ 100.00%",
+          "details": {
+            "total_requests": 191,
+            "success_requests": 191,
+            "success_rate": 1.0
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "case_002",
+      "description": "正向匹配路由测试 for host 'productpage'",
+      "overall_status": "passed",
+      "summary": "验证完成: 4/4 项通过 | 总请求: 93 | 成功率: 100.00% | 多维度验证: HTTP验证✅, 日志验证✅, 其他验证✅ | 路由测试",
+      "metrics": {
+        "total_requests": 93,
+        "total_pods": 1,
+        "success_count": 93,
+        "error_count": 0,
+        "success_rate": 1.0,
+        "error_rate": 0.0,
+        "avg_response_time": 0.026376344086021505,
+        "pods_with_traffic": [
+          "productpage_vv1_productpage-v1-55f788cfdf-xndnp"
+        ]
+      },
+      "individual_verifications": [
+        {
+          "test_name": "HTTP状态码验证",
+          "status": "passed",
+          "expected_value": "成功率>=1.0%, 响应时间<=5.0s",
+          "actual_value": "成功率100.0%, 响应时间0.013s",
+          "deviation": null,
+          "message": "HTTP验证通过: 成功率100.0% >= 1.0%, 平均响应时间0.013s <= 5.0s",
+          "details": {
+            "status_codes": {
+              "200": 62
+            },
+            "status_details": [
+              "200: 62个请求 (100.0%)"
+            ],
+            "total_requests": 62,
+            "success_rate": 100.0,
+            "avg_response_time": 0.0131
+          }
+        },
+        {
+          "test_name": "基本指标验证",
+          "status": "passed",
+          "expected_value": 1,
+          "actual_value": 93,
+          "deviation": null,
+          "message": "请求数量充足: 93 >= 1",
+          "details": {}
+        },
+        {
+          "test_name": "路由验证",
+          "status": "passed",
+          "expected_value": "v1",
+          "actual_value": [
+            "productpage_vv1_productpage-v1-55f788cfdf-xndnp"
+          ],
+          "deviation": null,
+          "message": "成功路由到目标版本 v1",
+          "details": {
+            "target_pods": [
+              "productpage_vv1_productpage-v1-55f788cfdf-xndnp"
+            ],
+            "target_requests": 93,
+            "total_requests": 93,
+            "routing_ratio": 1.0
+          }
+        },
+        {
+          "test_name": "性能指标验证",
+          "status": "passed",
+          "expected_value": 1.0,
+          "actual_value": 1.0,
+          "deviation": 0.0,
+          "message": "成功率符合预期: 100.00% ≈ 100.00%",
+          "details": {
+            "total_requests": 93,
+            "success_requests": 93,
+            "success_rate": 1.0
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "case_003",
+      "description": "正交组合测试(traffic_split) for host 'reviews'",
+      "overall_status": "warning",
+      "summary": "验证完成: 3/4 项通过 | 总请求: 378 | 成功率: 100.00% | 多维度验证: HTTP验证✅, 日志验证✅, 其他验证⚠️ | 流量分布测试",
+      "metrics": {
+        "total_requests": 378,
+        "total_pods": 3,
+        "success_count": 378,
+        "error_count": 0,
+        "success_rate": 1.0,
+        "error_rate": 0.0,
+        "avg_response_time": 0.00248,
+        "pods_with_traffic": [
+          "reviews_reviews-v1-5c644b7c86-rlj6j",
+          "reviews_reviews-v2-7c6798f6c7-fcfsq"
+        ]
+      },
+      "individual_verifications": [
+        {
+          "test_name": "HTTP状态码验证",
+          "status": "passed",
+          "expected_value": "成功率>=0.9%, 响应时间<=5.0s",
+          "actual_value": "成功率100.0%, 响应时间0.384s",
+          "deviation": null,
+          "message": "HTTP验证通过: 成功率100.0% >= 0.9%, 平均响应时间0.384s <= 5.0s",
+          "details": {
+            "status_codes": {
+              "200": 1
+            },
+            "status_details": [
+              "200: 1个请求 (100.0%)"
+            ],
+            "total_requests": 1,
+            "success_rate": 100.0,
+            "avg_response_time": 0.3837394714355469
+          }
+        },
+        {
+          "test_name": "基本指标验证",
+          "status": "passed",
+          "expected_value": 62,
+          "actual_value": 378,
+          "deviation": null,
+          "message": "请求数量充足: 378 >= 62",
+          "details": {}
+        },
+        {
+          "test_name": "流量分布验证",
+          "status": "failed",
+          "expected_value": {
+            "v1": 0.2,
+            "v2": 0.8
+          },
+          "actual_value": {
+            "v1": 0.48412698412698413,
+            "v2": 0.5158730158730159,
+            "v3": 0.0
+          },
+          "deviation": 0.2841269841269841,
+          "message": "❌ 权重分布验证失败 - ❌ v1: 183个请求 (48.4%, 期望20.0%) | ❌ v2: 195个请求 (51.6%, 期望80.0%) (偏差超出容错范围: v1, v2)",
+          "details": {
+            "overall_passed": false,
+            "total_requests": 378,
+            "margin_of_error": 0.05032460879009335,
+            "version_results": {
+              "v1": {
+                "expected_weight": 0.2,
+                "actual_percentage": 0.48412698412698413,
+                "deviation": 0.2841269841269841,
+                "passed": false,
+                "request_count": 183
+              },
+              "v2": {
+                "expected_weight": 0.8,
+                "actual_percentage": 0.5158730158730159,
+                "deviation": 0.2841269841269841,
+                "passed": false,
+                "request_count": 195
+              }
+            },
+            "summary": "❌ 权重分布验证失败 - ❌ v1: 183个请求 (48.4%, 期望20.0%) | ❌ v2: 195个请求 (51.6%, 期望80.0%) (偏差超出容错范围: v1, v2)",
+            "configured_margin_of_error": 0.05,
+            "effective_margin_of_error": 0.05032460879009335
+          }
+        },
+        {
+          "test_name": "性能指标验证",
+          "status": "passed",
+          "expected_value": 0.9,
+          "actual_value": 1.0,
+          "deviation": 0.09999999999999998,
+          "message": "成功率符合预期: 100.00% ≈ 90.00%",
+          "details": {
+            "total_requests": 378,
+            "success_requests": 378,
+            "success_rate": 1.0
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "case_004",
+      "description": "全局/局部正交组合测试(circuit_breaker+connection_pool+routing) for host 'productpage'",
+      "overall_status": "passed",
+      "summary": "验证完成: 3/4 项通过 | 总请求: 590 | 成功率: 81.36% | 多维度验证: HTTP验证✅, 日志验证✅, 其他验证⚠️",
+      "metrics": {
+        "total_requests": 590,
+        "total_pods": 3,
+        "success_count": 480,
+        "error_count": 110,
+        "success_rate": 0.8135593220338984,
+        "error_rate": 0.1864406779661017,
+        "avg_response_time": 0.028974999999999997,
+        "pods_with_traffic": [
+          "gateway_istio-ingressgateway-5b58cb5c79-r7tg4",
+          "productpage_productpage-v1-55f788cfdf-xndnp",
+          "productpage_productpage-v2-6bf858447c-zzbjv"
+        ]
+      },
+      "individual_verifications": [
+        {
+          "test_name": "HTTP状态码验证",
+          "status": "passed",
+          "expected_value": "成功率>=1.0%, 响应时间<=5.0s",
+          "actual_value": "成功率100.0%, 响应时间0.427s",
+          "deviation": null,
+          "message": "HTTP验证通过: 成功率100.0% >= 1.0%, 平均响应时间0.427s <= 5.0s",
+          "details": {
+            "status_codes": {
+              "200": 1
+            },
+            "status_details": [
+              "200: 1个请求 (100.0%)"
+            ],
+            "total_requests": 1,
+            "success_rate": 100.0,
+            "avg_response_time": 0.42723965644836426
+          }
+        },
+        {
+          "test_name": "基本指标验证",
+          "status": "passed",
+          "expected_value": 75,
+          "actual_value": 590,
+          "deviation": null,
+          "message": "请求数量充足: 590 >= 75",
+          "details": {}
+        },
+        {
+          "test_name": "熔断器验证",
+          "status": "passed",
+          "expected_value": "熔断行为",
+          "actual_value": "18.64% 错误率, 2 个指标",
+          "deviation": null,
+          "message": "检测到熔断行为: 110 个503错误, 错误聚集模式",
+          "details": {
+            "total_requests": 590,
+            "error_requests": 110,
+            "circuit_breaker_errors": 110,
+            "error_rate": 0.1864406779661017,
+            "cb_indicators": [
+              "110 个503错误",
+              "错误聚集模式"
+            ],
+            "time_analysis": {
+              "error_clustering_detected": true,
+              "max_consecutive_errors": 49,
+              "fast_fail_detected": false,
+              "trip_detection_time": 0
+            },
+            "time_validation_results": [],
+            "time_validation_passed": true,
+            "expected_trip_threshold": 5,
+            "expected_trip_timeout": 30.0,
+            "expected_recovery_time": 60.0
+          }
+        },
+        {
+          "test_name": "性能指标验证",
+          "status": "warning",
+          "expected_value": 1.0,
+          "actual_value": 0.8135593220338984,
+          "deviation": 0.18644067796610164,
+          "message": "成功率偏差: 81.36% vs 100.00%",
+          "details": {
+            "total_requests": 590,
+            "success_requests": 480,
+            "success_rate": 0.8135593220338984
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,65 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: '{"apiVersion":"networking.istio.io/v1beta1","kind":"DestinationRule","metadata":{"annotations":{},"name":"cartservice","namespace":"online-boutique"},"spec":{"host":"cartservice.default.svc.cluster.local","trafficPolicy":{"connectionPool":{"http":{"http2MaxRequests":50,"maxRequestsPerConnection":10},"tcp":{"maxConnections":100}},"outlierDetection":{"baseEjectionTime":"30s","consecutive5xxErrors":3,"interval":"5s","maxEjectionPercent":50}}}}
+
+      '
+  creationTimestamp: '2025-05-20T06:33:14Z'
+  generation: 2
+  managedFields:
+  - apiVersion: networking.istio.io/v1beta1
+    fieldsType: FieldsV1
+    fieldsV1:
+      f:metadata:
+        f:annotations:
+          .: {}
+          f:kubectl.kubernetes.io/last-applied-configuration: {}
+      f:spec:
+        .: {}
+        f:trafficPolicy:
+          .: {}
+          f:connectionPool:
+            .: {}
+            f:http:
+              .: {}
+              f:http2MaxRequests: {}
+              f:maxRequestsPerConnection: {}
+            f:tcp:
+              .: {}
+              f:maxConnections: {}
+          f:outlierDetection:
+            .: {}
+            f:baseEjectionTime: {}
+            f:consecutive5xxErrors: {}
+            f:interval: {}
+            f:maxEjectionPercent: {}
+    manager: kubectl-client-side-apply
+    operation: Update
+    time: '2025-05-20T06:33:14Z'
+  - apiVersion: networking.istio.io/v1
+    fieldsType: FieldsV1
+    fieldsV1:
+      f:spec:
+        f:host: {}
+    manager: kiali
+    operation: Update
+    time: '2025-05-20T06:34:12Z'
+  name: cartservice
+  namespace: online-boutique
+  resourceVersion: '1928394'
+  uid: 71165725-dba4-48f2-858c-4ac8463cf2df
+spec:
+  host: cartservice.online-boutique.svc.cluster.local
+  trafficPolicy:
+    connectionPool:
+      http:
+        http2MaxRequests: 50
+        maxRequestsPerConnection: 10
+      tcp:
+        maxConnections: 100
+    outlierDetection:
+      baseEjectionTime: 30s
+      consecutive5xxErrors: 3
+      interval: 5s
+      maxEjectionPercent: 50

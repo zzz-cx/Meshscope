@@ -1,0 +1,282 @@
+{
+  "test_suite": "config_change_scenarios",
+  "description": "配置变更实时响应测试场景",
+  "version": "1.0",
+  "global_settings": {
+    "monitoring_interval": "1s",
+    "measurement_precision": "100ms",
+    "baseline_duration": "5m",
+    "cooldown_period": "2m",
+    "max_test_duration": "30m"
+  },
+  "test_scenarios": [
+    {
+      "scenario_id": "RT_001",
+      "name": "单一VirtualService权重调整",
+      "description": "测试单个VirtualService权重变更的响应时间",
+      "category": "single_change",
+      "priority": "high",
+      "test_config": {
+        "target_service": "reviews",
+        "initial_weights": {"v1": 80, "v3": 20},
+        "final_weights": {"v1": 60, "v3": 40},
+        "change_method": "kubectl_apply",
+        "monitoring_duration": "10m"
+      },
+      "expected_metrics": {
+        "detection_latency_max": "5s",
+        "impact_analysis_time_max": "30s", 
+        "traffic_shift_completion_max": "60s",
+        "end_to_end_response_max": "90s"
+      },
+      "measurement_points": [
+        {"event": "config_submitted", "description": "配置提交时间点"},
+        {"event": "config_detected", "description": "系统检测到配置变更"},
+        {"event": "impact_analysis_start", "description": "开始影响分析"},
+        {"event": "impact_analysis_complete", "description": "影响分析完成"},
+        {"event": "traffic_shift_start", "description": "流量切换开始"},
+        {"event": "traffic_shift_complete", "description": "流量切换完成"},
+        {"event": "verification_complete", "description": "变更验证完成"}
+      ],
+      "validation": {
+        "traffic_distribution_check": true,
+        "error_rate_threshold": 0.01,
+        "latency_degradation_threshold": "10%"
+      }
+    },
+    {
+      "scenario_id": "RT_002", 
+      "name": "故障注入策略实时启用",
+      "description": "测试故障注入策略动态启用的响应速度",
+      "category": "policy_activation",
+      "priority": "high",
+      "test_config": {
+        "target_service": "productpage",
+        "fault_config": {
+          "delay": {"percentage": 30, "fixed_delay": "2s"},
+          "abort": {"percentage": 10, "http_status": 503}
+        },
+        "activation_method": "istio_config_patch",
+        "monitoring_duration": "8m"
+      },
+      "expected_metrics": {
+        "detection_latency_max": "3s",
+        "policy_activation_time_max": "15s",
+        "fault_injection_verification_max": "45s",
+        "alert_generation_max": "10s"
+      },
+      "load_test": {
+        "concurrent_requests": 10,
+        "request_rate": "5/s",
+        "test_duration": "5m"
+      },
+      "validation": {
+        "fault_injection_effectiveness": true,
+        "expected_delay_percentage": 30,
+        "expected_abort_percentage": 10,
+        "monitoring_accuracy": 0.95
+      }
+    },
+    {
+      "scenario_id": "RT_003",
+      "name": "多服务批量配置变更",
+      "description": "测试多个服务同时进行配置变更的处理能力",
+      "category": "batch_change",
+      "priority": "medium",
+      "test_config": {
+        "target_services": ["productpage", "reviews", "details"],
+        "change_types": [
+          {"service": "productpage", "type": "timeout_adjustment", "value": "5s"},
+          {"service": "reviews", "type": "retry_policy", "attempts": 5},
+          {"service": "details", "type": "circuit_breaker", "consecutive_errors": 3}
+        ],
+        "change_interval": "30s",
+        "total_changes": 3
+      },
+      "expected_metrics": {
+        "per_change_detection_max": "5s",
+        "batch_processing_time_max": "2m",
+        "resource_contention_impact": "minimal",
+        "parallel_processing_efficiency": 0.8
+      },
+      "system_monitoring": {
+        "cpu_usage_threshold": 80,
+        "memory_usage_threshold": 85,
+        "network_bandwidth_threshold": "100Mbps",
+        "concurrent_change_limit": 5
+      }
+    },
+    {
+      "scenario_id": "RT_004",
+      "name": "高频配置变更压力测试",
+      "description": "测试系统在高频配置变更下的性能表现",
+      "category": "stress_test",
+      "priority": "high",
+      "test_config": {
+        "change_frequency": "1/min",
+        "test_duration": "20m",
+        "change_pattern": "weight_adjustments",
+        "target_services": ["reviews"],
+        "weight_variations": [
+          [90, 10], [80, 20], [70, 30], [60, 40], 
+          [50, 50], [40, 60], [30, 70], [20, 80]
+        ]
+      },
+      "expected_metrics": {
+        "throughput_minimum": "50changes/hour",
+        "average_response_time_max": "10s",
+        "queue_backlog_max": 5,
+        "error_rate_max": 0.02,
+        "system_stability": "maintained"
+      },
+      "performance_degradation": {
+        "acceptable_latency_increase": "20%",
+        "acceptable_throughput_decrease": "10%",
+        "recovery_time_max": "5m"
+      }
+    },
+    {
+      "scenario_id": "RT_005",
+      "name": "配置冲突实时解决",
+      "description": "测试配置冲突检测和解决的实时性",
+      "category": "conflict_resolution",
+      "priority": "high",
+      "test_config": {
+        "conflict_scenarios": [
+          {
+            "type": "route_priority_conflict",
+            "services": ["productpage"],
+            "description": "同时提交相同优先级的路由规则"
+          },
+          {
+            "type": "weight_sum_error",
+            "services": ["reviews"],
+            "description": "权重总和不等于100%的配置"
+          },
+          {
+            "type": "resource_reference_error",
+            "services": ["details"],
+            "description": "引用不存在的服务版本"
+          }
+        ],
+        "injection_method": "simultaneous_kubectl_apply",
+        "resolution_timeout": "60s"
+      },
+      "expected_metrics": {
+        "conflict_detection_time_max": "10s",
+        "conflict_resolution_time_max": "45s",
+        "fallback_activation_time_max": "30s",
+        "user_notification_time_max": "15s"
+      },
+      "resolution_strategies": {
+        "route_conflicts": "priority_based_resolution",
+        "weight_errors": "auto_normalization",
+        "reference_errors": "validation_rejection"
+      }
+    },
+    {
+      "scenario_id": "RT_006",
+      "name": "配置回滚响应时间",
+      "description": "测试紧急配置回滚的响应速度",
+      "category": "rollback_test",
+      "priority": "critical",
+      "test_config": {
+        "initial_config": "stable_baseline",
+        "problematic_config": {
+          "type": "circuit_breaker_too_aggressive",
+          "consecutive_errors": 1,
+          "base_ejection_time": "300s"
+        },
+        "rollback_trigger": "error_rate_threshold",
+        "error_rate_threshold": 0.1,
+        "rollback_timeout": "120s"
+      },
+      "expected_metrics": {
+        "problem_detection_time_max": "30s",
+        "rollback_decision_time_max": "10s",
+        "rollback_execution_time_max": "60s",
+        "service_recovery_time_max": "90s"
+      },
+      "monitoring": {
+        "error_rate_sampling": "5s",
+        "health_check_interval": "10s", 
+        "recovery_validation": "end_to_end_test"
+      }
+    },
+    {
+      "scenario_id": "RT_007",
+      "name": "实时监控数据处理能力",
+      "description": "测试系统处理大量实时监控数据的能力",
+      "category": "monitoring_performance",
+      "priority": "medium",
+      "test_config": {
+        "data_sources": [
+          "prometheus_metrics",
+          "envoy_access_logs",
+          "jaeger_traces",
+          "kubernetes_events"
+        ],
+        "data_volume": {
+          "metrics_per_second": 1000,
+          "logs_per_second": 500,
+          "traces_per_second": 100,
+          "events_per_second": 50
+        },
+        "test_duration": "15m",
+        "processing_requirements": "real_time"
+      },
+      "expected_metrics": {
+        "data_ingestion_latency_max": "1s",
+        "processing_latency_max": "5s",
+        "data_loss_rate_max": 0.001,
+        "query_response_time_max": "2s"
+      },
+      "scalability_test": {
+        "data_volume_multipliers": [1, 2, 5, 10],
+        "concurrent_queries": [1, 5, 10, 20],
+        "performance_degradation_threshold": "50%"
+      }
+    }
+  ],
+  "system_requirements": {
+    "minimum_resources": {
+      "cpu_cores": 4,
+      "memory_gb": 8,
+      "storage_gb": 100,
+      "network_bandwidth_mbps": 1000
+    },
+    "monitoring_stack": {
+      "prometheus": "latest",
+      "grafana": "latest", 
+      "jaeger": "latest",
+      "envoy": "latest"
+    },
+    "measurement_tools": {
+      "time_synchronization": "ntp",
+      "high_resolution_timestamps": true,
+      "distributed_tracing": true,
+      "custom_metrics": true
+    }
+  },
+  "success_criteria": {
+    "overall_requirements": {
+      "detection_latency_p95": "5s",
+      "processing_latency_p95": "30s",
+      "end_to_end_latency_p95": "90s",
+      "system_availability": 0.999,
+      "data_accuracy": 0.995
+    },
+    "performance_boundaries": {
+      "cpu_usage_max": 0.8,
+      "memory_usage_max": 0.85,
+      "network_utilization_max": 0.7,
+      "disk_io_max": 1000
+    },
+    "reliability_requirements": {
+      "zero_data_loss": true,
+      "graceful_degradation": true,
+      "fast_recovery": true,
+      "consistent_performance": true
+    }
+  }
+}

@@ -1,0 +1,47 @@
+% Auto-generated — REAL cluster timings (mode=cluster).
+% Highlight: N=30 / C5  runs=3
+
+\subsection{Orthogonal Testing Efficiency}
+
+\begin{figure*}[t]
+\centering
+% \includegraphics[width=0.85\linewidth]{figures/evaluation/orthogonal-reduction.png}
+\caption{Orthogonal validation under different scales (real cluster).
+(a) Test-case growth vs configuration items.
+(b) Complete validation wall-clock time vs configuration items.}
+\label{fig:orthogonal-reduction}
+\end{figure*}
+
+\textbf{Goal.}
+Evaluate orthogonal reduction of dynamic validation cost on a live Istio cluster, and whether fault detection coverage is preserved after merging.
+
+\textbf{Setup.}
+Service scales $N\in\{5,10,15,20,30\}$, configuration levels $\{C1,C2,C3,C4,C5\}$.
+Each validation case performs live \texttt{kubectl apply}, ingress traffic, assertion, and delete.
+Orthogonal bundles share one apply/clear and issue per-effect traffic.
+Each cell is repeated 3 times; times are wall-clock mean$\pm$std.
+
+\textbf{Results.}
+Under a 30-service deployment at C5 (885 configuration items), exhaustive validation uses 600 cases vs 154 orthogonal cases (reduction 74.33\%).
+Complete validation wall-clock time drops from $532.0\pm3.4$s to $188.5\pm3.2$s (time reduction 64.57\%).
+
+\textbf{Coverage ablation.}
+Table~\ref{tab:ortho-ablation} reports live fault/effect detection before vs after merging.
+
+\begin{table*}[t]
+\centering
+\caption{Real-cluster detection and validation time (C5).}
+\label{tab:ortho-ablation}
+\scriptsize
+\begin{tabular}{cccccccccc}
+\toprule
+$N$ & $|F|$ & DR$_b$ & DR$_a$ & $\Delta$ & Cases$_e$ & Cases$_o$ & Red. & $T_e$ (s) & $T_o$ (s) \\
+\midrule
+5 & 100 & 100.00\% & 100.00\% & 0.00 & 100 & 29 & 71.00\% & 78.0$\pm$0.3 & 24.8$\pm$0.0 \\
+10 & 200 & 100.00\% & 100.00\% & 0.00 & 200 & 54 & 73.00\% & 155.9$\pm$0.1 & 47.1$\pm$0.0 \\
+15 & 300 & 100.00\% & 100.00\% & 0.00 & 300 & 79 & 73.67\% & 236.5$\pm$0.6 & 71.0$\pm$0.1 \\
+20 & 400 & 100.00\% & 100.00\% & 0.00 & 400 & 104 & 74.00\% & 318.5$\pm$1.0 & 97.2$\pm$0.4 \\
+30 & 600 & 97.17\% & 89.33\% & 7.84 & 600 & 154 & 74.33\% & 532.0$\pm$3.4 & 188.5$\pm$3.2 \\
+\bottomrule
+\end{tabular}
+\end{table*}

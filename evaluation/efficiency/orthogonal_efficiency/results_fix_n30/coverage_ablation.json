@@ -1,0 +1,243 @@
+{
+  "mode": "cluster",
+  "n_runs": 2,
+  "service_scales": [
+    30
+  ],
+  "config_levels": [
+    "C3",
+    "C4",
+    "C5"
+  ],
+  "timing_definition": "Wall-clock complete validation: kubectl apply + ingress traffic + assert + kubectl delete (orthogonal shares apply/clear).",
+  "grid": {
+    "N30_C3": {
+      "summary": {
+        "mode": "cluster",
+        "n_services": 30,
+        "config_level": "C3",
+        "config_label": "resilience",
+        "n_config_items": 630,
+        "n_effect_types": 12,
+        "n_validation_units": 360,
+        "exhaustive_cases": 360,
+        "orthogonal_cases": 92,
+        "reduction_pct": 74.44,
+        "n_runs": 2,
+        "exh_validation_s_mean": 585.322,
+        "exh_validation_s_std": 0.098,
+        "ortho_validation_s_mean": 166.419,
+        "ortho_validation_s_std": 0.296,
+        "time_reduction_pct_mean": 71.568,
+        "time_reduction_pct_std": 0.055,
+        "fault_set_size": 360,
+        "dr_before_pct": 100.0,
+        "dr_after_pct": 100.0,
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "max_bundle_size": 4,
+        "base_url": "http://192.168.1.69:31605",
+        "namespace": "meshscope-ortho-n30",
+        "exh_success_rate_pct_last": 100.0,
+        "ortho_success_rate_pct_last": 100.0
+      },
+      "ablation": {
+        "fault_set_size": 360,
+        "before_merge": {
+          "total_faults": 360,
+          "detected": 360,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 360
+        },
+        "after_merge": {
+          "total_faults": 360,
+          "detected": 360,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 360
+        },
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "principle": "Real cluster: a unit counts as detected if its own HTTP assertion passed after live apply (per-member; bundle siblings no longer all-or-nothing). DR overlays update the primary service DestinationRule in-place to avoid same-host multi-DR conflicts at large N."
+      },
+      "runs": [
+        {
+          "run": 1,
+          "exhaustive_validation_s": 585.391,
+          "orthogonal_validation_s": 166.21,
+          "exh_success_rate_pct": 100.0,
+          "ortho_success_rate_pct": 100.0,
+          "exh_num_ok": 360,
+          "ortho_num_ok": 92,
+          "wall_note": "real kubectl+curl wall-clock"
+        },
+        {
+          "run": 2,
+          "exhaustive_validation_s": 585.253,
+          "orthogonal_validation_s": 166.628,
+          "exh_success_rate_pct": 100.0,
+          "ortho_success_rate_pct": 100.0,
+          "exh_num_ok": 360,
+          "ortho_num_ok": 92,
+          "wall_note": "real kubectl+curl wall-clock"
+        }
+      ],
+      "timing_note": "cluster wall-clock"
+    },
+    "N30_C4": {
+      "summary": {
+        "mode": "cluster",
+        "n_services": 30,
+        "config_level": "C4",
+        "config_label": "full",
+        "n_config_items": 675,
+        "n_effect_types": 17,
+        "n_validation_units": 510,
+        "exhaustive_cases": 510,
+        "orthogonal_cases": 131,
+        "reduction_pct": 74.31,
+        "n_runs": 2,
+        "exh_validation_s_mean": 824.995,
+        "exh_validation_s_std": 0.037,
+        "ortho_validation_s_mean": 233.635,
+        "ortho_validation_s_std": 0.221,
+        "time_reduction_pct_mean": 71.68,
+        "time_reduction_pct_std": 0.028,
+        "fault_set_size": 510,
+        "dr_before_pct": 100.0,
+        "dr_after_pct": 100.0,
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "max_bundle_size": 4,
+        "base_url": "http://192.168.1.69:31605",
+        "namespace": "meshscope-ortho-n30",
+        "exh_success_rate_pct_last": 100.0,
+        "ortho_success_rate_pct_last": 100.0
+      },
+      "ablation": {
+        "fault_set_size": 510,
+        "before_merge": {
+          "total_faults": 510,
+          "detected": 510,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 510
+        },
+        "after_merge": {
+          "total_faults": 510,
+          "detected": 510,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 510
+        },
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "principle": "Real cluster: a unit counts as detected if its own HTTP assertion passed after live apply (per-member; bundle siblings no longer all-or-nothing). DR overlays update the primary service DestinationRule in-place to avoid same-host multi-DR conflicts at large N."
+      },
+      "runs": [
+        {
+          "run": 1,
+          "exhaustive_validation_s": 824.969,
+          "orthogonal_validation_s": 233.791,
+          "exh_success_rate_pct": 100.0,
+          "ortho_success_rate_pct": 100.0,
+          "exh_num_ok": 510,
+          "ortho_num_ok": 131,
+          "wall_note": "real kubectl+curl wall-clock"
+        },
+        {
+          "run": 2,
+          "exhaustive_validation_s": 825.021,
+          "orthogonal_validation_s": 233.478,
+          "exh_success_rate_pct": 100.0,
+          "ortho_success_rate_pct": 100.0,
+          "exh_num_ok": 510,
+          "ortho_num_ok": 131,
+          "wall_note": "real kubectl+curl wall-clock"
+        }
+      ],
+      "timing_note": "cluster wall-clock"
+    },
+    "N30_C5": {
+      "summary": {
+        "mode": "cluster",
+        "n_services": 30,
+        "config_level": "C5",
+        "config_label": "full+mirror+authz",
+        "n_config_items": 885,
+        "n_effect_types": 20,
+        "n_validation_units": 600,
+        "exhaustive_cases": 600,
+        "orthogonal_cases": 154,
+        "reduction_pct": 74.33,
+        "n_runs": 2,
+        "exh_validation_s_mean": 964.732,
+        "exh_validation_s_std": 0.473,
+        "ortho_validation_s_mean": 269.481,
+        "ortho_validation_s_std": 0.204,
+        "time_reduction_pct_mean": 72.067,
+        "time_reduction_pct_std": 0.035,
+        "fault_set_size": 600,
+        "dr_before_pct": 100.0,
+        "dr_after_pct": 100.0,
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "max_bundle_size": 4,
+        "base_url": "http://192.168.1.69:31605",
+        "namespace": "meshscope-ortho-n30",
+        "exh_success_rate_pct_last": 100.0,
+        "ortho_success_rate_pct_last": 100.0
+      },
+      "ablation": {
+        "fault_set_size": 600,
+        "before_merge": {
+          "total_faults": 600,
+          "detected": 600,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 600
+        },
+        "after_merge": {
+          "total_faults": 600,
+          "detected": 600,
+          "missed": 0,
+          "detection_rate_pct": 100.0,
+          "missed_faults": [],
+          "observed_units": 600
+        },
+        "delta_detection_pct": 0.0,
+        "coverage_preserved": true,
+        "principle": "Real cluster: a unit counts as detected if its own HTTP assertion passed after live apply (per-member; bundle siblings no longer all-or-nothing). DR overlays update the primary service DestinationRule in-place to avoid same-host multi-DR conflicts at large N."
+      },
+      "runs": [
+        {
+          "run": 1,
+          "exhaustive_validation_s": 965.066,
+          "orthogonal_validation_s": 269.337,
+          "exh_success_rate_pct": 100.0,
+          "ortho_success_rate_pct": 100.0,
+          "exh_num_ok": 600,
+          "ortho_num_ok": 154,
+          "wall_note": "real kubectl+curl wall-clock"
+        },
+        {
+          "run": 2,
+          "exhaustive_validation_s": 964.397,
+          "orthogonal_validation_s": 269.626,
+          "exh_success_rate_pct": 100.0,
+          "ortho_success_rate_pct": 100.0,
+          "exh_num_ok": 600,
+          "ortho_num_ok": 154,
+          "wall_note": "real kubectl+curl wall-clock"
+        }
+      ],
+      "timing_note": "cluster wall-clock"
+    }
+  }
+}

@@ -1,0 +1,300 @@
+{
+  "experiment_start": "2025-11-09T20:56:34.932638",
+  "experiment_end": "2025-11-09T20:59:43.704692",
+  "namespace": "online-boutique",
+  "steps": [
+    5,
+    10,
+    15,
+    20
+  ],
+  "records": [
+    {
+      "target_features": 5,
+      "static_duration": 8.329,
+      "dynamic_duration": 23.032,
+      "total_duration": 31.439,
+      "success": false,
+      "timestamp": "2025-11-09T20:56:37.506783",
+      "result_file": "results\\e2e_validation\\e2e_result_20251109_205708.json"
+    },
+    {
+      "target_features": 10,
+      "static_duration": 8.194,
+      "dynamic_duration": 38.93,
+      "total_duration": 47.204,
+      "success": false,
+      "timestamp": "2025-11-09T20:57:11.750946",
+      "result_file": "results\\e2e_validation\\e2e_result_20251109_205758.json"
+    },
+    {
+      "target_features": 15,
+      "static_duration": 13.411,
+      "dynamic_duration": 48.843,
+      "total_duration": 62.335,
+      "success": false,
+      "timestamp": "2025-11-09T20:58:01.614365",
+      "result_file": "results\\e2e_validation\\e2e_result_20251109_205903.json"
+    },
+    {
+      "target_features": 20,
+      "static_duration": 3.308,
+      "dynamic_duration": 33.307,
+      "total_duration": 36.695,
+      "success": false,
+      "timestamp": "2025-11-09T20:59:06.903335",
+      "result_file": "results\\e2e_validation\\e2e_result_20251109_205943.json"
+    }
+  ],
+  "analysis": {
+    "trend": "unknown",
+    "details": {
+      "dynamic_durations": []
+    }
+  },
+  "features": [
+    {
+      "feature_id": 1,
+      "type": "routing",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-routing-1",
+      "service": "frontend",
+      "metadata": {
+        "match_prefix": "/feature-online-boutique-routing-1"
+      }
+    },
+    {
+      "feature_id": 2,
+      "type": "rate_limit",
+      "resource_kind": "EnvoyFilter",
+      "resource_name": "feature-rl-2",
+      "service": "productcatalogservice",
+      "metadata": {
+        "max_tokens": 28,
+        "tokens_per_fill": 28,
+        "fill_interval": "5s"
+      }
+    },
+    {
+      "feature_id": 3,
+      "type": "traffic_shifting",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-traffic-3",
+      "service": "recommendationservice",
+      "metadata": {
+        "header": "x-meshscope-exp",
+        "header_value": "onl-exp-3",
+        "weights": [
+          77,
+          23
+        ]
+      }
+    },
+    {
+      "feature_id": 4,
+      "type": "routing",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-routing-4",
+      "service": "frontend",
+      "metadata": {
+        "match_prefix": "/feature-online-boutique-routing-4"
+      }
+    },
+    {
+      "feature_id": 5,
+      "type": "traffic_shifting",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-traffic-5",
+      "service": "frontend",
+      "metadata": {
+        "header": "x-meshscope-exp",
+        "header_value": "onl-exp-5",
+        "weights": [
+          58,
+          42
+        ]
+      }
+    },
+    {
+      "feature_id": 6,
+      "type": "rate_limit",
+      "resource_kind": "EnvoyFilter",
+      "resource_name": "feature-rl-6",
+      "service": "productcatalogservice",
+      "metadata": {
+        "max_tokens": 10,
+        "tokens_per_fill": 7,
+        "fill_interval": "4s"
+      }
+    },
+    {
+      "feature_id": 7,
+      "type": "routing",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-routing-7",
+      "service": "checkoutservice",
+      "metadata": {
+        "match_prefix": "/feature-online-boutique-routing-7"
+      }
+    },
+    {
+      "feature_id": 8,
+      "type": "routing",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-routing-8",
+      "service": "checkoutservice",
+      "metadata": {
+        "match_prefix": "/feature-online-boutique-routing-8"
+      }
+    },
+    {
+      "feature_id": 9,
+      "type": "rate_limit",
+      "resource_kind": "EnvoyFilter",
+      "resource_name": "feature-rl-9",
+      "service": "frontend",
+      "metadata": {
+        "max_tokens": 20,
+        "tokens_per_fill": 13,
+        "fill_interval": "1s"
+      }
+    },
+    {
+      "feature_id": 10,
+      "type": "routing",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-routing-10",
+      "service": "productcatalogservice",
+      "metadata": {
+        "match_prefix": "/feature-online-boutique-routing-10"
+      }
+    },
+    {
+      "feature_id": 11,
+      "type": "rate_limit",
+      "resource_kind": "EnvoyFilter",
+      "resource_name": "feature-rl-11",
+      "service": "checkoutservice",
+      "metadata": {
+        "max_tokens": 10,
+        "tokens_per_fill": 7,
+        "fill_interval": "3s"
+      }
+    },
+    {
+      "feature_id": 12,
+      "type": "traffic_shifting",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-traffic-12",
+      "service": "frontend",
+      "metadata": {
+        "header": "x-meshscope-exp",
+        "header_value": "onl-exp-12",
+        "weights": [
+          65,
+          35
+        ]
+      }
+    },
+    {
+      "feature_id": 13,
+      "type": "rate_limit",
+      "resource_kind": "EnvoyFilter",
+      "resource_name": "feature-rl-13",
+      "service": "productcatalogservice",
+      "metadata": {
+        "max_tokens": 13,
+        "tokens_per_fill": 10,
+        "fill_interval": "4s"
+      }
+    },
+    {
+      "feature_id": 14,
+      "type": "rate_limit",
+      "resource_kind": "EnvoyFilter",
+      "resource_name": "feature-rl-14",
+      "service": "productcatalogservice",
+      "metadata": {
+        "max_tokens": 22,
+        "tokens_per_fill": 12,
+        "fill_interval": "5s"
+      }
+    },
+    {
+      "feature_id": 15,
+      "type": "rate_limit",
+      "resource_kind": "EnvoyFilter",
+      "resource_name": "feature-rl-15",
+      "service": "productcatalogservice",
+      "metadata": {
+        "max_tokens": 26,
+        "tokens_per_fill": 5,
+        "fill_interval": "5s"
+      }
+    },
+    {
+      "feature_id": 16,
+      "type": "traffic_shifting",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-traffic-16",
+      "service": "frontend",
+      "metadata": {
+        "header": "x-meshscope-exp",
+        "header_value": "onl-exp-16",
+        "weights": [
+          43,
+          57
+        ]
+      }
+    },
+    {
+      "feature_id": 17,
+      "type": "circuit_breaker",
+      "resource_kind": "DestinationRule",
+      "resource_name": "feature-cb-17",
+      "service": "recommendationservice",
+      "metadata": {
+        "max_pending": 10,
+        "interval": "4s",
+        "base_ejection_time": "12s"
+      }
+    },
+    {
+      "feature_id": 18,
+      "type": "routing",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-routing-18",
+      "service": "productcatalogservice",
+      "metadata": {
+        "match_prefix": "/feature-online-boutique-routing-18"
+      }
+    },
+    {
+      "feature_id": 19,
+      "type": "rate_limit",
+      "resource_kind": "EnvoyFilter",
+      "resource_name": "feature-rl-19",
+      "service": "frontend",
+      "metadata": {
+        "max_tokens": 30,
+        "tokens_per_fill": 27,
+        "fill_interval": "4s"
+      }
+    },
+    {
+      "feature_id": 20,
+      "type": "traffic_shifting",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-traffic-20",
+      "service": "recommendationservice",
+      "metadata": {
+        "header": "x-meshscope-exp",
+        "header_value": "onl-exp-20",
+        "weights": [
+          75,
+          25
+        ]
+      }
+    }
+  ]
+}

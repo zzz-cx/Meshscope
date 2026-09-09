@@ -1,0 +1,36 @@
+{
+  "global_settings": {
+    "ingress_url": "http://192.168.92.131:30476/productpage",
+    "namespace": "default"
+  },
+  "test_cases": [
+    {
+      "case_id": "case_001",
+      "description": "正交组合测试(traffic_split) for host 'test-service-1'",
+      "type": "load_test",
+      "request_params": {
+        "host": "test-service-1",
+        "path": "/"
+      },
+      "load_params": {
+        "num_requests": 97,
+        "concurrency": 10
+      },
+      "expected_outcome": {
+        "distribution": {
+          "v1": "approx 0.50",
+          "v2": "approx 0.30",
+          "v3": "approx 0.20"
+        },
+        "margin_of_error": "0.05",
+        "behaviors": [
+          "验证流量分割：v1(50%), v2(30%), v3(20%)"
+        ]
+      },
+      "source_service": "test-service-1",
+      "test_strategies": [
+        "traffic_split"
+      ]
+    }
+  ]
+}

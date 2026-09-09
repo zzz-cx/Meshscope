@@ -1,0 +1,3 @@
+============================================================
+SCALE N=5 C1 mode=cluster ns=meshscope-ortho-n5
+  DONE wall_cell=35.4s cases 25->7 Te=19.1±0.0s To=5.5±0.0s DRb=100.0 DRa=100.0

@@ -1,0 +1,306 @@
+{
+  "experiment_start": "2025-11-09T17:50:27.222556",
+  "experiment_end": "2025-11-09T17:51:23.350402",
+  "namespace": "default",
+  "steps": [
+    5,
+    10,
+    15,
+    20
+  ],
+  "records": [
+    {
+      "target_features": 5,
+      "static_duration": 18.861,
+      "dynamic_duration": 0.058,
+      "total_duration": 18.971,
+      "success": false,
+      "timestamp": "2025-11-09T17:50:35.875489",
+      "result_file": "results\\e2e_validation\\e2e_result_20251109_175054.json"
+    },
+    {
+      "target_features": 10,
+      "static_duration": 13.178,
+      "dynamic_duration": 0.041,
+      "total_duration": 13.267,
+      "success": false,
+      "timestamp": "2025-11-09T17:50:58.086876",
+      "result_file": "results\\e2e_validation\\e2e_result_20251109_175111.json"
+    },
+    {
+      "target_features": 15,
+      "static_duration": 3.205,
+      "dynamic_duration": 0.042,
+      "total_duration": 3.296,
+      "success": false,
+      "timestamp": "2025-11-09T17:51:14.058377",
+      "result_file": "results\\e2e_validation\\e2e_result_20251109_175117.json"
+    },
+    {
+      "target_features": 20,
+      "static_duration": 3.184,
+      "dynamic_duration": 0.039,
+      "total_duration": 3.27,
+      "success": false,
+      "timestamp": "2025-11-09T17:51:19.981187",
+      "result_file": "results\\e2e_validation\\e2e_result_20251109_175123.json"
+    }
+  ],
+  "analysis": {
+    "trend": "unknown",
+    "details": {
+      "dynamic_durations": []
+    }
+  },
+  "features": [
+    {
+      "feature_id": 1,
+      "type": "circuit_breaker",
+      "resource_kind": "DestinationRule",
+      "resource_name": "feature-cb-1",
+      "service": "reviews",
+      "metadata": {
+        "max_pending": 7,
+        "interval": "4s",
+        "base_ejection_time": "9s"
+      }
+    },
+    {
+      "feature_id": 2,
+      "type": "routing",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-routing-2",
+      "service": "details",
+      "metadata": {
+        "match_prefix": "/feature-routing-2"
+      }
+    },
+    {
+      "feature_id": 3,
+      "type": "routing",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-routing-3",
+      "service": "details",
+      "metadata": {
+        "match_prefix": "/feature-routing-3"
+      }
+    },
+    {
+      "feature_id": 4,
+      "type": "circuit_breaker",
+      "resource_kind": "DestinationRule",
+      "resource_name": "feature-cb-4",
+      "service": "ratings",
+      "metadata": {
+        "max_pending": 6,
+        "interval": "2s",
+        "base_ejection_time": "12s"
+      }
+    },
+    {
+      "feature_id": 5,
+      "type": "routing",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-routing-5",
+      "service": "productpage",
+      "metadata": {
+        "match_prefix": "/feature-routing-5"
+      }
+    },
+    {
+      "feature_id": 6,
+      "type": "traffic_shifting",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-traffic-6",
+      "service": "reviews",
+      "metadata": {
+        "header": "x-meshscope-exp",
+        "header_value": "exp-6",
+        "weights": [
+          44,
+          56
+        ]
+      }
+    },
+    {
+      "feature_id": 7,
+      "type": "routing",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-routing-7",
+      "service": "productpage",
+      "metadata": {
+        "match_prefix": "/feature-routing-7"
+      }
+    },
+    {
+      "feature_id": 8,
+      "type": "routing",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-routing-8",
+      "service": "details",
+      "metadata": {
+        "match_prefix": "/feature-routing-8"
+      }
+    },
+    {
+      "feature_id": 9,
+      "type": "circuit_breaker",
+      "resource_kind": "DestinationRule",
+      "resource_name": "feature-cb-9",
+      "service": "ratings",
+      "metadata": {
+        "max_pending": 1,
+        "interval": "2s",
+        "base_ejection_time": "14s"
+      }
+    },
+    {
+      "feature_id": 10,
+      "type": "routing",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-routing-10",
+      "service": "productpage",
+      "metadata": {
+        "match_prefix": "/feature-routing-10"
+      }
+    },
+    {
+      "feature_id": 11,
+      "type": "traffic_shifting",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-traffic-11",
+      "service": "reviews",
+      "metadata": {
+        "header": "x-meshscope-exp",
+        "header_value": "exp-11",
+        "weights": [
+          67,
+          33
+        ]
+      }
+    },
+    {
+      "feature_id": 12,
+      "type": "traffic_shifting",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-traffic-12",
+      "service": "reviews",
+      "metadata": {
+        "header": "x-meshscope-exp",
+        "header_value": "exp-12",
+        "weights": [
+          79,
+          21
+        ]
+      }
+    },
+    {
+      "feature_id": 13,
+      "type": "circuit_breaker",
+      "resource_kind": "DestinationRule",
+      "resource_name": "feature-cb-13",
+      "service": "ratings",
+      "metadata": {
+        "max_pending": 4,
+        "interval": "2s",
+        "base_ejection_time": "9s"
+      }
+    },
+    {
+      "feature_id": 14,
+      "type": "traffic_shifting",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-traffic-14",
+      "service": "reviews",
+      "metadata": {
+        "header": "x-meshscope-exp",
+        "header_value": "exp-14",
+        "weights": [
+          43,
+          57
+        ]
+      }
+    },
+    {
+      "feature_id": 15,
+      "type": "traffic_shifting",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-traffic-15",
+      "service": "reviews",
+      "metadata": {
+        "header": "x-meshscope-exp",
+        "header_value": "exp-15",
+        "weights": [
+          52,
+          48
+        ]
+      }
+    },
+    {
+      "feature_id": 16,
+      "type": "circuit_breaker",
+      "resource_kind": "DestinationRule",
+      "resource_name": "feature-cb-16",
+      "service": "reviews",
+      "metadata": {
+        "max_pending": 9,
+        "interval": "2s",
+        "base_ejection_time": "11s"
+      }
+    },
+    {
+      "feature_id": 17,
+      "type": "traffic_shifting",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-traffic-17",
+      "service": "reviews",
+      "metadata": {
+        "header": "x-meshscope-exp",
+        "header_value": "exp-17",
+        "weights": [
+          57,
+          43
+        ]
+      }
+    },
+    {
+      "feature_id": 18,
+      "type": "circuit_breaker",
+      "resource_kind": "DestinationRule",
+      "resource_name": "feature-cb-18",
+      "service": "ratings",
+      "metadata": {
+        "max_pending": 3,
+        "interval": "1s",
+        "base_ejection_time": "15s"
+      }
+    },
+    {
+      "feature_id": 19,
+      "type": "circuit_breaker",
+      "resource_kind": "DestinationRule",
+      "resource_name": "feature-cb-19",
+      "service": "ratings",
+      "metadata": {
+        "max_pending": 7,
+        "interval": "4s",
+        "base_ejection_time": "9s"
+      }
+    },
+    {
+      "feature_id": 20,
+      "type": "traffic_shifting",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-traffic-20",
+      "service": "reviews",
+      "metadata": {
+        "header": "x-meshscope-exp",
+        "header_value": "exp-20",
+        "weights": [
+          57,
+          43
+        ]
+      }
+    }
+  ]
+}

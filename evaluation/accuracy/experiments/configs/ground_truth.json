@@ -1,0 +1,265 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "created_date": "2024-01-01",
+    "description": "Ground truth labels for Istio configuration accuracy evaluation",
+    "total_samples": 0,
+    "fault_types": [
+      "routing_conflict",
+      "missing_subset", 
+      "weight_error",
+      "duplicate_config",
+      "missing_service_ref",
+      "gateway_selector_error",
+      "fault_injection_error",
+      "rate_limit_error",
+      "retry_policy_error",
+      "circuit_breaker_error",
+      "timeout_error",
+      "correct"
+    ]
+  },
+  "samples": {
+    "human_errors/conflict_vs.yaml": {
+      "has_fault": true,
+      "fault_type": "routing_conflict",
+      "severity": "high",
+      "description": "VirtualService路由规则冲突，可能导致流量路由不可预测",
+      "expected_detection": {
+        "static_detection": true,
+        "dynamic_detection": true,
+        "detection_confidence": 0.9
+      },
+      "fault_details": {
+        "conflicting_rules": [
+          "route to v1 with weight 50%",
+          "route to v2 with weight 50%",
+          "route to v3 with weight 100%"
+        ],
+        "affected_services": ["reviews"],
+        "impact": "traffic_routing_inconsistency"
+      }
+    },
+    "human_errors/missing_subset.yaml": {
+      "has_fault": true,
+      "fault_type": "missing_subset",
+      "severity": "high", 
+      "description": "VirtualService引用的subset在DestinationRule中不存在",
+      "expected_detection": {
+        "static_detection": true,
+        "dynamic_detection": true,
+        "detection_confidence": 0.95
+      },
+      "fault_details": {
+        "missing_subset": "v4",
+        "referenced_in": "VirtualService reviews",
+        "defined_in": "DestinationRule reviews",
+        "available_subsets": ["v1", "v2", "v3"],
+        "impact": "routing_failure"
+      }
+    },
+    "human_errors/weight_error.yaml": {
+      "has_fault": true,
+      "fault_type": "weight_error",
+      "severity": "medium",
+      "description": "流量权重总和不等于100%",
+      "expected_detection": {
+        "static_detection": true,
+        "dynamic_detection": false,
+        "detection_confidence": 0.8
+      },
+      "fault_details": {
+        "configured_weights": [50, 30],
+        "total_weight": 80,
+        "expected_total": 100,
+        "missing_weight": 20,
+        "impact": "traffic_distribution_error"
+      }
+    },
+    "human_errors/duplicate_envoyfilter.yaml": {
+      "has_fault": true,
+      "fault_type": "duplicate_config",
+      "severity": "medium",
+      "description": "重复的EnvoyFilter配置，可能导致不可预测的行为",
+      "expected_detection": {
+        "static_detection": true,
+        "dynamic_detection": false,
+        "detection_confidence": 0.7
+      },
+      "fault_details": {
+        "duplicate_filters": [
+          "envoy-filter-1",
+          "envoy-filter-2"
+        ],
+        "conflict_type": "same_workload_same_patch",
+        "impact": "configuration_conflict"
+      }
+    },
+    "human_errors/missing_service_ref.yaml": {
+      "has_fault": true,
+      "fault_type": "missing_service_ref",
+      "severity": "high",
+      "description": "VirtualService引用了不存在的服务",
+      "expected_detection": {
+        "static_detection": true,
+        "dynamic_detection": true,
+        "detection_confidence": 0.9
+      },
+      "fault_details": {
+        "missing_service": "non-existent-service.default.svc.cluster.local",
+        "referenced_in": "VirtualService productpage",
+        "impact": "service_unreachable"
+      }
+    },
+    "human_errors/gateway_selector_error.yaml": {
+      "has_fault": true,
+      "fault_type": "gateway_selector_error",
+      "severity": "medium",
+      "description": "Gateway选择器不匹配任何实际的ingress gateway",
+      "expected_detection": {
+        "static_detection": true,
+        "dynamic_detection": false,
+        "detection_confidence": 0.8
+      },
+      "fault_details": {
+        "configured_selector": "istio: non-existent-gateway",
+        "available_gateways": ["istio-ingressgateway"],
+        "impact": "gateway_inaccessible"
+      }
+    },
+    "real_world/case1.yaml": {
+      "has_fault": true,
+      "fault_type": "fault_injection_error",
+      "severity": "medium",
+      "description": "故障注入配置错误，延迟和错误注入同时配置",
+      "expected_detection": {
+        "static_detection": true,
+        "dynamic_detection": true,
+        "detection_confidence": 0.85
+      },
+      "fault_details": {
+        "conflict_type": "delay_and_abort_together",
+        "delay_percentage": 50,
+        "abort_percentage": 10,
+        "impact": "unpredictable_fault_behavior"
+      }
+    },
+    "real_world/case2.yaml": {
+      "has_fault": true,
+      "fault_type": "rate_limit_error",
+      "severity": "high",
+      "description": "限流配置中的令牌桶参数不合理",
+      "expected_detection": {
+        "static_detection": true,
+        "dynamic_detection": true,
+        "detection_confidence": 0.8
+      },
+      "fault_details": {
+        "token_bucket_size": 1,
+        "requests_per_minute": 100,
+        "issue": "bucket_size_too_small",
+        "impact": "ineffective_rate_limiting"
+      }
+    },
+    "mutated/vs_mut_01.yaml": {
+      "has_fault": true,
+      "fault_type": "retry_policy_error",
+      "severity": "low",
+      "description": "重试策略配置错误，重试次数过多",
+      "expected_detection": {
+        "static_detection": true,
+        "dynamic_detection": true,
+        "detection_confidence": 0.75
+      },
+      "fault_details": {
+        "retry_attempts": 10,
+        "max_recommended": 3,
+        "impact": "excessive_retry_overhead"
+      }
+    },
+    "mutated/dr_mut_01.yaml": {
+      "has_fault": true,
+      "fault_type": "circuit_breaker_error",
+      "severity": "medium",
+      "description": "熔断器配置参数不合理",
+      "expected_detection": {
+        "static_detection": true,
+        "dynamic_detection": true,
+        "detection_confidence": 0.8
+      },
+      "fault_details": {
+        "consecutive_errors": 1,
+        "max_connections": 1,
+        "issue": "too_aggressive_circuit_breaking",
+        "impact": "premature_circuit_breaking"
+      }
+    },
+    "mutated/timeout_mut_01.yaml": {
+      "has_fault": true,
+      "fault_type": "timeout_error",
+      "severity": "low",
+      "description": "超时时间配置过短",
+      "expected_detection": {
+        "static_detection": true,
+        "dynamic_detection": true,
+        "detection_confidence": 0.7
+      },
+      "fault_details": {
+        "timeout_seconds": 0.1,
+        "recommended_minimum": 1.0,
+        "impact": "frequent_timeouts"
+      }
+    },
+    "correct/baseline_config.yaml": {
+      "has_fault": false,
+      "fault_type": "correct",
+      "severity": "none",
+      "description": "正确的基准配置，用于阴性对照",
+      "expected_detection": {
+        "static_detection": false,
+        "dynamic_detection": false,
+        "detection_confidence": 1.0
+      },
+      "fault_details": {
+        "validation_checks": [
+          "routing_consistency",
+          "subset_availability", 
+          "weight_sum_validation",
+          "service_reference_check",
+          "gateway_selector_validation"
+        ],
+        "status": "all_checks_passed"
+      }
+    }
+  },
+  "statistics": {
+    "total_samples": 12,
+    "fault_distribution": {
+      "routing_conflict": 1,
+      "missing_subset": 1,
+      "weight_error": 1,
+      "duplicate_config": 1,
+      "missing_service_ref": 1,
+      "gateway_selector_error": 1,
+      "fault_injection_error": 1,
+      "rate_limit_error": 1,
+      "retry_policy_error": 1,
+      "circuit_breaker_error": 1,
+      "timeout_error": 1,
+      "correct": 1
+    },
+    "severity_distribution": {
+      "high": 4,
+      "medium": 5,
+      "low": 2,
+      "none": 1
+    },
+    "detection_expected": {
+      "static_detection": 11,
+      "dynamic_detection": 8,
+      "both_methods": 8,
+      "static_only": 3,
+      "dynamic_only": 0
+    }
+  }
+}

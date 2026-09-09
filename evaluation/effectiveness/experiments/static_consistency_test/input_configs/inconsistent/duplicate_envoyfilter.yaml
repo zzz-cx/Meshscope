@@ -1,0 +1,62 @@
+# 不一致配置：重复的EnvoyFilter配置冲突
+# 基于您提供的online-boutique.yaml中发现的重复配置问题
+apiVersion: v1
+kind: List
+items:
+- apiVersion: networking.istio.io/v1
+  kind: EnvoyFilter
+  metadata:
+    name: adservice-rate-limit-1
+    namespace: online-boutique
+  spec:
+    workloadSelector:
+      labels:
+        app: adservice
+    configPatches:
+    - applyTo: HTTP_FILTER
+      match:
+        context: SIDECAR_INBOUND
+        listener:
+          filterChain:
+            filter:
+              name: "envoy.filters.network.http_connection_manager"
+      patch:
+        operation: INSERT_BEFORE
+        value:
+          name: envoy.filters.http.local_ratelimit
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.filters.http.local_ratelimit.v3.LocalRateLimit
+            stat_prefix: http_local_rate_limiter
+            token_bucket:
+              max_tokens: 3
+              tokens_per_fill: 3
+              fill_interval: 60s
+
+- apiVersion: networking.istio.io/v1
+  kind: EnvoyFilter
+  metadata:
+    name: adservice-rate-limit-2  # 错误：重复定义相同的过滤器
+    namespace: online-boutique
+  spec:
+    workloadSelector:
+      labels:
+        app: adservice  # 相同的工作负载选择器
+    configPatches:
+    - applyTo: HTTP_FILTER
+      match:
+        context: SIDECAR_INBOUND
+        listener:
+          filterChain:
+            filter:
+              name: "envoy.filters.network.http_connection_manager"
+      patch:
+        operation: INSERT_BEFORE  # 相同的操作类型
+        value:
+          name: envoy.filters.http.local_ratelimit  # 相同的过滤器名称
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.filters.http.local_ratelimit.v3.LocalRateLimit
+            stat_prefix: http_local_rate_limiter_duplicate
+            token_bucket:
+              max_tokens: 5  # 不同的配置值，造成冲突
+              tokens_per_fill: 5
+              fill_interval: 30s

@@ -1,0 +1,724 @@
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: meshscope-gw
+  namespace: meshscope-ortho-n5
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - hosts:
+    - '*'
+    port:
+      name: http
+      number: 80
+      protocol: HTTP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: meshscope-svc-0001
+    meshscope/exp: real-traffic
+  name: meshscope-svc-0001
+  namespace: meshscope-ortho-n5
+spec:
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+  selector:
+    app: meshscope-svc-0001
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: meshscope-svc-0001
+    meshscope/exp: real-traffic
+    version: v1
+  name: meshscope-svc-0001-v1
+  namespace: meshscope-ortho-n5
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: meshscope-svc-0001
+      version: v1
+  template:
+    metadata:
+      annotations: {}
+      labels:
+        app: meshscope-svc-0001
+        meshscope/exp: real-traffic
+        version: v1
+    spec:
+      containers:
+      - image: docker.m.daocloud.io/library/nginx:1.25-alpine
+        imagePullPolicy: IfNotPresent
+        name: app
+        ports:
+        - containerPort: 80
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 2
+          periodSeconds: 5
+        resources:
+          limits:
+            cpu: 200m
+            memory: 128Mi
+          requests:
+            cpu: 20m
+            memory: 32Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: meshscope-svc-0001
+    meshscope/exp: real-traffic
+    version: v2
+  name: meshscope-svc-0001-v2
+  namespace: meshscope-ortho-n5
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: meshscope-svc-0001
+      version: v2
+  template:
+    metadata:
+      annotations: {}
+      labels:
+        app: meshscope-svc-0001
+        meshscope/exp: real-traffic
+        version: v2
+    spec:
+      containers:
+      - image: docker.m.daocloud.io/library/nginx:1.25-alpine
+        imagePullPolicy: IfNotPresent
+        name: app
+        ports:
+        - containerPort: 80
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 2
+          periodSeconds: 5
+        resources:
+          limits:
+            cpu: 200m
+            memory: 128Mi
+          requests:
+            cpu: 20m
+            memory: 32Mi
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  labels:
+    meshscope/exp: real-traffic
+  name: meshscope-svc-0001
+  namespace: meshscope-ortho-n5
+spec:
+  host: meshscope-svc-0001
+  subsets:
+  - labels:
+      version: v1
+    name: v1
+  - labels:
+      version: v2
+    name: v2
+  trafficPolicy:
+    connectionPool:
+      http:
+        http1MaxPendingRequests: 100
+        maxRequestsPerConnection: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: meshscope-svc-0002
+    meshscope/exp: real-traffic
+  name: meshscope-svc-0002
+  namespace: meshscope-ortho-n5
+spec:
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+  selector:
+    app: meshscope-svc-0002
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: meshscope-svc-0002
+    meshscope/exp: real-traffic
+    version: v1
+  name: meshscope-svc-0002-v1
+  namespace: meshscope-ortho-n5
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: meshscope-svc-0002
+      version: v1
+  template:
+    metadata:
+      annotations: {}
+      labels:
+        app: meshscope-svc-0002
+        meshscope/exp: real-traffic
+        version: v1
+    spec:
+      containers:
+      - image: docker.m.daocloud.io/library/nginx:1.25-alpine
+        imagePullPolicy: IfNotPresent
+        name: app
+        ports:
+        - containerPort: 80
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 2
+          periodSeconds: 5
+        resources:
+          limits:
+            cpu: 200m
+            memory: 128Mi
+          requests:
+            cpu: 20m
+            memory: 32Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: meshscope-svc-0002
+    meshscope/exp: real-traffic
+    version: v2
+  name: meshscope-svc-0002-v2
+  namespace: meshscope-ortho-n5
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: meshscope-svc-0002
+      version: v2
+  template:
+    metadata:
+      annotations: {}
+      labels:
+        app: meshscope-svc-0002
+        meshscope/exp: real-traffic
+        version: v2
+    spec:
+      containers:
+      - image: docker.m.daocloud.io/library/nginx:1.25-alpine
+        imagePullPolicy: IfNotPresent
+        name: app
+        ports:
+        - containerPort: 80
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 2
+          periodSeconds: 5
+        resources:
+          limits:
+            cpu: 200m
+            memory: 128Mi
+          requests:
+            cpu: 20m
+            memory: 32Mi
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  labels:
+    meshscope/exp: real-traffic
+  name: meshscope-svc-0002
+  namespace: meshscope-ortho-n5
+spec:
+  host: meshscope-svc-0002
+  subsets:
+  - labels:
+      version: v1
+    name: v1
+  - labels:
+      version: v2
+    name: v2
+  trafficPolicy:
+    connectionPool:
+      http:
+        http1MaxPendingRequests: 100
+        maxRequestsPerConnection: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: meshscope-svc-0003
+    meshscope/exp: real-traffic
+  name: meshscope-svc-0003
+  namespace: meshscope-ortho-n5
+spec:
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+  selector:
+    app: meshscope-svc-0003
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: meshscope-svc-0003
+    meshscope/exp: real-traffic
+    version: v1
+  name: meshscope-svc-0003-v1
+  namespace: meshscope-ortho-n5
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: meshscope-svc-0003
+      version: v1
+  template:
+    metadata:
+      annotations: {}
+      labels:
+        app: meshscope-svc-0003
+        meshscope/exp: real-traffic
+        version: v1
+    spec:
+      containers:
+      - image: docker.m.daocloud.io/library/nginx:1.25-alpine
+        imagePullPolicy: IfNotPresent
+        name: app
+        ports:
+        - containerPort: 80
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 2
+          periodSeconds: 5
+        resources:
+          limits:
+            cpu: 200m
+            memory: 128Mi
+          requests:
+            cpu: 20m
+            memory: 32Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: meshscope-svc-0003
+    meshscope/exp: real-traffic
+    version: v2
+  name: meshscope-svc-0003-v2
+  namespace: meshscope-ortho-n5
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: meshscope-svc-0003
+      version: v2
+  template:
+    metadata:
+      annotations: {}
+      labels:
+        app: meshscope-svc-0003
+        meshscope/exp: real-traffic
+        version: v2
+    spec:
+      containers:
+      - image: docker.m.daocloud.io/library/nginx:1.25-alpine
+        imagePullPolicy: IfNotPresent
+        name: app
+        ports:
+        - containerPort: 80
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 2
+          periodSeconds: 5
+        resources:
+          limits:
+            cpu: 200m
+            memory: 128Mi
+          requests:
+            cpu: 20m
+            memory: 32Mi
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  labels:
+    meshscope/exp: real-traffic
+  name: meshscope-svc-0003
+  namespace: meshscope-ortho-n5
+spec:
+  host: meshscope-svc-0003
+  subsets:
+  - labels:
+      version: v1
+    name: v1
+  - labels:
+      version: v2
+    name: v2
+  trafficPolicy:
+    connectionPool:
+      http:
+        http1MaxPendingRequests: 100
+        maxRequestsPerConnection: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: meshscope-svc-0004
+    meshscope/exp: real-traffic
+  name: meshscope-svc-0004
+  namespace: meshscope-ortho-n5
+spec:
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+  selector:
+    app: meshscope-svc-0004
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: meshscope-svc-0004
+    meshscope/exp: real-traffic
+    version: v1
+  name: meshscope-svc-0004-v1
+  namespace: meshscope-ortho-n5
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: meshscope-svc-0004
+      version: v1
+  template:
+    metadata:
+      annotations: {}
+      labels:
+        app: meshscope-svc-0004
+        meshscope/exp: real-traffic
+        version: v1
+    spec:
+      containers:
+      - image: docker.m.daocloud.io/library/nginx:1.25-alpine
+        imagePullPolicy: IfNotPresent
+        name: app
+        ports:
+        - containerPort: 80
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 2
+          periodSeconds: 5
+        resources:
+          limits:
+            cpu: 200m
+            memory: 128Mi
+          requests:
+            cpu: 20m
+            memory: 32Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: meshscope-svc-0004
+    meshscope/exp: real-traffic
+    version: v2
+  name: meshscope-svc-0004-v2
+  namespace: meshscope-ortho-n5
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: meshscope-svc-0004
+      version: v2
+  template:
+    metadata:
+      annotations: {}
+      labels:
+        app: meshscope-svc-0004
+        meshscope/exp: real-traffic
+        version: v2
+    spec:
+      containers:
+      - image: docker.m.daocloud.io/library/nginx:1.25-alpine
+        imagePullPolicy: IfNotPresent
+        name: app
+        ports:
+        - containerPort: 80
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 2
+          periodSeconds: 5
+        resources:
+          limits:
+            cpu: 200m
+            memory: 128Mi
+          requests:
+            cpu: 20m
+            memory: 32Mi
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  labels:
+    meshscope/exp: real-traffic
+  name: meshscope-svc-0004
+  namespace: meshscope-ortho-n5
+spec:
+  host: meshscope-svc-0004
+  subsets:
+  - labels:
+      version: v1
+    name: v1
+  - labels:
+      version: v2
+    name: v2
+  trafficPolicy:
+    connectionPool:
+      http:
+        http1MaxPendingRequests: 100
+        maxRequestsPerConnection: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: meshscope-svc-0005
+    meshscope/exp: real-traffic
+  name: meshscope-svc-0005
+  namespace: meshscope-ortho-n5
+spec:
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+  selector:
+    app: meshscope-svc-0005
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: meshscope-svc-0005
+    meshscope/exp: real-traffic
+    version: v1
+  name: meshscope-svc-0005-v1
+  namespace: meshscope-ortho-n5
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: meshscope-svc-0005
+      version: v1
+  template:
+    metadata:
+      annotations: {}
+      labels:
+        app: meshscope-svc-0005
+        meshscope/exp: real-traffic
+        version: v1
+    spec:
+      containers:
+      - image: docker.m.daocloud.io/library/nginx:1.25-alpine
+        imagePullPolicy: IfNotPresent
+        name: app
+        ports:
+        - containerPort: 80
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 2
+          periodSeconds: 5
+        resources:
+          limits:
+            cpu: 200m
+            memory: 128Mi
+          requests:
+            cpu: 20m
+            memory: 32Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: meshscope-svc-0005
+    meshscope/exp: real-traffic
+    version: v2
+  name: meshscope-svc-0005-v2
+  namespace: meshscope-ortho-n5
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: meshscope-svc-0005
+      version: v2
+  template:
+    metadata:
+      annotations: {}
+      labels:
+        app: meshscope-svc-0005
+        meshscope/exp: real-traffic
+        version: v2
+    spec:
+      containers:
+      - image: docker.m.daocloud.io/library/nginx:1.25-alpine
+        imagePullPolicy: IfNotPresent
+        name: app
+        ports:
+        - containerPort: 80
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 2
+          periodSeconds: 5
+        resources:
+          limits:
+            cpu: 200m
+            memory: 128Mi
+          requests:
+            cpu: 20m
+            memory: 32Mi
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  labels:
+    meshscope/exp: real-traffic
+  name: meshscope-svc-0005
+  namespace: meshscope-ortho-n5
+spec:
+  host: meshscope-svc-0005
+  subsets:
+  - labels:
+      version: v1
+    name: v1
+  - labels:
+      version: v2
+    name: v2
+  trafficPolicy:
+    connectionPool:
+      http:
+        http1MaxPendingRequests: 100
+        maxRequestsPerConnection: 10
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  labels:
+    meshscope/exp: real-traffic
+  name: meshscope-ingress
+  namespace: meshscope-ortho-n5
+spec:
+  gateways:
+  - meshscope-gw
+  hosts:
+  - '*'
+  http:
+  - match:
+    - uri:
+        exact: /s1/
+    - uri:
+        exact: /s1
+    rewrite:
+      uri: /
+    route:
+    - destination:
+        host: meshscope-svc-0001
+        port:
+          number: 80
+        subset: v1
+  - match:
+    - uri:
+        exact: /s2/
+    - uri:
+        exact: /s2
+    rewrite:
+      uri: /
+    route:
+    - destination:
+        host: meshscope-svc-0002
+        port:
+          number: 80
+        subset: v1
+  - match:
+    - uri:
+        exact: /s3/
+    - uri:
+        exact: /s3
+    rewrite:
+      uri: /
+    route:
+    - destination:
+        host: meshscope-svc-0003
+        port:
+          number: 80
+        subset: v1
+  - match:
+    - uri:
+        exact: /s4/
+    - uri:
+        exact: /s4
+    rewrite:
+      uri: /
+    route:
+    - destination:
+        host: meshscope-svc-0004
+        port:
+          number: 80
+        subset: v1
+  - match:
+    - uri:
+        exact: /s5/
+    - uri:
+        exact: /s5
+    rewrite:
+      uri: /
+    route:
+    - destination:
+        host: meshscope-svc-0005
+        port:
+          number: 80
+        subset: v1

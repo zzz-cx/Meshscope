@@ -1,0 +1,21 @@
+============================================================
+Istio 动态验证报告
+============================================================
+
+[PASS] case_001: 正向匹配路由测试 for host 'reviews'
+      [FAILED] [routing] HTTP状态码: status_codes={'502': 1}
+      [PASSED] [routing] 路由目标: 目标版本 v2 已命中
+
+[SKIP] case_002: 正交组合测试(traffic_split) for host 'reviews'
+
+[PASS] case_003: 正向匹配路由测试 for host 'productpage'
+      [FAILED] [routing] HTTP状态码: status_codes={'502': 1}
+      [PASSED] [routing] 路由目标: 目标版本 v1 已命中
+
+[SKIP] case_004: 正交组合策略测试(retry) for host 'productpage'
+
+[SKIP] case_005: 全局/局部正交组合测试(circuit_breaker+connection_pool+retry+routing) for host 'productpage'
+
+------------------------------------------------------------
+总计: 5  通过: 2  失败: 0  警告: 0
+通过率: 40.0%

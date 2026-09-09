@@ -1,0 +1,40 @@
+# 变异配置1：重试策略参数异常
+# 通过mutation生成：将重试次数从3改为10
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: productpage-retry-mutated
+  namespace: default
+spec:
+  hosts:
+  - productpage.default.svc.cluster.local
+  http:
+  - match:
+    - uri:
+        prefix: /api/v1/products
+    route:
+    - destination:
+        host: productpage.default.svc.cluster.local
+        port:
+          number: 9080
+      weight: 100
+    retries:
+      attempts: 10  # 变异：重试次数过多，正常应该是3
+      perTryTimeout: 2s
+      retryOn: 5xx,reset,connect-failure,refused-stream
+    timeout: 10s
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: productpage
+  namespace: default
+spec:
+  host: productpage.default.svc.cluster.local
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 10
+      http:
+        http1MaxPendingRequests: 10
+        maxRequestsPerConnection: 2

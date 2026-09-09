@@ -1,0 +1,30 @@
+# 测试用例: 超时时间过短
+# timeout = 0.1s，正常请求可能频繁超时
+# 预期: 静态检测应发现超时过短；动态检测应发现大量超时错误
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: productpage
+  namespace: default
+spec:
+  hosts:
+  - productpage.default.svc.cluster.local
+  http:
+  - timeout: 0.1s
+    route:
+    - destination:
+        host: productpage.default.svc.cluster.local
+        subset: v1
+      weight: 100
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: productpage
+  namespace: default
+spec:
+  host: productpage.default.svc.cluster.local
+  subsets:
+  - labels:
+      version: v1
+    name: v1

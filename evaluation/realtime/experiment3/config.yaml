@@ -1,0 +1,50 @@
+# 实验三配置文件
+experiment_name: "Experiment 3: Configuration Change Response"
+description: "评估系统在频繁配置变更场景下的响应能力"
+
+# 实验参数
+config_scales: ["small", "medium", "large"]
+change_rates: ["low", "medium", "high"]
+methods: ["static_only", "dynamic_only", "hybrid", "delta_incremental"]
+repetitions: 10
+test_duration: 60  # 秒
+
+# 输出设置
+output_dir: "results"
+namespace: "default"
+watch_paths: ["configs"]
+
+# 监控设置
+monitoring:
+  enabled: true
+  interval: 1.0  # 秒
+  resource_collection: true
+  cost_tracking: true
+
+# 指标设置
+metrics:
+  confidence_level: 0.95
+  bootstrap_samples: 1000
+  statistical_tests: true
+
+# 性能阈值
+thresholds:
+  max_response_time: 60.0  # 秒
+  min_success_rate: 0.95
+  min_f1_score: 0.8
+
+# 可视化设置
+visualization:
+  enabled: true
+  output_format: ["png", "svg"]
+  dpi: 300
+  style: "seaborn-v0_8"
+  chinese_font: true
+
+# 日志设置
+logging:
+  level: "INFO"
+  file: "experiment3.log"
+  instrumentation_file: "instrumentation.log"
+  max_size: "10MB"
+  backup_count: 5

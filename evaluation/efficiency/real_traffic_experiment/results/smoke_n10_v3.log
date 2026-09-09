@@ -1,0 +1,86 @@
+============================================================
+SCALE N=10 features=10 ns=meshscope-exp-n10
+============================================================
+[feature] #1 routing -> meshscope-svc-0005
+[feature] #2 traffic_shifting -> meshscope-svc-0001
+[feature] #3 circuit_breaker -> meshscope-svc-0009
+[feature] #4 retry -> meshscope-svc-0008
+[feature] #5 rate_limit -> meshscope-svc-0006
+[feature] #6 routing -> meshscope-svc-0007
+[feature] #7 traffic_shifting -> meshscope-svc-0001
+[feature] #8 circuit_breaker -> meshscope-svc-0003
+[feature] #9 retry -> meshscope-svc-0003
+[feature] #10 rate_limit -> meshscope-svc-0007
+[run] executing exhaustive traffic (14 cases)...
+[traffic] base_url=http://192.168.1.69:31605 cases=14
+[run] executing orthogonal traffic (10 cases)...
+[traffic] base_url=http://192.168.1.69:31605 cases=10
+{
+  "namespace": "meshscope-exp-n10",
+  "n_services": 10,
+  "n_features": 10,
+  "generation": {
+    "exhaustive": {
+      "total_branches": 14,
+      "covered_branches": 14,
+      "coverage_pct": 100.0,
+      "num_cases": 14,
+      "uncovered": []
+    },
+    "orthogonal": {
+      "total_branches": 14,
+      "covered_branches": 10,
+      "coverage_pct": 71.43,
+      "num_cases": 10,
+      "uncovered": [
+        "f10:rl_burst",
+        "f1:routing_default",
+        "f5:rl_burst",
+        "f6:routing_default"
+      ]
+    }
+  },
+  "traffic": {
+    "exhaustive": {
+      "base_url": "http://192.168.1.69:31605",
+      "method": "exhaustive",
+      "num_cases": 14,
+      "num_ok": 14,
+      "success_rate_pct": 100.0,
+      "runtime_s": 0.237,
+      "branch_coverage_pct": 100.0,
+      "covered_branches": 14,
+      "total_branches": 14
+    },
+    "orthogonal": {
+      "base_url": "http://192.168.1.69:31605",
+      "method": "orthogonal",
+      "num_cases": 10,
+      "num_ok": 8,
+      "success_rate_pct": 80.0,
+      "runtime_s": 0.025,
+      "branch_coverage_pct": 57.14,
+      "covered_branches": 8,
+      "total_branches": 14
+    }
+  },
+  "elapsed_s": 1.62
+}
+
+[done] comparison report -> results/runs/comparison_report.json
+[
+  {
+    "n_services": 10,
+    "n_features": 10,
+    "exh_cases": 14,
+    "ortho_cases": 10,
+    "exh_branch_cov_gen": 100.0,
+    "ortho_branch_cov_gen": 71.43,
+    "exh_success": 100.0,
+    "ortho_success": 80.0,
+    "exh_runtime_s": 0.237,
+    "ortho_runtime_s": 0.025,
+    "exh_branch_cov_runtime": 100.0,
+    "ortho_branch_cov_runtime": 57.14
+  }
+]

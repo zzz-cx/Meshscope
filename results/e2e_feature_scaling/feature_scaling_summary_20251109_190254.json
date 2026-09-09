@@ -1,0 +1,327 @@
+{
+  "experiment_start": "2025-11-09T18:59:48.699589",
+  "experiment_end": "2025-11-09T19:02:54.460509",
+  "namespace": "default",
+  "steps": [
+    5,
+    10,
+    15,
+    20
+  ],
+  "records": [
+    {
+      "target_features": 5,
+      "static_duration": 7.899,
+      "dynamic_duration": 35.571,
+      "total_duration": 43.778,
+      "success": true,
+      "timestamp": "2025-11-09T18:59:51.744978",
+      "result_file": "results\\e2e_validation\\e2e_result_20251109_190035.json"
+    },
+    {
+      "target_features": 10,
+      "static_duration": 8.081,
+      "dynamic_duration": 50.634,
+      "total_duration": 59.041,
+      "success": true,
+      "timestamp": "2025-11-09T19:00:38.781313",
+      "result_file": "results\\e2e_validation\\e2e_result_20251109_190137.json"
+    },
+    {
+      "target_features": 15,
+      "static_duration": 7.861,
+      "dynamic_duration": 30.006,
+      "total_duration": 37.929,
+      "success": true,
+      "timestamp": "2025-11-09T19:01:46.196749",
+      "result_file": "results\\e2e_validation\\e2e_result_20251109_190224.json"
+    },
+    {
+      "target_features": 20,
+      "static_duration": 3.215,
+      "dynamic_duration": 24.179,
+      "total_duration": 27.453,
+      "success": true,
+      "timestamp": "2025-11-09T19:02:26.879022",
+      "result_file": "results\\e2e_validation\\e2e_result_20251109_190254.json"
+    }
+  ],
+  "analysis": {
+    "trend": "non_linear",
+    "details": {
+      "dynamic_durations": [
+        35.571,
+        50.634,
+        30.006,
+        24.179
+      ],
+      "diffs": [
+        15.063000000000002,
+        -20.628,
+        -5.827000000000002
+      ],
+      "avg_diff": -3.797333333333333,
+      "std_dev": 14.641300723941468,
+      "relative_std": 3.855679614802002
+    }
+  },
+  "features": [
+    {
+      "feature_id": 1,
+      "type": "traffic_shifting",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-traffic-1",
+      "service": "recommendationservice",
+      "metadata": {
+        "header": "x-meshscope-exp",
+        "header_value": "onl-exp-1",
+        "weights": [
+          51,
+          49
+        ]
+      }
+    },
+    {
+      "feature_id": 2,
+      "type": "traffic_shifting",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-traffic-2",
+      "service": "recommendationservice",
+      "metadata": {
+        "header": "x-meshscope-exp",
+        "header_value": "onl-exp-2",
+        "weights": [
+          64,
+          36
+        ]
+      }
+    },
+    {
+      "feature_id": 3,
+      "type": "traffic_shifting",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-traffic-3",
+      "service": "frontend",
+      "metadata": {
+        "header": "x-meshscope-exp",
+        "header_value": "onl-exp-3",
+        "weights": [
+          64,
+          36
+        ]
+      }
+    },
+    {
+      "feature_id": 4,
+      "type": "routing",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-routing-4",
+      "service": "frontend",
+      "metadata": {
+        "match_prefix": "/feature-online-boutique-routing-4"
+      }
+    },
+    {
+      "feature_id": 5,
+      "type": "routing",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-routing-5",
+      "service": "productcatalogservice",
+      "metadata": {
+        "match_prefix": "/feature-online-boutique-routing-5"
+      }
+    },
+    {
+      "feature_id": 6,
+      "type": "circuit_breaker",
+      "resource_kind": "DestinationRule",
+      "resource_name": "feature-cb-6",
+      "service": "checkoutservice",
+      "metadata": {
+        "max_pending": 1,
+        "interval": "5s",
+        "base_ejection_time": "5s"
+      }
+    },
+    {
+      "feature_id": 7,
+      "type": "traffic_shifting",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-traffic-7",
+      "service": "frontend",
+      "metadata": {
+        "header": "x-meshscope-exp",
+        "header_value": "onl-exp-7",
+        "weights": [
+          52,
+          48
+        ]
+      }
+    },
+    {
+      "feature_id": 8,
+      "type": "traffic_shifting",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-traffic-8",
+      "service": "frontend",
+      "metadata": {
+        "header": "x-meshscope-exp",
+        "header_value": "onl-exp-8",
+        "weights": [
+          54,
+          46
+        ]
+      }
+    },
+    {
+      "feature_id": 9,
+      "type": "circuit_breaker",
+      "resource_kind": "DestinationRule",
+      "resource_name": "feature-cb-9",
+      "service": "recommendationservice",
+      "metadata": {
+        "max_pending": 8,
+        "interval": "3s",
+        "base_ejection_time": "13s"
+      }
+    },
+    {
+      "feature_id": 10,
+      "type": "rate_limit",
+      "resource_kind": "EnvoyFilter",
+      "resource_name": "feature-rl-10",
+      "service": "frontend",
+      "metadata": {
+        "max_tokens": 27,
+        "tokens_per_fill": 11,
+        "fill_interval": "2s"
+      }
+    },
+    {
+      "feature_id": 11,
+      "type": "routing",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-routing-11",
+      "service": "frontend",
+      "metadata": {
+        "match_prefix": "/feature-online-boutique-routing-11"
+      }
+    },
+    {
+      "feature_id": 12,
+      "type": "routing",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-routing-12",
+      "service": "productcatalogservice",
+      "metadata": {
+        "match_prefix": "/feature-online-boutique-routing-12"
+      }
+    },
+    {
+      "feature_id": 13,
+      "type": "traffic_shifting",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-traffic-13",
+      "service": "recommendationservice",
+      "metadata": {
+        "header": "x-meshscope-exp",
+        "header_value": "onl-exp-13",
+        "weights": [
+          45,
+          55
+        ]
+      }
+    },
+    {
+      "feature_id": 14,
+      "type": "circuit_breaker",
+      "resource_kind": "DestinationRule",
+      "resource_name": "feature-cb-14",
+      "service": "cartservice",
+      "metadata": {
+        "max_pending": 8,
+        "interval": "5s",
+        "base_ejection_time": "7s"
+      }
+    },
+    {
+      "feature_id": 15,
+      "type": "rate_limit",
+      "resource_kind": "EnvoyFilter",
+      "resource_name": "feature-rl-15",
+      "service": "checkoutservice",
+      "metadata": {
+        "max_tokens": 26,
+        "tokens_per_fill": 22,
+        "fill_interval": "4s"
+      }
+    },
+    {
+      "feature_id": 16,
+      "type": "traffic_shifting",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-traffic-16",
+      "service": "recommendationservice",
+      "metadata": {
+        "header": "x-meshscope-exp",
+        "header_value": "onl-exp-16",
+        "weights": [
+          65,
+          35
+        ]
+      }
+    },
+    {
+      "feature_id": 17,
+      "type": "traffic_shifting",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-traffic-17",
+      "service": "recommendationservice",
+      "metadata": {
+        "header": "x-meshscope-exp",
+        "header_value": "onl-exp-17",
+        "weights": [
+          77,
+          23
+        ]
+      }
+    },
+    {
+      "feature_id": 18,
+      "type": "routing",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-routing-18",
+      "service": "checkoutservice",
+      "metadata": {
+        "match_prefix": "/feature-online-boutique-routing-18"
+      }
+    },
+    {
+      "feature_id": 19,
+      "type": "rate_limit",
+      "resource_kind": "EnvoyFilter",
+      "resource_name": "feature-rl-19",
+      "service": "cartservice",
+      "metadata": {
+        "max_tokens": 21,
+        "tokens_per_fill": 21,
+        "fill_interval": "2s"
+      }
+    },
+    {
+      "feature_id": 20,
+      "type": "traffic_shifting",
+      "resource_kind": "VirtualService",
+      "resource_name": "feature-traffic-20",
+      "service": "recommendationservice",
+      "metadata": {
+        "header": "x-meshscope-exp",
+        "header_value": "onl-exp-20",
+        "weights": [
+          50,
+          50
+        ]
+      }
+    }
+  ]
+}

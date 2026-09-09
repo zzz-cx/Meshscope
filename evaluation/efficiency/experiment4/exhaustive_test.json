@@ -1,0 +1,2196 @@
+{
+  "method": "exhaustive",
+  "statistics": {
+    "method": "exhaustive",
+    "total_cases": 54,
+    "total_unique_paths": 9,
+    "dimension_counts": {
+      "match_conditions": 2,
+      "route_destinations": 3,
+      "weight_combinations": 3,
+      "policy_types": 3
+    },
+    "cartesian_product_size": 54,
+    "average_paths_per_case": 4.0
+  },
+  "test_cases": [
+    {
+      "case_id": "exhaustive_000001",
+      "dimensions": {
+        "match_conditions": {
+          "type": "headers",
+          "key": "end-user",
+          "value": "jason"
+        },
+        "route_destinations": {
+          "host": "productpage",
+          "port": 8080,
+          "subset": null
+        },
+        "weight_combinations": {
+          "weights": [
+            100
+          ],
+          "destinations": [
+            {
+              "host": "productpage",
+              "subset": "v1"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "load_balancer",
+          "algorithm": "ROUND_ROBIN"
+        }
+      },
+      "expected_paths": [
+        "match_headers_jason",
+        "route_productpage",
+        "weight_0_0",
+        "policy_load_balancer_ROUND_ROBIN"
+      ],
+      "description": "穷举测试用例 1"
+    },
+    {
+      "case_id": "exhaustive_000002",
+      "dimensions": {
+        "match_conditions": {
+          "type": "headers",
+          "key": "end-user",
+          "value": "jason"
+        },
+        "route_destinations": {
+          "host": "productpage",
+          "port": 8080,
+          "subset": null
+        },
+        "weight_combinations": {
+          "weights": [
+            100
+          ],
+          "destinations": [
+            {
+              "host": "productpage",
+              "subset": "v1"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "connection_pool",
+          "max_connections": 100
+        }
+      },
+      "expected_paths": [
+        "match_headers_jason",
+        "route_productpage",
+        "weight_0_0",
+        "policy_connection_pool_100"
+      ],
+      "description": "穷举测试用例 2"
+    },
+    {
+      "case_id": "exhaustive_000003",
+      "dimensions": {
+        "match_conditions": {
+          "type": "headers",
+          "key": "end-user",
+          "value": "jason"
+        },
+        "route_destinations": {
+          "host": "productpage",
+          "port": 8080,
+          "subset": null
+        },
+        "weight_combinations": {
+          "weights": [
+            100
+          ],
+          "destinations": [
+            {
+              "host": "productpage",
+              "subset": "v1"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "outlier_detection",
+          "consecutive_errors": 3
+        }
+      },
+      "expected_paths": [
+        "match_headers_jason",
+        "route_productpage",
+        "weight_0_0",
+        "policy_outlier_detection_3"
+      ],
+      "description": "穷举测试用例 3"
+    },
+    {
+      "case_id": "exhaustive_000004",
+      "dimensions": {
+        "match_conditions": {
+          "type": "headers",
+          "key": "end-user",
+          "value": "jason"
+        },
+        "route_destinations": {
+          "host": "productpage",
+          "port": 8080,
+          "subset": null
+        },
+        "weight_combinations": {
+          "weights": [
+            90,
+            10
+          ],
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1"
+            },
+            {
+              "host": "reviews",
+              "subset": "v2"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "load_balancer",
+          "algorithm": "ROUND_ROBIN"
+        }
+      },
+      "expected_paths": [
+        "match_headers_jason",
+        "route_productpage",
+        "weight_0_0",
+        "policy_load_balancer_ROUND_ROBIN"
+      ],
+      "description": "穷举测试用例 4"
+    },
+    {
+      "case_id": "exhaustive_000005",
+      "dimensions": {
+        "match_conditions": {
+          "type": "headers",
+          "key": "end-user",
+          "value": "jason"
+        },
+        "route_destinations": {
+          "host": "productpage",
+          "port": 8080,
+          "subset": null
+        },
+        "weight_combinations": {
+          "weights": [
+            90,
+            10
+          ],
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1"
+            },
+            {
+              "host": "reviews",
+              "subset": "v2"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "connection_pool",
+          "max_connections": 100
+        }
+      },
+      "expected_paths": [
+        "match_headers_jason",
+        "route_productpage",
+        "weight_0_0",
+        "policy_connection_pool_100"
+      ],
+      "description": "穷举测试用例 5"
+    },
+    {
+      "case_id": "exhaustive_000006",
+      "dimensions": {
+        "match_conditions": {
+          "type": "headers",
+          "key": "end-user",
+          "value": "jason"
+        },
+        "route_destinations": {
+          "host": "productpage",
+          "port": 8080,
+          "subset": null
+        },
+        "weight_combinations": {
+          "weights": [
+            90,
+            10
+          ],
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1"
+            },
+            {
+              "host": "reviews",
+              "subset": "v2"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "outlier_detection",
+          "consecutive_errors": 3
+        }
+      },
+      "expected_paths": [
+        "match_headers_jason",
+        "route_productpage",
+        "weight_0_0",
+        "policy_outlier_detection_3"
+      ],
+      "description": "穷举测试用例 6"
+    },
+    {
+      "case_id": "exhaustive_000007",
+      "dimensions": {
+        "match_conditions": {
+          "type": "headers",
+          "key": "end-user",
+          "value": "jason"
+        },
+        "route_destinations": {
+          "host": "productpage",
+          "port": 8080,
+          "subset": null
+        },
+        "weight_combinations": {
+          "weights": [
+            50,
+            50
+          ],
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1"
+            },
+            {
+              "host": "reviews",
+              "subset": "v2"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "load_balancer",
+          "algorithm": "ROUND_ROBIN"
+        }
+      },
+      "expected_paths": [
+        "match_headers_jason",
+        "route_productpage",
+        "weight_0_0",
+        "policy_load_balancer_ROUND_ROBIN"
+      ],
+      "description": "穷举测试用例 7"
+    },
+    {
+      "case_id": "exhaustive_000008",
+      "dimensions": {
+        "match_conditions": {
+          "type": "headers",
+          "key": "end-user",
+          "value": "jason"
+        },
+        "route_destinations": {
+          "host": "productpage",
+          "port": 8080,
+          "subset": null
+        },
+        "weight_combinations": {
+          "weights": [
+            50,
+            50
+          ],
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1"
+            },
+            {
+              "host": "reviews",
+              "subset": "v2"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "connection_pool",
+          "max_connections": 100
+        }
+      },
+      "expected_paths": [
+        "match_headers_jason",
+        "route_productpage",
+        "weight_0_0",
+        "policy_connection_pool_100"
+      ],
+      "description": "穷举测试用例 8"
+    },
+    {
+      "case_id": "exhaustive_000009",
+      "dimensions": {
+        "match_conditions": {
+          "type": "headers",
+          "key": "end-user",
+          "value": "jason"
+        },
+        "route_destinations": {
+          "host": "productpage",
+          "port": 8080,
+          "subset": null
+        },
+        "weight_combinations": {
+          "weights": [
+            50,
+            50
+          ],
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1"
+            },
+            {
+              "host": "reviews",
+              "subset": "v2"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "outlier_detection",
+          "consecutive_errors": 3
+        }
+      },
+      "expected_paths": [
+        "match_headers_jason",
+        "route_productpage",
+        "weight_0_0",
+        "policy_outlier_detection_3"
+      ],
+      "description": "穷举测试用例 9"
+    },
+    {
+      "case_id": "exhaustive_000010",
+      "dimensions": {
+        "match_conditions": {
+          "type": "headers",
+          "key": "end-user",
+          "value": "jason"
+        },
+        "route_destinations": {
+          "host": "reviews",
+          "port": 8080,
+          "subset": "v1"
+        },
+        "weight_combinations": {
+          "weights": [
+            100
+          ],
+          "destinations": [
+            {
+              "host": "productpage",
+              "subset": "v1"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "load_balancer",
+          "algorithm": "ROUND_ROBIN"
+        }
+      },
+      "expected_paths": [
+        "match_headers_jason",
+        "route_reviews_v1",
+        "weight_0_0",
+        "policy_load_balancer_ROUND_ROBIN"
+      ],
+      "description": "穷举测试用例 10"
+    },
+    {
+      "case_id": "exhaustive_000011",
+      "dimensions": {
+        "match_conditions": {
+          "type": "headers",
+          "key": "end-user",
+          "value": "jason"
+        },
+        "route_destinations": {
+          "host": "reviews",
+          "port": 8080,
+          "subset": "v1"
+        },
+        "weight_combinations": {
+          "weights": [
+            100
+          ],
+          "destinations": [
+            {
+              "host": "productpage",
+              "subset": "v1"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "connection_pool",
+          "max_connections": 100
+        }
+      },
+      "expected_paths": [
+        "match_headers_jason",
+        "route_reviews_v1",
+        "weight_0_0",
+        "policy_connection_pool_100"
+      ],
+      "description": "穷举测试用例 11"
+    },
+    {
+      "case_id": "exhaustive_000012",
+      "dimensions": {
+        "match_conditions": {
+          "type": "headers",
+          "key": "end-user",
+          "value": "jason"
+        },
+        "route_destinations": {
+          "host": "reviews",
+          "port": 8080,
+          "subset": "v1"
+        },
+        "weight_combinations": {
+          "weights": [
+            100
+          ],
+          "destinations": [
+            {
+              "host": "productpage",
+              "subset": "v1"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "outlier_detection",
+          "consecutive_errors": 3
+        }
+      },
+      "expected_paths": [
+        "match_headers_jason",
+        "route_reviews_v1",
+        "weight_0_0",
+        "policy_outlier_detection_3"
+      ],
+      "description": "穷举测试用例 12"
+    },
+    {
+      "case_id": "exhaustive_000013",
+      "dimensions": {
+        "match_conditions": {
+          "type": "headers",
+          "key": "end-user",
+          "value": "jason"
+        },
+        "route_destinations": {
+          "host": "reviews",
+          "port": 8080,
+          "subset": "v1"
+        },
+        "weight_combinations": {
+          "weights": [
+            90,
+            10
+          ],
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1"
+            },
+            {
+              "host": "reviews",
+              "subset": "v2"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "load_balancer",
+          "algorithm": "ROUND_ROBIN"
+        }
+      },
+      "expected_paths": [
+        "match_headers_jason",
+        "route_reviews_v1",
+        "weight_0_0",
+        "policy_load_balancer_ROUND_ROBIN"
+      ],
+      "description": "穷举测试用例 13"
+    },
+    {
+      "case_id": "exhaustive_000014",
+      "dimensions": {
+        "match_conditions": {
+          "type": "headers",
+          "key": "end-user",
+          "value": "jason"
+        },
+        "route_destinations": {
+          "host": "reviews",
+          "port": 8080,
+          "subset": "v1"
+        },
+        "weight_combinations": {
+          "weights": [
+            90,
+            10
+          ],
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1"
+            },
+            {
+              "host": "reviews",
+              "subset": "v2"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "connection_pool",
+          "max_connections": 100
+        }
+      },
+      "expected_paths": [
+        "match_headers_jason",
+        "route_reviews_v1",
+        "weight_0_0",
+        "policy_connection_pool_100"
+      ],
+      "description": "穷举测试用例 14"
+    },
+    {
+      "case_id": "exhaustive_000015",
+      "dimensions": {
+        "match_conditions": {
+          "type": "headers",
+          "key": "end-user",
+          "value": "jason"
+        },
+        "route_destinations": {
+          "host": "reviews",
+          "port": 8080,
+          "subset": "v1"
+        },
+        "weight_combinations": {
+          "weights": [
+            90,
+            10
+          ],
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1"
+            },
+            {
+              "host": "reviews",
+              "subset": "v2"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "outlier_detection",
+          "consecutive_errors": 3
+        }
+      },
+      "expected_paths": [
+        "match_headers_jason",
+        "route_reviews_v1",
+        "weight_0_0",
+        "policy_outlier_detection_3"
+      ],
+      "description": "穷举测试用例 15"
+    },
+    {
+      "case_id": "exhaustive_000016",
+      "dimensions": {
+        "match_conditions": {
+          "type": "headers",
+          "key": "end-user",
+          "value": "jason"
+        },
+        "route_destinations": {
+          "host": "reviews",
+          "port": 8080,
+          "subset": "v1"
+        },
+        "weight_combinations": {
+          "weights": [
+            50,
+            50
+          ],
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1"
+            },
+            {
+              "host": "reviews",
+              "subset": "v2"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "load_balancer",
+          "algorithm": "ROUND_ROBIN"
+        }
+      },
+      "expected_paths": [
+        "match_headers_jason",
+        "route_reviews_v1",
+        "weight_0_0",
+        "policy_load_balancer_ROUND_ROBIN"
+      ],
+      "description": "穷举测试用例 16"
+    },
+    {
+      "case_id": "exhaustive_000017",
+      "dimensions": {
+        "match_conditions": {
+          "type": "headers",
+          "key": "end-user",
+          "value": "jason"
+        },
+        "route_destinations": {
+          "host": "reviews",
+          "port": 8080,
+          "subset": "v1"
+        },
+        "weight_combinations": {
+          "weights": [
+            50,
+            50
+          ],
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1"
+            },
+            {
+              "host": "reviews",
+              "subset": "v2"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "connection_pool",
+          "max_connections": 100
+        }
+      },
+      "expected_paths": [
+        "match_headers_jason",
+        "route_reviews_v1",
+        "weight_0_0",
+        "policy_connection_pool_100"
+      ],
+      "description": "穷举测试用例 17"
+    },
+    {
+      "case_id": "exhaustive_000018",
+      "dimensions": {
+        "match_conditions": {
+          "type": "headers",
+          "key": "end-user",
+          "value": "jason"
+        },
+        "route_destinations": {
+          "host": "reviews",
+          "port": 8080,
+          "subset": "v1"
+        },
+        "weight_combinations": {
+          "weights": [
+            50,
+            50
+          ],
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1"
+            },
+            {
+              "host": "reviews",
+              "subset": "v2"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "outlier_detection",
+          "consecutive_errors": 3
+        }
+      },
+      "expected_paths": [
+        "match_headers_jason",
+        "route_reviews_v1",
+        "weight_0_0",
+        "policy_outlier_detection_3"
+      ],
+      "description": "穷举测试用例 18"
+    },
+    {
+      "case_id": "exhaustive_000019",
+      "dimensions": {
+        "match_conditions": {
+          "type": "headers",
+          "key": "end-user",
+          "value": "jason"
+        },
+        "route_destinations": {
+          "host": "reviews",
+          "port": 8080,
+          "subset": "v2"
+        },
+        "weight_combinations": {
+          "weights": [
+            100
+          ],
+          "destinations": [
+            {
+              "host": "productpage",
+              "subset": "v1"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "load_balancer",
+          "algorithm": "ROUND_ROBIN"
+        }
+      },
+      "expected_paths": [
+        "match_headers_jason",
+        "route_reviews_v2",
+        "weight_0_0",
+        "policy_load_balancer_ROUND_ROBIN"
+      ],
+      "description": "穷举测试用例 19"
+    },
+    {
+      "case_id": "exhaustive_000020",
+      "dimensions": {
+        "match_conditions": {
+          "type": "headers",
+          "key": "end-user",
+          "value": "jason"
+        },
+        "route_destinations": {
+          "host": "reviews",
+          "port": 8080,
+          "subset": "v2"
+        },
+        "weight_combinations": {
+          "weights": [
+            100
+          ],
+          "destinations": [
+            {
+              "host": "productpage",
+              "subset": "v1"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "connection_pool",
+          "max_connections": 100
+        }
+      },
+      "expected_paths": [
+        "match_headers_jason",
+        "route_reviews_v2",
+        "weight_0_0",
+        "policy_connection_pool_100"
+      ],
+      "description": "穷举测试用例 20"
+    },
+    {
+      "case_id": "exhaustive_000021",
+      "dimensions": {
+        "match_conditions": {
+          "type": "headers",
+          "key": "end-user",
+          "value": "jason"
+        },
+        "route_destinations": {
+          "host": "reviews",
+          "port": 8080,
+          "subset": "v2"
+        },
+        "weight_combinations": {
+          "weights": [
+            100
+          ],
+          "destinations": [
+            {
+              "host": "productpage",
+              "subset": "v1"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "outlier_detection",
+          "consecutive_errors": 3
+        }
+      },
+      "expected_paths": [
+        "match_headers_jason",
+        "route_reviews_v2",
+        "weight_0_0",
+        "policy_outlier_detection_3"
+      ],
+      "description": "穷举测试用例 21"
+    },
+    {
+      "case_id": "exhaustive_000022",
+      "dimensions": {
+        "match_conditions": {
+          "type": "headers",
+          "key": "end-user",
+          "value": "jason"
+        },
+        "route_destinations": {
+          "host": "reviews",
+          "port": 8080,
+          "subset": "v2"
+        },
+        "weight_combinations": {
+          "weights": [
+            90,
+            10
+          ],
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1"
+            },
+            {
+              "host": "reviews",
+              "subset": "v2"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "load_balancer",
+          "algorithm": "ROUND_ROBIN"
+        }
+      },
+      "expected_paths": [
+        "match_headers_jason",
+        "route_reviews_v2",
+        "weight_0_0",
+        "policy_load_balancer_ROUND_ROBIN"
+      ],
+      "description": "穷举测试用例 22"
+    },
+    {
+      "case_id": "exhaustive_000023",
+      "dimensions": {
+        "match_conditions": {
+          "type": "headers",
+          "key": "end-user",
+          "value": "jason"
+        },
+        "route_destinations": {
+          "host": "reviews",
+          "port": 8080,
+          "subset": "v2"
+        },
+        "weight_combinations": {
+          "weights": [
+            90,
+            10
+          ],
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1"
+            },
+            {
+              "host": "reviews",
+              "subset": "v2"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "connection_pool",
+          "max_connections": 100
+        }
+      },
+      "expected_paths": [
+        "match_headers_jason",
+        "route_reviews_v2",
+        "weight_0_0",
+        "policy_connection_pool_100"
+      ],
+      "description": "穷举测试用例 23"
+    },
+    {
+      "case_id": "exhaustive_000024",
+      "dimensions": {
+        "match_conditions": {
+          "type": "headers",
+          "key": "end-user",
+          "value": "jason"
+        },
+        "route_destinations": {
+          "host": "reviews",
+          "port": 8080,
+          "subset": "v2"
+        },
+        "weight_combinations": {
+          "weights": [
+            90,
+            10
+          ],
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1"
+            },
+            {
+              "host": "reviews",
+              "subset": "v2"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "outlier_detection",
+          "consecutive_errors": 3
+        }
+      },
+      "expected_paths": [
+        "match_headers_jason",
+        "route_reviews_v2",
+        "weight_0_0",
+        "policy_outlier_detection_3"
+      ],
+      "description": "穷举测试用例 24"
+    },
+    {
+      "case_id": "exhaustive_000025",
+      "dimensions": {
+        "match_conditions": {
+          "type": "headers",
+          "key": "end-user",
+          "value": "jason"
+        },
+        "route_destinations": {
+          "host": "reviews",
+          "port": 8080,
+          "subset": "v2"
+        },
+        "weight_combinations": {
+          "weights": [
+            50,
+            50
+          ],
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1"
+            },
+            {
+              "host": "reviews",
+              "subset": "v2"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "load_balancer",
+          "algorithm": "ROUND_ROBIN"
+        }
+      },
+      "expected_paths": [
+        "match_headers_jason",
+        "route_reviews_v2",
+        "weight_0_0",
+        "policy_load_balancer_ROUND_ROBIN"
+      ],
+      "description": "穷举测试用例 25"
+    },
+    {
+      "case_id": "exhaustive_000026",
+      "dimensions": {
+        "match_conditions": {
+          "type": "headers",
+          "key": "end-user",
+          "value": "jason"
+        },
+        "route_destinations": {
+          "host": "reviews",
+          "port": 8080,
+          "subset": "v2"
+        },
+        "weight_combinations": {
+          "weights": [
+            50,
+            50
+          ],
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1"
+            },
+            {
+              "host": "reviews",
+              "subset": "v2"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "connection_pool",
+          "max_connections": 100
+        }
+      },
+      "expected_paths": [
+        "match_headers_jason",
+        "route_reviews_v2",
+        "weight_0_0",
+        "policy_connection_pool_100"
+      ],
+      "description": "穷举测试用例 26"
+    },
+    {
+      "case_id": "exhaustive_000027",
+      "dimensions": {
+        "match_conditions": {
+          "type": "headers",
+          "key": "end-user",
+          "value": "jason"
+        },
+        "route_destinations": {
+          "host": "reviews",
+          "port": 8080,
+          "subset": "v2"
+        },
+        "weight_combinations": {
+          "weights": [
+            50,
+            50
+          ],
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1"
+            },
+            {
+              "host": "reviews",
+              "subset": "v2"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "outlier_detection",
+          "consecutive_errors": 3
+        }
+      },
+      "expected_paths": [
+        "match_headers_jason",
+        "route_reviews_v2",
+        "weight_0_0",
+        "policy_outlier_detection_3"
+      ],
+      "description": "穷举测试用例 27"
+    },
+    {
+      "case_id": "exhaustive_000028",
+      "dimensions": {
+        "match_conditions": {
+          "type": "uri",
+          "match_type": "prefix",
+          "value": "/api/v1"
+        },
+        "route_destinations": {
+          "host": "productpage",
+          "port": 8080,
+          "subset": null
+        },
+        "weight_combinations": {
+          "weights": [
+            100
+          ],
+          "destinations": [
+            {
+              "host": "productpage",
+              "subset": "v1"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "load_balancer",
+          "algorithm": "ROUND_ROBIN"
+        }
+      },
+      "expected_paths": [
+        "match_uri_/api/v1",
+        "route_productpage",
+        "weight_0_0",
+        "policy_load_balancer_ROUND_ROBIN"
+      ],
+      "description": "穷举测试用例 28"
+    },
+    {
+      "case_id": "exhaustive_000029",
+      "dimensions": {
+        "match_conditions": {
+          "type": "uri",
+          "match_type": "prefix",
+          "value": "/api/v1"
+        },
+        "route_destinations": {
+          "host": "productpage",
+          "port": 8080,
+          "subset": null
+        },
+        "weight_combinations": {
+          "weights": [
+            100
+          ],
+          "destinations": [
+            {
+              "host": "productpage",
+              "subset": "v1"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "connection_pool",
+          "max_connections": 100
+        }
+      },
+      "expected_paths": [
+        "match_uri_/api/v1",
+        "route_productpage",
+        "weight_0_0",
+        "policy_connection_pool_100"
+      ],
+      "description": "穷举测试用例 29"
+    },
+    {
+      "case_id": "exhaustive_000030",
+      "dimensions": {
+        "match_conditions": {
+          "type": "uri",
+          "match_type": "prefix",
+          "value": "/api/v1"
+        },
+        "route_destinations": {
+          "host": "productpage",
+          "port": 8080,
+          "subset": null
+        },
+        "weight_combinations": {
+          "weights": [
+            100
+          ],
+          "destinations": [
+            {
+              "host": "productpage",
+              "subset": "v1"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "outlier_detection",
+          "consecutive_errors": 3
+        }
+      },
+      "expected_paths": [
+        "match_uri_/api/v1",
+        "route_productpage",
+        "weight_0_0",
+        "policy_outlier_detection_3"
+      ],
+      "description": "穷举测试用例 30"
+    },
+    {
+      "case_id": "exhaustive_000031",
+      "dimensions": {
+        "match_conditions": {
+          "type": "uri",
+          "match_type": "prefix",
+          "value": "/api/v1"
+        },
+        "route_destinations": {
+          "host": "productpage",
+          "port": 8080,
+          "subset": null
+        },
+        "weight_combinations": {
+          "weights": [
+            90,
+            10
+          ],
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1"
+            },
+            {
+              "host": "reviews",
+              "subset": "v2"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "load_balancer",
+          "algorithm": "ROUND_ROBIN"
+        }
+      },
+      "expected_paths": [
+        "match_uri_/api/v1",
+        "route_productpage",
+        "weight_0_0",
+        "policy_load_balancer_ROUND_ROBIN"
+      ],
+      "description": "穷举测试用例 31"
+    },
+    {
+      "case_id": "exhaustive_000032",
+      "dimensions": {
+        "match_conditions": {
+          "type": "uri",
+          "match_type": "prefix",
+          "value": "/api/v1"
+        },
+        "route_destinations": {
+          "host": "productpage",
+          "port": 8080,
+          "subset": null
+        },
+        "weight_combinations": {
+          "weights": [
+            90,
+            10
+          ],
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1"
+            },
+            {
+              "host": "reviews",
+              "subset": "v2"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "connection_pool",
+          "max_connections": 100
+        }
+      },
+      "expected_paths": [
+        "match_uri_/api/v1",
+        "route_productpage",
+        "weight_0_0",
+        "policy_connection_pool_100"
+      ],
+      "description": "穷举测试用例 32"
+    },
+    {
+      "case_id": "exhaustive_000033",
+      "dimensions": {
+        "match_conditions": {
+          "type": "uri",
+          "match_type": "prefix",
+          "value": "/api/v1"
+        },
+        "route_destinations": {
+          "host": "productpage",
+          "port": 8080,
+          "subset": null
+        },
+        "weight_combinations": {
+          "weights": [
+            90,
+            10
+          ],
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1"
+            },
+            {
+              "host": "reviews",
+              "subset": "v2"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "outlier_detection",
+          "consecutive_errors": 3
+        }
+      },
+      "expected_paths": [
+        "match_uri_/api/v1",
+        "route_productpage",
+        "weight_0_0",
+        "policy_outlier_detection_3"
+      ],
+      "description": "穷举测试用例 33"
+    },
+    {
+      "case_id": "exhaustive_000034",
+      "dimensions": {
+        "match_conditions": {
+          "type": "uri",
+          "match_type": "prefix",
+          "value": "/api/v1"
+        },
+        "route_destinations": {
+          "host": "productpage",
+          "port": 8080,
+          "subset": null
+        },
+        "weight_combinations": {
+          "weights": [
+            50,
+            50
+          ],
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1"
+            },
+            {
+              "host": "reviews",
+              "subset": "v2"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "load_balancer",
+          "algorithm": "ROUND_ROBIN"
+        }
+      },
+      "expected_paths": [
+        "match_uri_/api/v1",
+        "route_productpage",
+        "weight_0_0",
+        "policy_load_balancer_ROUND_ROBIN"
+      ],
+      "description": "穷举测试用例 34"
+    },
+    {
+      "case_id": "exhaustive_000035",
+      "dimensions": {
+        "match_conditions": {
+          "type": "uri",
+          "match_type": "prefix",
+          "value": "/api/v1"
+        },
+        "route_destinations": {
+          "host": "productpage",
+          "port": 8080,
+          "subset": null
+        },
+        "weight_combinations": {
+          "weights": [
+            50,
+            50
+          ],
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1"
+            },
+            {
+              "host": "reviews",
+              "subset": "v2"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "connection_pool",
+          "max_connections": 100
+        }
+      },
+      "expected_paths": [
+        "match_uri_/api/v1",
+        "route_productpage",
+        "weight_0_0",
+        "policy_connection_pool_100"
+      ],
+      "description": "穷举测试用例 35"
+    },
+    {
+      "case_id": "exhaustive_000036",
+      "dimensions": {
+        "match_conditions": {
+          "type": "uri",
+          "match_type": "prefix",
+          "value": "/api/v1"
+        },
+        "route_destinations": {
+          "host": "productpage",
+          "port": 8080,
+          "subset": null
+        },
+        "weight_combinations": {
+          "weights": [
+            50,
+            50
+          ],
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1"
+            },
+            {
+              "host": "reviews",
+              "subset": "v2"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "outlier_detection",
+          "consecutive_errors": 3
+        }
+      },
+      "expected_paths": [
+        "match_uri_/api/v1",
+        "route_productpage",
+        "weight_0_0",
+        "policy_outlier_detection_3"
+      ],
+      "description": "穷举测试用例 36"
+    },
+    {
+      "case_id": "exhaustive_000037",
+      "dimensions": {
+        "match_conditions": {
+          "type": "uri",
+          "match_type": "prefix",
+          "value": "/api/v1"
+        },
+        "route_destinations": {
+          "host": "reviews",
+          "port": 8080,
+          "subset": "v1"
+        },
+        "weight_combinations": {
+          "weights": [
+            100
+          ],
+          "destinations": [
+            {
+              "host": "productpage",
+              "subset": "v1"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "load_balancer",
+          "algorithm": "ROUND_ROBIN"
+        }
+      },
+      "expected_paths": [
+        "match_uri_/api/v1",
+        "route_reviews_v1",
+        "weight_0_0",
+        "policy_load_balancer_ROUND_ROBIN"
+      ],
+      "description": "穷举测试用例 37"
+    },
+    {
+      "case_id": "exhaustive_000038",
+      "dimensions": {
+        "match_conditions": {
+          "type": "uri",
+          "match_type": "prefix",
+          "value": "/api/v1"
+        },
+        "route_destinations": {
+          "host": "reviews",
+          "port": 8080,
+          "subset": "v1"
+        },
+        "weight_combinations": {
+          "weights": [
+            100
+          ],
+          "destinations": [
+            {
+              "host": "productpage",
+              "subset": "v1"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "connection_pool",
+          "max_connections": 100
+        }
+      },
+      "expected_paths": [
+        "match_uri_/api/v1",
+        "route_reviews_v1",
+        "weight_0_0",
+        "policy_connection_pool_100"
+      ],
+      "description": "穷举测试用例 38"
+    },
+    {
+      "case_id": "exhaustive_000039",
+      "dimensions": {
+        "match_conditions": {
+          "type": "uri",
+          "match_type": "prefix",
+          "value": "/api/v1"
+        },
+        "route_destinations": {
+          "host": "reviews",
+          "port": 8080,
+          "subset": "v1"
+        },
+        "weight_combinations": {
+          "weights": [
+            100
+          ],
+          "destinations": [
+            {
+              "host": "productpage",
+              "subset": "v1"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "outlier_detection",
+          "consecutive_errors": 3
+        }
+      },
+      "expected_paths": [
+        "match_uri_/api/v1",
+        "route_reviews_v1",
+        "weight_0_0",
+        "policy_outlier_detection_3"
+      ],
+      "description": "穷举测试用例 39"
+    },
+    {
+      "case_id": "exhaustive_000040",
+      "dimensions": {
+        "match_conditions": {
+          "type": "uri",
+          "match_type": "prefix",
+          "value": "/api/v1"
+        },
+        "route_destinations": {
+          "host": "reviews",
+          "port": 8080,
+          "subset": "v1"
+        },
+        "weight_combinations": {
+          "weights": [
+            90,
+            10
+          ],
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1"
+            },
+            {
+              "host": "reviews",
+              "subset": "v2"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "load_balancer",
+          "algorithm": "ROUND_ROBIN"
+        }
+      },
+      "expected_paths": [
+        "match_uri_/api/v1",
+        "route_reviews_v1",
+        "weight_0_0",
+        "policy_load_balancer_ROUND_ROBIN"
+      ],
+      "description": "穷举测试用例 40"
+    },
+    {
+      "case_id": "exhaustive_000041",
+      "dimensions": {
+        "match_conditions": {
+          "type": "uri",
+          "match_type": "prefix",
+          "value": "/api/v1"
+        },
+        "route_destinations": {
+          "host": "reviews",
+          "port": 8080,
+          "subset": "v1"
+        },
+        "weight_combinations": {
+          "weights": [
+            90,
+            10
+          ],
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1"
+            },
+            {
+              "host": "reviews",
+              "subset": "v2"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "connection_pool",
+          "max_connections": 100
+        }
+      },
+      "expected_paths": [
+        "match_uri_/api/v1",
+        "route_reviews_v1",
+        "weight_0_0",
+        "policy_connection_pool_100"
+      ],
+      "description": "穷举测试用例 41"
+    },
+    {
+      "case_id": "exhaustive_000042",
+      "dimensions": {
+        "match_conditions": {
+          "type": "uri",
+          "match_type": "prefix",
+          "value": "/api/v1"
+        },
+        "route_destinations": {
+          "host": "reviews",
+          "port": 8080,
+          "subset": "v1"
+        },
+        "weight_combinations": {
+          "weights": [
+            90,
+            10
+          ],
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1"
+            },
+            {
+              "host": "reviews",
+              "subset": "v2"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "outlier_detection",
+          "consecutive_errors": 3
+        }
+      },
+      "expected_paths": [
+        "match_uri_/api/v1",
+        "route_reviews_v1",
+        "weight_0_0",
+        "policy_outlier_detection_3"
+      ],
+      "description": "穷举测试用例 42"
+    },
+    {
+      "case_id": "exhaustive_000043",
+      "dimensions": {
+        "match_conditions": {
+          "type": "uri",
+          "match_type": "prefix",
+          "value": "/api/v1"
+        },
+        "route_destinations": {
+          "host": "reviews",
+          "port": 8080,
+          "subset": "v1"
+        },
+        "weight_combinations": {
+          "weights": [
+            50,
+            50
+          ],
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1"
+            },
+            {
+              "host": "reviews",
+              "subset": "v2"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "load_balancer",
+          "algorithm": "ROUND_ROBIN"
+        }
+      },
+      "expected_paths": [
+        "match_uri_/api/v1",
+        "route_reviews_v1",
+        "weight_0_0",
+        "policy_load_balancer_ROUND_ROBIN"
+      ],
+      "description": "穷举测试用例 43"
+    },
+    {
+      "case_id": "exhaustive_000044",
+      "dimensions": {
+        "match_conditions": {
+          "type": "uri",
+          "match_type": "prefix",
+          "value": "/api/v1"
+        },
+        "route_destinations": {
+          "host": "reviews",
+          "port": 8080,
+          "subset": "v1"
+        },
+        "weight_combinations": {
+          "weights": [
+            50,
+            50
+          ],
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1"
+            },
+            {
+              "host": "reviews",
+              "subset": "v2"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "connection_pool",
+          "max_connections": 100
+        }
+      },
+      "expected_paths": [
+        "match_uri_/api/v1",
+        "route_reviews_v1",
+        "weight_0_0",
+        "policy_connection_pool_100"
+      ],
+      "description": "穷举测试用例 44"
+    },
+    {
+      "case_id": "exhaustive_000045",
+      "dimensions": {
+        "match_conditions": {
+          "type": "uri",
+          "match_type": "prefix",
+          "value": "/api/v1"
+        },
+        "route_destinations": {
+          "host": "reviews",
+          "port": 8080,
+          "subset": "v1"
+        },
+        "weight_combinations": {
+          "weights": [
+            50,
+            50
+          ],
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1"
+            },
+            {
+              "host": "reviews",
+              "subset": "v2"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "outlier_detection",
+          "consecutive_errors": 3
+        }
+      },
+      "expected_paths": [
+        "match_uri_/api/v1",
+        "route_reviews_v1",
+        "weight_0_0",
+        "policy_outlier_detection_3"
+      ],
+      "description": "穷举测试用例 45"
+    },
+    {
+      "case_id": "exhaustive_000046",
+      "dimensions": {
+        "match_conditions": {
+          "type": "uri",
+          "match_type": "prefix",
+          "value": "/api/v1"
+        },
+        "route_destinations": {
+          "host": "reviews",
+          "port": 8080,
+          "subset": "v2"
+        },
+        "weight_combinations": {
+          "weights": [
+            100
+          ],
+          "destinations": [
+            {
+              "host": "productpage",
+              "subset": "v1"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "load_balancer",
+          "algorithm": "ROUND_ROBIN"
+        }
+      },
+      "expected_paths": [
+        "match_uri_/api/v1",
+        "route_reviews_v2",
+        "weight_0_0",
+        "policy_load_balancer_ROUND_ROBIN"
+      ],
+      "description": "穷举测试用例 46"
+    },
+    {
+      "case_id": "exhaustive_000047",
+      "dimensions": {
+        "match_conditions": {
+          "type": "uri",
+          "match_type": "prefix",
+          "value": "/api/v1"
+        },
+        "route_destinations": {
+          "host": "reviews",
+          "port": 8080,
+          "subset": "v2"
+        },
+        "weight_combinations": {
+          "weights": [
+            100
+          ],
+          "destinations": [
+            {
+              "host": "productpage",
+              "subset": "v1"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "connection_pool",
+          "max_connections": 100
+        }
+      },
+      "expected_paths": [
+        "match_uri_/api/v1",
+        "route_reviews_v2",
+        "weight_0_0",
+        "policy_connection_pool_100"
+      ],
+      "description": "穷举测试用例 47"
+    },
+    {
+      "case_id": "exhaustive_000048",
+      "dimensions": {
+        "match_conditions": {
+          "type": "uri",
+          "match_type": "prefix",
+          "value": "/api/v1"
+        },
+        "route_destinations": {
+          "host": "reviews",
+          "port": 8080,
+          "subset": "v2"
+        },
+        "weight_combinations": {
+          "weights": [
+            100
+          ],
+          "destinations": [
+            {
+              "host": "productpage",
+              "subset": "v1"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "outlier_detection",
+          "consecutive_errors": 3
+        }
+      },
+      "expected_paths": [
+        "match_uri_/api/v1",
+        "route_reviews_v2",
+        "weight_0_0",
+        "policy_outlier_detection_3"
+      ],
+      "description": "穷举测试用例 48"
+    },
+    {
+      "case_id": "exhaustive_000049",
+      "dimensions": {
+        "match_conditions": {
+          "type": "uri",
+          "match_type": "prefix",
+          "value": "/api/v1"
+        },
+        "route_destinations": {
+          "host": "reviews",
+          "port": 8080,
+          "subset": "v2"
+        },
+        "weight_combinations": {
+          "weights": [
+            90,
+            10
+          ],
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1"
+            },
+            {
+              "host": "reviews",
+              "subset": "v2"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "load_balancer",
+          "algorithm": "ROUND_ROBIN"
+        }
+      },
+      "expected_paths": [
+        "match_uri_/api/v1",
+        "route_reviews_v2",
+        "weight_0_0",
+        "policy_load_balancer_ROUND_ROBIN"
+      ],
+      "description": "穷举测试用例 49"
+    },
+    {
+      "case_id": "exhaustive_000050",
+      "dimensions": {
+        "match_conditions": {
+          "type": "uri",
+          "match_type": "prefix",
+          "value": "/api/v1"
+        },
+        "route_destinations": {
+          "host": "reviews",
+          "port": 8080,
+          "subset": "v2"
+        },
+        "weight_combinations": {
+          "weights": [
+            90,
+            10
+          ],
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1"
+            },
+            {
+              "host": "reviews",
+              "subset": "v2"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "connection_pool",
+          "max_connections": 100
+        }
+      },
+      "expected_paths": [
+        "match_uri_/api/v1",
+        "route_reviews_v2",
+        "weight_0_0",
+        "policy_connection_pool_100"
+      ],
+      "description": "穷举测试用例 50"
+    },
+    {
+      "case_id": "exhaustive_000051",
+      "dimensions": {
+        "match_conditions": {
+          "type": "uri",
+          "match_type": "prefix",
+          "value": "/api/v1"
+        },
+        "route_destinations": {
+          "host": "reviews",
+          "port": 8080,
+          "subset": "v2"
+        },
+        "weight_combinations": {
+          "weights": [
+            90,
+            10
+          ],
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1"
+            },
+            {
+              "host": "reviews",
+              "subset": "v2"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "outlier_detection",
+          "consecutive_errors": 3
+        }
+      },
+      "expected_paths": [
+        "match_uri_/api/v1",
+        "route_reviews_v2",
+        "weight_0_0",
+        "policy_outlier_detection_3"
+      ],
+      "description": "穷举测试用例 51"
+    },
+    {
+      "case_id": "exhaustive_000052",
+      "dimensions": {
+        "match_conditions": {
+          "type": "uri",
+          "match_type": "prefix",
+          "value": "/api/v1"
+        },
+        "route_destinations": {
+          "host": "reviews",
+          "port": 8080,
+          "subset": "v2"
+        },
+        "weight_combinations": {
+          "weights": [
+            50,
+            50
+          ],
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1"
+            },
+            {
+              "host": "reviews",
+              "subset": "v2"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "load_balancer",
+          "algorithm": "ROUND_ROBIN"
+        }
+      },
+      "expected_paths": [
+        "match_uri_/api/v1",
+        "route_reviews_v2",
+        "weight_0_0",
+        "policy_load_balancer_ROUND_ROBIN"
+      ],
+      "description": "穷举测试用例 52"
+    },
+    {
+      "case_id": "exhaustive_000053",
+      "dimensions": {
+        "match_conditions": {
+          "type": "uri",
+          "match_type": "prefix",
+          "value": "/api/v1"
+        },
+        "route_destinations": {
+          "host": "reviews",
+          "port": 8080,
+          "subset": "v2"
+        },
+        "weight_combinations": {
+          "weights": [
+            50,
+            50
+          ],
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1"
+            },
+            {
+              "host": "reviews",
+              "subset": "v2"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "connection_pool",
+          "max_connections": 100
+        }
+      },
+      "expected_paths": [
+        "match_uri_/api/v1",
+        "route_reviews_v2",
+        "weight_0_0",
+        "policy_connection_pool_100"
+      ],
+      "description": "穷举测试用例 53"
+    },
+    {
+      "case_id": "exhaustive_000054",
+      "dimensions": {
+        "match_conditions": {
+          "type": "uri",
+          "match_type": "prefix",
+          "value": "/api/v1"
+        },
+        "route_destinations": {
+          "host": "reviews",
+          "port": 8080,
+          "subset": "v2"
+        },
+        "weight_combinations": {
+          "weights": [
+            50,
+            50
+          ],
+          "destinations": [
+            {
+              "host": "reviews",
+              "subset": "v1"
+            },
+            {
+              "host": "reviews",
+              "subset": "v2"
+            }
+          ]
+        },
+        "policy_types": {
+          "type": "outlier_detection",
+          "consecutive_errors": 3
+        }
+      },
+      "expected_paths": [
+        "match_uri_/api/v1",
+        "route_reviews_v2",
+        "weight_0_0",
+        "policy_outlier_detection_3"
+      ],
+      "description": "穷举测试用例 54"
+    }
+  ]
+}

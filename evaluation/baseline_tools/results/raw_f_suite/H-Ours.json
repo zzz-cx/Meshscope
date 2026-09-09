@@ -1,0 +1,516 @@
+{
+  "method": "H-Ours",
+  "results": [
+    {
+      "method": "H-Ours",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F10_runtime_policy_gap.yaml",
+      "detected_faults": [
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F10_runtime_policy_gap.yaml",
+          "fault_type": "fault_injection_error",
+          "confidence": 0.9500000000000001,
+          "description": "100% abort fault injection | 100% abort at runtime",
+          "details": {
+            "tool": "S-Ours",
+            "sources": [
+              "static",
+              "dynamic"
+            ]
+          },
+          "detection_time": "2026-07-29T16:56:22.628796"
+        },
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F10_runtime_policy_gap.yaml",
+          "fault_type": "policy_enforcement_gap",
+          "confidence": 0.9,
+          "description": "100% abort \u2192 always 5xx at runtime",
+          "details": {
+            "tool": "D-Ours",
+            "mode": "yaml_oracle",
+            "sources": [
+              "dynamic"
+            ]
+          },
+          "detection_time": "2026-07-29T16:56:22.631858"
+        }
+      ],
+      "raw": {
+        "static": {},
+        "dynamic": {
+          "mode": "yaml_oracle"
+        },
+        "static_faults": 1,
+        "dynamic_faults": 2
+      },
+      "t_detect_sec": 0.0052,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "H-Ours",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F1_missing_subset.yaml",
+      "detected_faults": [
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F1_missing_subset.yaml",
+          "fault_type": "missing_subset",
+          "confidence": 0.85,
+          "description": "subset v4 not in DestinationRule",
+          "details": {
+            "tool": "S-Ours",
+            "sources": [
+              "static"
+            ]
+          },
+          "detection_time": "2026-07-29T16:56:22.633972"
+        }
+      ],
+      "raw": {
+        "static": {},
+        "dynamic": {
+          "mode": "yaml_oracle"
+        },
+        "static_faults": 1,
+        "dynamic_faults": 0
+      },
+      "t_detect_sec": 0.0052,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "H-Ours",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F2_authorization_conflict.yaml",
+      "detected_faults": [
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F2_authorization_conflict.yaml",
+          "fault_type": "authorization_conflict",
+          "confidence": 0.9,
+          "description": "ALLOW and DENY AuthorizationPolicies on same selector",
+          "details": {
+            "tool": "S-Ours",
+            "sources": [
+              "static"
+            ]
+          },
+          "detection_time": "2026-07-29T16:56:22.641016"
+        }
+      ],
+      "raw": {
+        "static": {},
+        "dynamic": {
+          "mode": "yaml_oracle"
+        },
+        "static_faults": 1,
+        "dynamic_faults": 0
+      },
+      "t_detect_sec": 0.0097,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "H-Ours",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F3_mtls_inconsistent.yaml",
+      "detected_faults": [
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F3_mtls_inconsistent.yaml",
+          "fault_type": "mtls_inconsistency",
+          "confidence": 0.9500000000000001,
+          "description": "PeerAuthentication STRICT conflicts with DR tls DISABLE | runtime mTLS STRICT vs DISABLE mismatch",
+          "details": {
+            "tool": "S-Ours",
+            "sources": [
+              "static",
+              "dynamic"
+            ]
+          },
+          "detection_time": "2026-07-29T16:56:22.649214"
+        }
+      ],
+      "raw": {
+        "static": {},
+        "dynamic": {
+          "mode": "yaml_oracle"
+        },
+        "static_faults": 1,
+        "dynamic_faults": 1
+      },
+      "t_detect_sec": 0.0059,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "H-Ours",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F4_timeout_mismatch.yaml",
+      "detected_faults": [
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F4_timeout_mismatch.yaml",
+          "fault_type": "timeout_error",
+          "confidence": 0.9,
+          "description": "timeout too short: 10ms | runtime timeout risk: 10ms",
+          "details": {
+            "tool": "S-Ours",
+            "sources": [
+              "static",
+              "dynamic"
+            ]
+          },
+          "detection_time": "2026-07-29T16:56:22.654989"
+        }
+      ],
+      "raw": {
+        "static": {},
+        "dynamic": {
+          "mode": "yaml_oracle"
+        },
+        "static_faults": 1,
+        "dynamic_faults": 1
+      },
+      "t_detect_sec": 0.0055,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "H-Ours",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F5_traffic_split_drift.yaml",
+      "detected_faults": [
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F5_traffic_split_drift.yaml",
+          "fault_type": "weight_error",
+          "confidence": 0.9,
+          "description": "declared split skew vs intent 50/50: [99, 1] | runtime split vs intent",
+          "details": {
+            "tool": "S-Ours",
+            "sources": [
+              "static",
+              "dynamic"
+            ]
+          },
+          "detection_time": "2026-07-29T16:56:22.660650"
+        }
+      ],
+      "raw": {
+        "static": {},
+        "dynamic": {
+          "mode": "yaml_oracle"
+        },
+        "static_faults": 1,
+        "dynamic_faults": 1
+      },
+      "t_detect_sec": 0.0059,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "H-Ours",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F6_retry_omission.yaml",
+      "detected_faults": [
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F6_retry_omission.yaml",
+          "fault_type": "retry_policy_error",
+          "confidence": 0.85,
+          "description": "abort under load with retries omitted",
+          "details": {
+            "tool": "D-Ours",
+            "mode": "yaml_oracle",
+            "sources": [
+              "dynamic"
+            ]
+          },
+          "detection_time": "2026-07-29T16:56:22.669732"
+        }
+      ],
+      "raw": {
+        "static": {},
+        "dynamic": {
+          "mode": "yaml_oracle"
+        },
+        "static_faults": 0,
+        "dynamic_faults": 1
+      },
+      "t_detect_sec": 0.0055,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "H-Ours",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F7_circuit_breaker_ineffective.yaml",
+      "detected_faults": [
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F7_circuit_breaker_ineffective.yaml",
+          "fault_type": "circuit_breaker_error",
+          "confidence": 0.9,
+          "description": "outlierDetection consecutive errors = 1 | premature eject at runtime",
+          "details": {
+            "tool": "S-Ours",
+            "sources": [
+              "static",
+              "dynamic"
+            ]
+          },
+          "detection_time": "2026-07-29T16:56:22.672645"
+        }
+      ],
+      "raw": {
+        "static": {},
+        "dynamic": {
+          "mode": "yaml_oracle"
+        },
+        "static_faults": 1,
+        "dynamic_faults": 1
+      },
+      "t_detect_sec": 0.0073,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "H-Ours",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F8_partial_timeout_propagation.yaml",
+      "detected_faults": [
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F8_partial_timeout_propagation.yaml",
+          "fault_type": "timeout_error",
+          "confidence": 0.9,
+          "description": "timeout too short: 50ms | runtime timeout risk: 50ms",
+          "details": {
+            "tool": "S-Ours",
+            "sources": [
+              "static",
+              "dynamic"
+            ]
+          },
+          "detection_time": "2026-07-29T16:56:22.680676"
+        },
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F8_partial_timeout_propagation.yaml",
+          "fault_type": "timeout_propagation",
+          "confidence": 0.85,
+          "description": "partial timeout propagation across service chain",
+          "details": {
+            "tool": "D-Ours",
+            "mode": "yaml_oracle",
+            "sources": [
+              "dynamic"
+            ]
+          },
+          "detection_time": "2026-07-29T16:56:22.685968"
+        }
+      ],
+      "raw": {
+        "static": {},
+        "dynamic": {
+          "mode": "yaml_oracle"
+        },
+        "static_faults": 1,
+        "dynamic_faults": 2
+      },
+      "t_detect_sec": 0.0089,
+      "error": null,
+      "available": true
+    },
+    {
+      "method": "H-Ours",
+      "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F9_incorrect_routing_dependency.yaml",
+      "detected_faults": [
+        {
+          "config_file": "/root/configPilot/istio_check/evaluation/baseline_tools/configs/samples/f_suite/F9_incorrect_routing_dependency.yaml",
+          "fault_type": "missing_service_ref",
+          "confidence": 0.85,
+          "description": "destination host missing: non-existent-reviews.default.svc.cluster.local",
+          "details": {
+            "tool": "S-Ours",
+            "sources": [
+              "static"
+            ]
+          },
+          "detection_time": "2026-07-29T16:56:22.688372"
+        }
+      ],
+      "raw": {
+        "static": {},
+        "dynamic": {
+          "mode": "yaml_oracle"
+        },
+        "static_faults": 1,
+        "dynamic_faults": 0
+      },
+      "t_detect_sec": 0.006,
+      "error": null,
+      "available": true
+    }
+  ],
+  "metrics": {
+    "overall": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "accuracy": 1.0,
+      "tp": 10,
+      "fp": 0,
+      "fn": 0,
+      "tn": 0
+    },
+    "stratified_recall": {
+      "static_only": 1.0,
+      "dynamic_only": 1.0,
+      "both": 1.0
+    },
+    "stratified": {
+      "static_only": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "accuracy": 1.0,
+        "tp": 3,
+        "fp": 0,
+        "fn": 0,
+        "tn": 0
+      },
+      "dynamic_only": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "accuracy": 1.0,
+        "tp": 4,
+        "fp": 0,
+        "fn": 0,
+        "tn": 0
+      },
+      "both": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "accuracy": 1.0,
+        "tp": 3,
+        "fp": 0,
+        "fn": 0,
+        "tn": 0
+      }
+    },
+    "t_detect_avg_sec": 0.0065,
+    "t_detect_sum_sec": 0.0651,
+    "n_samples": 10,
+    "rows": [
+      {
+        "sample": "f_suite/F10_runtime_policy_gap.yaml",
+        "detectability": "dynamic_only",
+        "gt_fault": "policy_enforcement_gap",
+        "detected": [
+          "fault_injection_error",
+          "policy_enforcement_gap"
+        ],
+        "label": "TP",
+        "t_detect_sec": 0.0052,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "f_suite/F1_missing_subset.yaml",
+        "detectability": "static_only",
+        "gt_fault": "missing_subset",
+        "detected": [
+          "missing_subset"
+        ],
+        "label": "TP",
+        "t_detect_sec": 0.0052,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "f_suite/F2_authorization_conflict.yaml",
+        "detectability": "static_only",
+        "gt_fault": "authorization_conflict",
+        "detected": [
+          "authorization_conflict"
+        ],
+        "label": "TP",
+        "t_detect_sec": 0.0097,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "f_suite/F3_mtls_inconsistent.yaml",
+        "detectability": "both",
+        "gt_fault": "mtls_inconsistency",
+        "detected": [
+          "mtls_inconsistency"
+        ],
+        "label": "TP",
+        "t_detect_sec": 0.0059,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "f_suite/F4_timeout_mismatch.yaml",
+        "detectability": "both",
+        "gt_fault": "timeout_error",
+        "detected": [
+          "timeout_error"
+        ],
+        "label": "TP",
+        "t_detect_sec": 0.0055,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "f_suite/F5_traffic_split_drift.yaml",
+        "detectability": "both",
+        "gt_fault": "weight_error",
+        "detected": [
+          "weight_error"
+        ],
+        "label": "TP",
+        "t_detect_sec": 0.0059,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "f_suite/F6_retry_omission.yaml",
+        "detectability": "dynamic_only",
+        "gt_fault": "retry_policy_error",
+        "detected": [
+          "retry_policy_error"
+        ],
+        "label": "TP",
+        "t_detect_sec": 0.0055,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "f_suite/F7_circuit_breaker_ineffective.yaml",
+        "detectability": "dynamic_only",
+        "gt_fault": "circuit_breaker_error",
+        "detected": [
+          "circuit_breaker_error"
+        ],
+        "label": "TP",
+        "t_detect_sec": 0.0073,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "f_suite/F8_partial_timeout_propagation.yaml",
+        "detectability": "dynamic_only",
+        "gt_fault": "timeout_propagation",
+        "detected": [
+          "timeout_error",
+          "timeout_propagation"
+        ],
+        "label": "TP",
+        "t_detect_sec": 0.0089,
+        "available": true,
+        "error": null
+      },
+      {
+        "sample": "f_suite/F9_incorrect_routing_dependency.yaml",
+        "detectability": "static_only",
+        "gt_fault": "missing_service_ref",
+        "detected": [
+          "missing_service_ref"
+        ],
+        "label": "TP",
+        "t_detect_sec": 0.006,
+        "available": true,
+        "error": null
+      }
+    ]
+  }
+}

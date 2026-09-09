@@ -1,0 +1,39 @@
+# 测试用例: 正确配置（阴性对照）
+# VS 路由到 v1(20%) 和 v2(80%)，DR 定义了 v1, v2, v3
+# 预期: 静态和动态都不应检出故障
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: reviews
+  namespace: default
+spec:
+  hosts:
+  - reviews.default.svc.cluster.local
+  http:
+  - route:
+    - destination:
+        host: reviews.default.svc.cluster.local
+        subset: v1
+      weight: 20
+    - destination:
+        host: reviews.default.svc.cluster.local
+        subset: v2
+      weight: 80
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: reviews
+  namespace: default
+spec:
+  host: reviews.default.svc.cluster.local
+  subsets:
+  - labels:
+      version: v1
+    name: v1
+  - labels:
+      version: v2
+    name: v2
+  - labels:
+      version: v3
+    name: v3

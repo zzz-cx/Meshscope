@@ -1,0 +1,12 @@
+============================================================
+SCALE N=15 C4 mode=cluster ns=meshscope-ortho-n15
+  DONE wall_cell=850.6s cases 255->87 Te=200.5±0.6s To=74.9±0.1s DRb=100.0 DRa=100.0
+============================================================
+SCALE N=15 C5 mode=cluster ns=meshscope-ortho-n15
+  DONE wall_cell=965.4s cases 300->103 Te=234.5±0.1s To=87.3±0.1s DRb=100.0 DRa=100.0
+============================================================
+SCALE N=20 C4 mode=cluster ns=meshscope-ortho-n20
+  DONE wall_cell=1141.7s cases 340->115 Te=270.4±0.8s To=102.7±0.2s DRb=100.0 DRa=100.0
+============================================================
+SCALE N=20 C5 mode=cluster ns=meshscope-ortho-n20
+  DONE wall_cell=1306.3s cases 400->136 Te=316.1±0.5s To=119.3±0.2s DRb=100.0 DRa=100.0

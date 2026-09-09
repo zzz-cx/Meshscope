@@ -1,0 +1,13 @@
+{
+  "case_id": "case_003",
+  "timestamp": "20260313_152419",
+  "http_result": {
+    "status_codes": {
+      "200": 100
+    },
+    "total_requests": 100,
+    "success_rate": 100.0,
+    "avg_response_time": 0.3120421838760376,
+    "error_count": 0
+  }
+}

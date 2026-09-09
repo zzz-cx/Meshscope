@@ -1,0 +1,31 @@
+============================================================
+Istio 动态验证报告
+============================================================
+
+[WARN] case_001: 熔断 frontend (0.4s)
+      [WARNING] [circuit_breaker] HTTP错误率: 503=0, 错误率=0.0%, 熔断有效性(Rejected/Total)=0.0%
+
+[PASS] case_002: 流量分配 adservice (13.8s)
+      [SKIPPED] [traffic_split] 流量分布: Prometheus 无增量数据（请确保执行了请求且 Prometheus 可访问）
+
+[WARN] case_003: 熔断 adservice (0.3s)
+      [WARNING] [circuit_breaker] HTTP错误率: 503=0, 错误率=0.0%, 熔断有效性(Rejected/Total)=0.0%
+
+[WARN] case_004: 熔断 reviews (0.1s)
+      [WARNING] [circuit_breaker] HTTP错误率: 503=0, 错误率=0.0%, 熔断有效性(Rejected/Total)=0.0%
+
+[WARN] case_005: 熔断 cartservice (0.1s)
+      [WARNING] [circuit_breaker] HTTP错误率: 503=0, 错误率=0.0%, 熔断有效性(Rejected/Total)=0.0%
+
+[WARN] case_006: 熔断 recommendationservice (0.1s)
+      [WARNING] [circuit_breaker] HTTP错误率: 503=0, 错误率=0.0%, 熔断有效性(Rejected/Total)=0.0%
+
+[WARN] case_007: 熔断 currencyservice (0.1s)
+      [WARNING] [circuit_breaker] HTTP错误率: 503=0, 错误率=0.0%, 熔断有效性(Rejected/Total)=0.0%
+
+[WARN] case_008: 熔断 productpage (0.2s)
+      [WARNING] [circuit_breaker] HTTP错误率: 503=0, 错误率=0.0%, 熔断有效性(Rejected/Total)=0.0%
+
+------------------------------------------------------------
+总计: 8  通过: 1  失败: 0  警告: 7
+通过率: 12.5%

@@ -1,0 +1,547 @@
+[cluster] ingress=http://192.168.1.69:31605
+============================================================
+SCALE N=15 C4 mode=cluster ns=meshscope-ortho-n15
+  [cluster] deploy/ensure ns=meshscope-ortho-n15 services=15 (skip_deploy=False)
+[deploy] applying 15 services to ns=meshscope-ortho-n15 ...
+[deploy] waiting deployments ready (timeout=900s)...
+  ready deployments: 0/30
+  ready deployments: 30/30
+[deploy] all deployments ready
+  [cluster] run 1/3 exhaustive cases=255 ...
+    [10/255] elapsed=7.7s last_ok=True
+    [20/255] elapsed=15.7s last_ok=True
+    [30/255] elapsed=23.5s last_ok=True
+    [40/255] elapsed=31.3s last_ok=True
+    [50/255] elapsed=39.3s last_ok=True
+    [60/255] elapsed=47.2s last_ok=True
+    [70/255] elapsed=55.1s last_ok=True
+    [80/255] elapsed=62.9s last_ok=True
+    [90/255] elapsed=70.8s last_ok=True
+    [100/255] elapsed=78.7s last_ok=True
+    [110/255] elapsed=86.5s last_ok=True
+    [120/255] elapsed=94.6s last_ok=True
+    [130/255] elapsed=102.4s last_ok=True
+    [140/255] elapsed=110.2s last_ok=True
+    [150/255] elapsed=118.1s last_ok=True
+    [160/255] elapsed=125.9s last_ok=True
+    [170/255] elapsed=133.9s last_ok=True
+    [180/255] elapsed=141.7s last_ok=True
+    [190/255] elapsed=149.7s last_ok=True
+    [200/255] elapsed=157.5s last_ok=True
+    [210/255] elapsed=165.3s last_ok=True
+    [220/255] elapsed=173.3s last_ok=True
+    [230/255] elapsed=181.2s last_ok=True
+    [240/255] elapsed=189.2s last_ok=True
+    [250/255] elapsed=197.0s last_ok=True
+  [cluster] run 1/3 orthogonal cases=67 ...
+    [10/67] elapsed=9.0s last_ok=True
+    [20/67] elapsed=18.1s last_ok=True
+    [30/67] elapsed=27.1s last_ok=True
+    [40/67] elapsed=36.0s last_ok=True
+    [50/67] elapsed=45.1s last_ok=True
+    [60/67] elapsed=54.2s last_ok=True
+  [cluster] run 1 done: Te=201.1s To=60.0s exh_ok=255/255 ortho_ok=67/67
+  [cluster] run 2/3 exhaustive cases=255 ...
+    [10/255] elapsed=7.8s last_ok=True
+    [20/255] elapsed=15.7s last_ok=True
+    [30/255] elapsed=23.6s last_ok=True
+    [40/255] elapsed=31.4s last_ok=True
+    [50/255] elapsed=39.4s last_ok=True
+    [60/255] elapsed=47.2s last_ok=True
+    [70/255] elapsed=55.1s last_ok=True
+    [80/255] elapsed=62.8s last_ok=True
+    [90/255] elapsed=70.7s last_ok=True
+    [100/255] elapsed=78.6s last_ok=True
+    [110/255] elapsed=86.3s last_ok=True
+    [120/255] elapsed=94.3s last_ok=True
+    [130/255] elapsed=102.1s last_ok=True
+    [140/255] elapsed=109.9s last_ok=True
+    [150/255] elapsed=117.8s last_ok=True
+    [160/255] elapsed=125.7s last_ok=True
+    [170/255] elapsed=133.7s last_ok=True
+    [180/255] elapsed=141.5s last_ok=True
+    [190/255] elapsed=149.3s last_ok=True
+    [200/255] elapsed=157.1s last_ok=True
+    [210/255] elapsed=165.0s last_ok=True
+    [220/255] elapsed=172.9s last_ok=True
+    [230/255] elapsed=180.8s last_ok=True
+    [240/255] elapsed=188.6s last_ok=True
+    [250/255] elapsed=196.4s last_ok=True
+  [cluster] run 2/3 orthogonal cases=67 ...
+    [10/67] elapsed=8.9s last_ok=True
+    [20/67] elapsed=17.9s last_ok=True
+    [30/67] elapsed=27.0s last_ok=True
+    [40/67] elapsed=35.9s last_ok=True
+    [50/67] elapsed=45.0s last_ok=True
+    [60/67] elapsed=54.0s last_ok=True
+  [cluster] run 2 done: Te=200.4s To=59.7s exh_ok=255/255 ortho_ok=67/67
+  [cluster] run 3/3 exhaustive cases=255 ...
+    [10/255] elapsed=7.8s last_ok=True
+    [20/255] elapsed=15.7s last_ok=True
+    [30/255] elapsed=23.5s last_ok=True
+    [40/255] elapsed=31.3s last_ok=True
+    [50/255] elapsed=39.3s last_ok=True
+    [60/255] elapsed=47.1s last_ok=True
+    [70/255] elapsed=55.1s last_ok=True
+    [80/255] elapsed=62.8s last_ok=True
+    [90/255] elapsed=70.7s last_ok=True
+    [100/255] elapsed=78.6s last_ok=True
+    [110/255] elapsed=86.3s last_ok=True
+    [120/255] elapsed=94.4s last_ok=True
+    [130/255] elapsed=102.2s last_ok=True
+    [140/255] elapsed=110.1s last_ok=True
+    [150/255] elapsed=117.9s last_ok=True
+    [160/255] elapsed=125.7s last_ok=True
+    [170/255] elapsed=133.8s last_ok=True
+    [180/255] elapsed=141.5s last_ok=True
+    [190/255] elapsed=149.4s last_ok=True
+    [200/255] elapsed=157.2s last_ok=True
+    [210/255] elapsed=165.1s last_ok=True
+    [220/255] elapsed=173.1s last_ok=True
+    [230/255] elapsed=181.0s last_ok=True
+    [240/255] elapsed=188.9s last_ok=True
+    [250/255] elapsed=196.7s last_ok=True
+  [cluster] run 3/3 orthogonal cases=67 ...
+    [10/67] elapsed=9.0s last_ok=True
+    [20/67] elapsed=18.0s last_ok=True
+    [30/67] elapsed=27.0s last_ok=True
+    [40/67] elapsed=35.9s last_ok=True
+    [50/67] elapsed=44.9s last_ok=True
+    [60/67] elapsed=53.9s last_ok=True
+  [cluster] run 3 done: Te=200.7s To=59.8s exh_ok=255/255 ortho_ok=67/67
+  DONE wall_cell=805.8s cases 255->67 Te=200.7±0.3s To=59.8±0.2s DRb=100.0 DRa=100.0
+============================================================
+SCALE N=15 C5 mode=cluster ns=meshscope-ortho-n15
+  [cluster] deploy/ensure ns=meshscope-ortho-n15 services=15 (skip_deploy=True)
+  [cluster] run 1/3 exhaustive cases=300 ...
+    [10/300] elapsed=7.8s last_ok=True
+    [20/300] elapsed=15.7s last_ok=True
+    [30/300] elapsed=23.4s last_ok=True
+    [40/300] elapsed=31.3s last_ok=True
+    [50/300] elapsed=39.0s last_ok=True
+    [60/300] elapsed=46.9s last_ok=True
+    [70/300] elapsed=54.7s last_ok=True
+    [80/300] elapsed=62.6s last_ok=True
+    [90/300] elapsed=70.3s last_ok=True
+    [100/300] elapsed=78.3s last_ok=True
+    [110/300] elapsed=86.1s last_ok=True
+    [120/300] elapsed=94.0s last_ok=True
+    [130/300] elapsed=101.7s last_ok=True
+    [140/300] elapsed=109.6s last_ok=True
+    [150/300] elapsed=117.4s last_ok=True
+    [160/300] elapsed=125.3s last_ok=True
+    [170/300] elapsed=133.1s last_ok=True
+    [180/300] elapsed=140.9s last_ok=True
+    [190/300] elapsed=148.7s last_ok=True
+    [200/300] elapsed=156.6s last_ok=True
+    [210/300] elapsed=164.4s last_ok=True
+    [220/300] elapsed=172.2s last_ok=True
+    [230/300] elapsed=180.0s last_ok=True
+    [240/300] elapsed=187.8s last_ok=True
+    [250/300] elapsed=195.6s last_ok=True
+    [260/300] elapsed=203.5s last_ok=True
+    [270/300] elapsed=211.3s last_ok=True
+    [280/300] elapsed=219.2s last_ok=True
+    [290/300] elapsed=226.9s last_ok=True
+    [300/300] elapsed=234.9s last_ok=True
+  [cluster] run 1/3 orthogonal cases=79 ...
+    [10/79] elapsed=8.9s last_ok=True
+    [20/79] elapsed=17.6s last_ok=True
+    [30/79] elapsed=26.4s last_ok=True
+    [40/79] elapsed=35.2s last_ok=True
+    [50/79] elapsed=44.1s last_ok=True
+    [60/79] elapsed=53.0s last_ok=True
+    [70/79] elapsed=61.8s last_ok=True
+  [cluster] run 1 done: Te=234.9s To=69.3s exh_ok=300/300 ortho_ok=79/79
+  [cluster] run 2/3 exhaustive cases=300 ...
+    [10/300] elapsed=7.8s last_ok=True
+    [20/300] elapsed=15.7s last_ok=True
+    [30/300] elapsed=23.5s last_ok=True
+    [40/300] elapsed=31.4s last_ok=True
+    [50/300] elapsed=39.1s last_ok=True
+    [60/300] elapsed=47.0s last_ok=True
+    [70/300] elapsed=54.8s last_ok=True
+    [80/300] elapsed=62.7s last_ok=True
+    [90/300] elapsed=70.4s last_ok=True
+    [100/300] elapsed=78.4s last_ok=True
+    [110/300] elapsed=86.1s last_ok=True
+    [120/300] elapsed=94.0s last_ok=True
+    [130/300] elapsed=101.8s last_ok=True
+    [140/300] elapsed=109.7s last_ok=True
+    [150/300] elapsed=118.2s last_ok=False
+    [160/300] elapsed=126.1s last_ok=True
+    [170/300] elapsed=133.9s last_ok=True
+    [180/300] elapsed=141.8s last_ok=True
+    [190/300] elapsed=149.5s last_ok=True
+    [200/300] elapsed=157.4s last_ok=True
+    [210/300] elapsed=165.1s last_ok=True
+    [220/300] elapsed=173.0s last_ok=True
+    [230/300] elapsed=180.8s last_ok=True
+    [240/300] elapsed=188.6s last_ok=True
+    [250/300] elapsed=196.4s last_ok=True
+    [260/300] elapsed=204.2s last_ok=True
+    [270/300] elapsed=212.0s last_ok=True
+    [280/300] elapsed=219.8s last_ok=True
+    [290/300] elapsed=227.6s last_ok=True
+    [300/300] elapsed=235.5s last_ok=True
+  [cluster] run 2/3 orthogonal cases=79 ...
+    [10/79] elapsed=8.8s last_ok=True
+    [20/79] elapsed=17.6s last_ok=True
+    [30/79] elapsed=26.5s last_ok=True
+    [40/79] elapsed=35.4s last_ok=True
+    [50/79] elapsed=44.3s last_ok=True
+    [60/79] elapsed=53.0s last_ok=True
+    [70/79] elapsed=61.8s last_ok=True
+  [cluster] run 2 done: Te=235.5s To=69.2s exh_ok=299/300 ortho_ok=79/79
+  [cluster] run 3/3 exhaustive cases=300 ...
+    [10/300] elapsed=7.8s last_ok=True
+    [20/300] elapsed=15.6s last_ok=True
+    [30/300] elapsed=23.4s last_ok=True
+    [40/300] elapsed=31.3s last_ok=True
+    [50/300] elapsed=39.1s last_ok=True
+    [60/300] elapsed=47.0s last_ok=True
+    [70/300] elapsed=54.7s last_ok=True
+    [80/300] elapsed=62.6s last_ok=True
+    [90/300] elapsed=70.3s last_ok=True
+    [100/300] elapsed=78.2s last_ok=True
+    [110/300] elapsed=86.0s last_ok=True
+    [120/300] elapsed=93.8s last_ok=True
+    [130/300] elapsed=101.6s last_ok=True
+    [140/300] elapsed=109.5s last_ok=True
+    [150/300] elapsed=117.2s last_ok=True
+    [160/300] elapsed=125.1s last_ok=True
+    [170/300] elapsed=132.9s last_ok=True
+    [180/300] elapsed=140.8s last_ok=True
+    [190/300] elapsed=148.5s last_ok=True
+    [200/300] elapsed=156.5s last_ok=True
+    [210/300] elapsed=164.2s last_ok=True
+    [220/300] elapsed=172.1s last_ok=True
+    [230/300] elapsed=179.8s last_ok=True
+    [240/300] elapsed=187.8s last_ok=True
+    [250/300] elapsed=195.5s last_ok=True
+    [260/300] elapsed=203.4s last_ok=True
+    [270/300] elapsed=211.2s last_ok=True
+    [280/300] elapsed=219.0s last_ok=True
+    [290/300] elapsed=226.8s last_ok=True
+    [300/300] elapsed=234.6s last_ok=True
+  [cluster] run 3/3 orthogonal cases=79 ...
+    [10/79] elapsed=8.8s last_ok=True
+    [20/79] elapsed=17.6s last_ok=True
+    [30/79] elapsed=26.4s last_ok=True
+    [40/79] elapsed=35.3s last_ok=True
+    [50/79] elapsed=44.1s last_ok=True
+    [60/79] elapsed=52.9s last_ok=True
+    [70/79] elapsed=61.7s last_ok=True
+  [cluster] run 3 done: Te=234.6s To=69.2s exh_ok=300/300 ortho_ok=79/79
+  DONE wall_cell=912.7s cases 300->79 Te=235.0±0.4s To=69.2±0.1s DRb=100.0 DRa=100.0
+============================================================
+SCALE N=20 C4 mode=cluster ns=meshscope-ortho-n20
+  [cluster] deploy/ensure ns=meshscope-ortho-n20 services=20 (skip_deploy=False)
+[deploy] applying 20 services to ns=meshscope-ortho-n20 ...
+[deploy] waiting deployments ready (timeout=900s)...
+  ready deployments: 0/40
+  ready deployments: 40/40
+[deploy] all deployments ready
+  [cluster] run 1/3 exhaustive cases=340 ...
+    [10/340] elapsed=7.8s last_ok=True
+    [20/340] elapsed=15.8s last_ok=True
+    [30/340] elapsed=23.7s last_ok=True
+    [40/340] elapsed=31.7s last_ok=True
+    [50/340] elapsed=39.8s last_ok=True
+    [60/340] elapsed=47.7s last_ok=True
+    [70/340] elapsed=55.6s last_ok=True
+    [80/340] elapsed=63.3s last_ok=True
+    [90/340] elapsed=71.4s last_ok=True
+    [100/340] elapsed=79.4s last_ok=True
+    [110/340] elapsed=87.4s last_ok=True
+    [120/340] elapsed=95.6s last_ok=True
+    [130/340] elapsed=103.4s last_ok=True
+    [140/340] elapsed=111.3s last_ok=True
+    [150/340] elapsed=119.2s last_ok=True
+    [160/340] elapsed=127.2s last_ok=True
+    [170/340] elapsed=135.4s last_ok=True
+    [180/340] elapsed=143.1s last_ok=True
+    [190/340] elapsed=151.2s last_ok=True
+    [200/340] elapsed=159.1s last_ok=True
+    [210/340] elapsed=167.1s last_ok=True
+    [220/340] elapsed=175.1s last_ok=True
+    [230/340] elapsed=183.1s last_ok=True
+    [240/340] elapsed=191.1s last_ok=True
+    [250/340] elapsed=198.9s last_ok=True
+    [260/340] elapsed=206.9s last_ok=True
+    [270/340] elapsed=214.8s last_ok=True
+    [280/340] elapsed=222.7s last_ok=True
+    [290/340] elapsed=230.9s last_ok=True
+    [300/340] elapsed=238.7s last_ok=True
+    [310/340] elapsed=246.7s last_ok=True
+    [320/340] elapsed=254.6s last_ok=True
+    [330/340] elapsed=262.6s last_ok=True
+    [340/340] elapsed=270.8s last_ok=True
+  [cluster] run 1/3 orthogonal cases=88 ...
+    [10/88] elapsed=9.4s last_ok=True
+    [20/88] elapsed=18.6s last_ok=True
+    [30/88] elapsed=27.8s last_ok=True
+    [40/88] elapsed=36.8s last_ok=True
+    [50/88] elapsed=46.2s last_ok=True
+    [60/88] elapsed=55.7s last_ok=True
+    [70/88] elapsed=64.9s last_ok=True
+    [80/88] elapsed=74.2s last_ok=True
+  [cluster] run 1 done: Te=270.8s To=81.1s exh_ok=340/340 ortho_ok=88/88
+  [cluster] run 2/3 exhaustive cases=340 ...
+    [10/340] elapsed=7.9s last_ok=True
+    [20/340] elapsed=16.0s last_ok=True
+    [30/340] elapsed=23.9s last_ok=True
+    [40/340] elapsed=32.0s last_ok=True
+    [50/340] elapsed=40.0s last_ok=True
+    [60/340] elapsed=47.9s last_ok=True
+    [70/340] elapsed=55.9s last_ok=True
+    [80/340] elapsed=63.7s last_ok=True
+    [90/340] elapsed=71.8s last_ok=True
+    [100/340] elapsed=79.7s last_ok=True
+    [110/340] elapsed=87.5s last_ok=True
+    [120/340] elapsed=95.8s last_ok=True
+    [130/340] elapsed=103.6s last_ok=True
+    [140/340] elapsed=111.5s last_ok=True
+    [150/340] elapsed=119.4s last_ok=True
+    [160/340] elapsed=127.4s last_ok=True
+    [170/340] elapsed=135.7s last_ok=True
+    [180/340] elapsed=143.4s last_ok=True
+    [190/340] elapsed=151.6s last_ok=True
+    [200/340] elapsed=159.5s last_ok=True
+    [210/340] elapsed=167.8s last_ok=True
+    [220/340] elapsed=176.0s last_ok=True
+    [230/340] elapsed=184.0s last_ok=True
+    [240/340] elapsed=192.0s last_ok=True
+    [250/340] elapsed=199.8s last_ok=True
+    [260/340] elapsed=207.9s last_ok=True
+    [270/340] elapsed=215.8s last_ok=True
+    [280/340] elapsed=223.7s last_ok=True
+    [290/340] elapsed=232.0s last_ok=True
+    [300/340] elapsed=239.8s last_ok=True
+    [310/340] elapsed=247.9s last_ok=True
+    [320/340] elapsed=255.7s last_ok=True
+    [330/340] elapsed=263.8s last_ok=True
+    [340/340] elapsed=272.0s last_ok=True
+  [cluster] run 2/3 orthogonal cases=88 ...
+    [10/88] elapsed=9.0s last_ok=True
+    [20/88] elapsed=18.3s last_ok=True
+    [30/88] elapsed=27.7s last_ok=True
+    [40/88] elapsed=36.8s last_ok=True
+    [50/88] elapsed=46.1s last_ok=True
+    [60/88] elapsed=55.3s last_ok=True
+    [70/88] elapsed=64.9s last_ok=True
+    [80/88] elapsed=74.0s last_ok=True
+  [cluster] run 2 done: Te=272.0s To=80.8s exh_ok=340/340 ortho_ok=88/88
+  [cluster] run 3/3 exhaustive cases=340 ...
+    [10/340] elapsed=7.8s last_ok=True
+    [20/340] elapsed=15.8s last_ok=True
+    [30/340] elapsed=23.8s last_ok=True
+    [40/340] elapsed=31.8s last_ok=True
+    [50/340] elapsed=39.8s last_ok=True
+    [60/340] elapsed=47.7s last_ok=True
+    [70/340] elapsed=55.8s last_ok=True
+    [80/340] elapsed=63.6s last_ok=True
+    [90/340] elapsed=71.7s last_ok=True
+    [100/340] elapsed=79.7s last_ok=True
+    [110/340] elapsed=87.5s last_ok=True
+    [120/340] elapsed=95.6s last_ok=True
+    [130/340] elapsed=103.5s last_ok=True
+    [140/340] elapsed=111.4s last_ok=True
+    [150/340] elapsed=119.2s last_ok=True
+    [160/340] elapsed=127.2s last_ok=True
+    [170/340] elapsed=135.3s last_ok=True
+    [180/340] elapsed=143.2s last_ok=True
+    [190/340] elapsed=151.2s last_ok=True
+    [200/340] elapsed=159.1s last_ok=True
+    [210/340] elapsed=167.2s last_ok=True
+    [220/340] elapsed=175.2s last_ok=True
+    [230/340] elapsed=183.2s last_ok=True
+    [240/340] elapsed=191.3s last_ok=True
+    [250/340] elapsed=199.1s last_ok=True
+    [260/340] elapsed=207.2s last_ok=True
+    [270/340] elapsed=215.1s last_ok=True
+    [280/340] elapsed=222.9s last_ok=True
+    [290/340] elapsed=231.2s last_ok=True
+    [300/340] elapsed=239.0s last_ok=True
+    [310/340] elapsed=246.9s last_ok=True
+    [320/340] elapsed=254.8s last_ok=True
+    [330/340] elapsed=262.7s last_ok=True
+    [340/340] elapsed=270.8s last_ok=True
+  [cluster] run 3/3 orthogonal cases=88 ...
+    [10/88] elapsed=9.1s last_ok=True
+    [20/88] elapsed=18.5s last_ok=True
+    [30/88] elapsed=28.1s last_ok=True
+    [40/88] elapsed=37.0s last_ok=True
+    [50/88] elapsed=46.4s last_ok=True
+    [60/88] elapsed=55.5s last_ok=True
+    [70/88] elapsed=64.8s last_ok=True
+    [80/88] elapsed=74.1s last_ok=True
+  [cluster] run 3 done: Te=270.8s To=81.1s exh_ok=340/340 ortho_ok=88/88
+  DONE wall_cell=1068.8s cases 340->88 Te=271.2±0.7s To=81.0±0.2s DRb=100.0 DRa=100.0
+============================================================
+SCALE N=20 C5 mode=cluster ns=meshscope-ortho-n20
+  [cluster] deploy/ensure ns=meshscope-ortho-n20 services=20 (skip_deploy=True)
+  [cluster] run 1/3 exhaustive cases=400 ...
+    [10/400] elapsed=7.8s last_ok=True
+    [20/400] elapsed=15.9s last_ok=True
+    [30/400] elapsed=23.6s last_ok=True
+    [40/400] elapsed=31.8s last_ok=True
+    [50/400] elapsed=39.6s last_ok=True
+    [60/400] elapsed=47.6s last_ok=True
+    [70/400] elapsed=55.4s last_ok=True
+    [80/400] elapsed=63.4s last_ok=True
+    [90/400] elapsed=71.1s last_ok=True
+    [100/400] elapsed=79.2s last_ok=True
+    [110/400] elapsed=87.0s last_ok=True
+    [120/400] elapsed=95.0s last_ok=True
+    [130/400] elapsed=102.8s last_ok=True
+    [140/400] elapsed=110.8s last_ok=True
+    [150/400] elapsed=118.5s last_ok=True
+    [160/400] elapsed=126.6s last_ok=True
+    [170/400] elapsed=134.3s last_ok=True
+    [180/400] elapsed=142.3s last_ok=True
+    [190/400] elapsed=150.1s last_ok=True
+    [200/400] elapsed=158.2s last_ok=True
+    [210/400] elapsed=166.0s last_ok=True
+    [220/400] elapsed=174.0s last_ok=True
+    [230/400] elapsed=181.8s last_ok=True
+    [240/400] elapsed=189.6s last_ok=True
+    [250/400] elapsed=197.4s last_ok=True
+    [260/400] elapsed=205.3s last_ok=True
+    [270/400] elapsed=213.1s last_ok=True
+    [280/400] elapsed=221.1s last_ok=True
+    [290/400] elapsed=228.9s last_ok=True
+    [300/400] elapsed=236.9s last_ok=True
+    [310/400] elapsed=244.7s last_ok=True
+    [320/400] elapsed=252.8s last_ok=True
+    [330/400] elapsed=260.6s last_ok=True
+    [340/400] elapsed=268.6s last_ok=True
+    [350/400] elapsed=276.3s last_ok=True
+    [360/400] elapsed=284.3s last_ok=True
+    [370/400] elapsed=292.0s last_ok=True
+    [380/400] elapsed=300.0s last_ok=True
+    [390/400] elapsed=307.8s last_ok=True
+    [400/400] elapsed=315.9s last_ok=True
+  [cluster] run 1/3 orthogonal cases=104 ...
+    [10/104] elapsed=9.1s last_ok=True
+    [20/104] elapsed=18.2s last_ok=True
+    [30/104] elapsed=27.2s last_ok=True
+    [40/104] elapsed=36.8s last_ok=True
+    [50/104] elapsed=46.1s last_ok=True
+    [60/104] elapsed=55.4s last_ok=True
+    [70/104] elapsed=64.5s last_ok=True
+    [80/104] elapsed=73.8s last_ok=True
+    [90/104] elapsed=83.0s last_ok=True
+    [100/104] elapsed=92.1s last_ok=True
+  [cluster] run 1 done: Te=315.9s To=95.2s exh_ok=400/400 ortho_ok=104/104
+  [cluster] run 2/3 exhaustive cases=400 ...
+    [10/400] elapsed=7.8s last_ok=True
+    [20/400] elapsed=15.9s last_ok=True
+    [30/400] elapsed=23.6s last_ok=True
+    [40/400] elapsed=31.6s last_ok=True
+    [50/400] elapsed=39.4s last_ok=True
+    [60/400] elapsed=47.5s last_ok=True
+    [70/400] elapsed=55.3s last_ok=True
+    [80/400] elapsed=63.4s last_ok=True
+    [90/400] elapsed=71.1s last_ok=True
+    [100/400] elapsed=79.2s last_ok=True
+    [110/400] elapsed=87.0s last_ok=True
+    [120/400] elapsed=95.0s last_ok=True
+    [130/400] elapsed=102.8s last_ok=True
+    [140/400] elapsed=110.8s last_ok=True
+    [150/400] elapsed=118.6s last_ok=True
+    [160/400] elapsed=126.7s last_ok=True
+    [170/400] elapsed=134.5s last_ok=True
+    [180/400] elapsed=142.4s last_ok=True
+    [190/400] elapsed=150.1s last_ok=True
+    [200/400] elapsed=158.1s last_ok=True
+    [210/400] elapsed=165.9s last_ok=True
+    [220/400] elapsed=173.9s last_ok=True
+    [230/400] elapsed=181.7s last_ok=True
+    [240/400] elapsed=189.8s last_ok=True
+    [250/400] elapsed=197.6s last_ok=True
+    [260/400] elapsed=205.6s last_ok=True
+    [270/400] elapsed=213.4s last_ok=True
+    [280/400] elapsed=221.4s last_ok=True
+    [290/400] elapsed=229.2s last_ok=True
+    [300/400] elapsed=237.4s last_ok=True
+    [310/400] elapsed=245.1s last_ok=True
+    [320/400] elapsed=253.1s last_ok=True
+    [330/400] elapsed=261.0s last_ok=True
+    [340/400] elapsed=269.0s last_ok=True
+    [350/400] elapsed=276.7s last_ok=True
+    [360/400] elapsed=284.9s last_ok=True
+    [370/400] elapsed=292.6s last_ok=True
+    [380/400] elapsed=300.6s last_ok=True
+    [390/400] elapsed=308.3s last_ok=True
+    [400/400] elapsed=316.3s last_ok=True
+  [cluster] run 2/3 orthogonal cases=104 ...
+    [10/104] elapsed=9.3s last_ok=True
+    [20/104] elapsed=18.4s last_ok=True
+    [30/104] elapsed=27.6s last_ok=True
+    [40/104] elapsed=36.7s last_ok=True
+    [50/104] elapsed=45.7s last_ok=True
+    [60/104] elapsed=55.1s last_ok=True
+    [70/104] elapsed=64.3s last_ok=True
+    [80/104] elapsed=73.5s last_ok=True
+    [90/104] elapsed=82.6s last_ok=True
+    [100/104] elapsed=91.9s last_ok=True
+  [cluster] run 2 done: Te=316.3s To=95.0s exh_ok=400/400 ortho_ok=104/104
+  [cluster] run 3/3 exhaustive cases=400 ...
+    [10/400] elapsed=7.8s last_ok=True
+    [20/400] elapsed=15.8s last_ok=True
+    [30/400] elapsed=23.6s last_ok=True
+    [40/400] elapsed=31.8s last_ok=True
+    [50/400] elapsed=39.6s last_ok=True
+    [60/400] elapsed=47.6s last_ok=True
+    [70/400] elapsed=55.4s last_ok=True
+    [80/400] elapsed=63.4s last_ok=True
+    [90/400] elapsed=71.1s last_ok=True
+    [100/400] elapsed=79.1s last_ok=True
+    [110/400] elapsed=86.9s last_ok=True
+    [120/400] elapsed=94.9s last_ok=True
+    [130/400] elapsed=102.7s last_ok=True
+    [140/400] elapsed=110.9s last_ok=True
+    [150/400] elapsed=118.7s last_ok=True
+    [160/400] elapsed=126.8s last_ok=True
+    [170/400] elapsed=134.6s last_ok=True
+    [180/400] elapsed=142.6s last_ok=True
+    [190/400] elapsed=150.5s last_ok=True
+    [200/400] elapsed=158.8s last_ok=True
+    [210/400] elapsed=166.5s last_ok=True
+    [220/400] elapsed=174.6s last_ok=True
+    [230/400] elapsed=182.3s last_ok=True
+    [240/400] elapsed=190.5s last_ok=True
+    [250/400] elapsed=198.2s last_ok=True
+    [260/400] elapsed=206.2s last_ok=True
+    [270/400] elapsed=214.1s last_ok=True
+    [280/400] elapsed=222.0s last_ok=True
+    [290/400] elapsed=229.8s last_ok=True
+    [300/400] elapsed=237.9s last_ok=True
+    [310/400] elapsed=245.6s last_ok=True
+    [320/400] elapsed=253.7s last_ok=True
+    [330/400] elapsed=261.5s last_ok=True
+    [340/400] elapsed=269.7s last_ok=True
+    [350/400] elapsed=277.5s last_ok=True
+    [360/400] elapsed=285.5s last_ok=True
+    [370/400] elapsed=293.3s last_ok=True
+    [380/400] elapsed=301.4s last_ok=True
+    [390/400] elapsed=309.2s last_ok=True
+    [400/400] elapsed=317.2s last_ok=True
+  [cluster] run 3/3 orthogonal cases=104 ...
+    [10/104] elapsed=9.1s last_ok=True
+    [20/104] elapsed=18.2s last_ok=True
+    [30/104] elapsed=27.4s last_ok=True
+    [40/104] elapsed=36.7s last_ok=True
+    [50/104] elapsed=45.9s last_ok=True
+    [60/104] elapsed=55.2s last_ok=True
+    [70/104] elapsed=64.2s last_ok=True
+    [80/104] elapsed=73.3s last_ok=True
+    [90/104] elapsed=82.5s last_ok=True
+    [100/104] elapsed=91.7s last_ok=True
+  [cluster] run 3 done: Te=317.2s To=94.8s exh_ok=400/400 ortho_ok=104/104
+  DONE wall_cell=1234.4s cases 400->104 Te=316.5±0.7s To=95.0±0.2s DRb=100.0 DRa=100.0
+[latex] [mode=cluster] N=20/C5: cases 400->104 (74.00%); wall-clock 316.5±0.7s -> 95.0±0.2s (time red 69.98%, 3 runs).
+[plot] -> /root/configPilot/istio_check/evaluation/efficiency/orthogonal_efficiency/figures/orthogonal-reduction-cluster.png
+[done] total_wall=4022.1s
+[done] CSV -> /root/configPilot/istio_check/evaluation/efficiency/orthogonal_efficiency/results_overnight_20260728_003656/phase3_bundle4/orthogonal_reduction.csv
