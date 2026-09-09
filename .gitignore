@@ -5,6 +5,9 @@ __pycache__/
 .understand-anything/
 web_endpoints.json
 *.db
+results/
+evaluation/
+docs/REMOTE_CLUSTER_SETUP.md
 results/meshscope.db
 results/meshscope.db-wal
 results/meshscope.db-shm
