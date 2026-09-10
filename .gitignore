@@ -29,3 +29,4 @@ consistency_checker/web/static/output_three_layer_graph.json
 node_modules/
 .idea/
 .vscode/
+docs/REMOTE_CLUSTER_SETUP.md
