@@ -62,6 +62,7 @@ class ReportGenerator:
                     "total_requests": r.execution.total_requests,
                     "success_rate": r.execution.success_rate,
                     "avg_response_time": r.execution.avg_response_time,
+                    "metadata": r.execution.metadata or {},
                 }
             if r.validation:
                 entry["validation"] = {
@@ -72,6 +73,9 @@ class ReportGenerator:
                             "dimension": d.dimension,
                             "status": d.status.value,
                             "message": d.message,
+                            "expected": d.expected,
+                            "actual": d.actual,
+                            "details": d.details,
                         }
                         for d in r.validation.details
                     ],

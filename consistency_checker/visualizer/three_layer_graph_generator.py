@@ -31,6 +31,11 @@ from consistency_checker.models.data_models import (
 
 logger = logging.getLogger(__name__)
 
+_GRAPH_SKIP_NS = {
+    "kube-system", "kube-public", "kube-node-lease", "kube-flannel",
+    "metallb-system", "openebs",
+}
+
 
 class ThreeLayerGraphGenerator:
     """三层空间配置依赖图生成器"""
@@ -95,6 +100,64 @@ class ThreeLayerGraphGenerator:
 
         self.graph = ThreeLayerGraph()
         self._id_counter = 0
+        self._inventory: Optional[Dict[str, Any]] = None
+        self._ns_cache: Dict[str, Optional[str]] = {}
+
+    def _workload_index(self) -> Dict[str, Any]:
+        if self._inventory is None:
+            try:
+                from istio_config_parser.istio_monitor.export_control_plane_config import live_workload_index
+                self._inventory = live_workload_index() or {}
+            except Exception as exc:
+                logger.warning("三层图无法读取现网工作负载: %s", exc)
+                self._inventory = {}
+        return self._inventory
+
+    def _resolve_live_namespace(self, svc: str) -> Optional[str]:
+        """服务必须在现存命名空间里真有 Service，才画到图上。"""
+        if svc in self._ns_cache:
+            return self._ns_cache[svc]
+        inv = self._workload_index()
+        live_ns = set(inv.get("namespaces") or [])
+        services = set(inv.get("services") or [])
+        pods_by = inv.get("pods_by_service") or {}
+        candidates: List[str] = []
+        for item in self.control_plane_data.get("services") or []:
+            if isinstance(item, dict) and item.get("name") == svc:
+                ns = item.get("namespace") or ""
+                if ns:
+                    candidates.append(ns)
+        for ns, name in services:
+            if name == svc:
+                candidates.append(ns)
+        ordered: List[str] = []
+        for ns in candidates:
+            if ns and ns not in ordered:
+                ordered.append(ns)
+        picked = None
+        with_pods = [ns for ns in ordered if pods_by.get((ns, svc))]
+        scope = self.namespace if self.namespace not in (None, "", "all") else None
+        for ns in with_pods + ordered:
+            if scope and ns != scope:
+                continue
+            if live_ns and ns not in live_ns:
+                continue
+            if ns in _GRAPH_SKIP_NS:
+                continue
+            if services and (ns, svc) not in services:
+                continue
+            picked = ns
+            break
+        if picked is None and scope and (not services or (scope, svc) in services):
+            if not live_ns or scope in live_ns:
+                picked = scope
+        elif picked is None and not inv.get("ok") and not scope:
+            picked = self.namespace
+        self._ns_cache[svc] = picked
+        return picked
+
+    def _live_pods(self, ns: str, svc: str) -> List[Dict[str, Any]]:
+        return list((self._workload_index().get("pods_by_service") or {}).get((ns, svc), []))
 
     def _next_id(self, prefix: str = "n") -> str:
         self._id_counter += 1
@@ -212,16 +275,20 @@ class ThreeLayerGraphGenerator:
                     label="istio-gateway",
                     plane_type=PlaneType.CONTROL_PLANE,
                     node_type="gateway",
-                    namespace=self.namespace,
+                    namespace=self.namespace or "istio-system",
                 )
             )
             node_ids.add(gw_id)
 
-        # 控制面服务节点
+        # 控制面服务节点（只画现网仍存在的 Service）
         for svc in all_services:
+            ns = self._resolve_live_namespace(svc)
+            if not ns:
+                continue
+            pods = self._live_pods(ns, svc)
             rel = cp_relations.get(svc, {})
             subsets = rel.get("subsets", [])
-            weights = rel.get("weights", {})
+            live_versions = {p.get("version") for p in pods if p.get("version")}
 
             # 主服务节点 (控制面)
             cp_svc_id = f"cp_svc_{svc}"
@@ -232,14 +299,20 @@ class ThreeLayerGraphGenerator:
                         label=svc,
                         plane_type=PlaneType.CONTROL_PLANE,
                         node_type="service",
-                        namespace=self.namespace,
+                        namespace=ns,
                     )
                 )
                 node_ids.add(cp_svc_id)
 
-            # 子集节点 (SVC-A V1, SVC-A V2)
+            # 子集节点：DestinationRule 声明且现网确有对应 version 的 Pod
             for sub in subsets:
                 sub_name = sub.get("name", sub) if isinstance(sub, dict) else getattr(sub, "name", str(sub))
+                if not sub_name:
+                    continue
+                if pods and live_versions and sub_name not in live_versions:
+                    continue
+                if not pods:
+                    continue
                 sub_id = f"cp_svc_{svc}_{sub_name}"
                 if sub_id not in node_ids:
                     self.graph.layer2_nodes.append(
@@ -249,12 +322,14 @@ class ThreeLayerGraphGenerator:
                             plane_type=PlaneType.CONTROL_PLANE,
                             parent_service=cp_svc_id,
                             node_type="subset",
-                            namespace=self.namespace,
+                            namespace=ns,
                         )
                     )
                     node_ids.add(sub_id)
 
-            # 数据面：envoy 代理、pod
+            # 数据面：有 Sidecar Pod 才画 envoy / pod，避免用 DR subset 虚构工作负载
+            if not pods:
+                continue
             dp_svc_id = f"dp_envoy_{svc}"
             if dp_svc_id not in node_ids:
                 self.graph.layer2_nodes.append(
@@ -264,23 +339,23 @@ class ThreeLayerGraphGenerator:
                         plane_type=PlaneType.DATA_PLANE,
                         parent_service=cp_svc_id,
                         node_type="envoy",
-                        namespace=self.namespace,
+                        namespace=ns,
                     )
                 )
                 node_ids.add(dp_svc_id)
 
-            for sub in subsets:
-                sub_name = sub.get("name", sub) if isinstance(sub, dict) else getattr(sub, "name", str(sub))
-                pod_id = f"dp_pod_{svc}_{sub_name}"
+            versions = [v for v in live_versions if v] or [""]
+            for sub_name in versions:
+                pod_id = f"dp_pod_{svc}_{sub_name or 'workload'}"
                 if pod_id not in node_ids:
                     self.graph.layer2_nodes.append(
                         Layer2Node(
                             id=pod_id,
-                            label=f"pod {svc}/{sub_name}",
+                            label=f"pod {svc}/{sub_name}" if sub_name else f"pod {svc}",
                             plane_type=PlaneType.DATA_PLANE,
                             parent_service=dp_svc_id,
                             node_type="pod",
-                            namespace=self.namespace,
+                            namespace=ns,
                         )
                     )
                     node_ids.add(pod_id)
@@ -478,6 +553,9 @@ class ThreeLayerGraphGenerator:
         cp_relations = self.control_plane_data.get("serviceRelations", {})
 
         for svc, rel in cp_relations.items():
+            ns = self._resolve_live_namespace(svc)
+            if not ns:
+                continue
             # DR（每服务一个）
             dr_id = f"cp_{svc}_DR"
             if rel.get("subsets"):
@@ -489,13 +567,14 @@ class ThreeLayerGraphGenerator:
                         service_name=svc,
                         plane_type=PlaneType.CONTROL_PLANE,
                         config_name=f"{svc}-dr",
-                        namespace=self.namespace,
+                        namespace=ns,
                     )
                 )
 
             # VS
             for vs in rel.get("incomingVirtualServices", []):
                 vs_name = vs.get("name", "vs")
+                vs_ns = vs.get("namespace") or ns
                 vs_id = f"cp_{svc}_VS_{vs_name}"
                 self.graph.layer3_nodes.append(
                     Layer3Node(
@@ -505,7 +584,7 @@ class ThreeLayerGraphGenerator:
                         service_name=svc,
                         plane_type=PlaneType.CONTROL_PLANE,
                         config_name=vs_name,
-                        namespace=self.namespace,
+                        namespace=vs_ns,
                     )
                 )
                 # DR -> VS (Subnet 引用)
@@ -550,7 +629,7 @@ class ThreeLayerGraphGenerator:
                         service_name=svc,
                         plane_type=PlaneType.CONTROL_PLANE,
                         config_name=f"{svc}-ratelimit",
-                        namespace=self.namespace,
+                        namespace=ns,
                     )
                 )
                 self.graph.layer3_nodes.append(
@@ -561,7 +640,7 @@ class ThreeLayerGraphGenerator:
                         service_name=svc,
                         plane_type=PlaneType.CONTROL_PLANE,
                         config_name=f"{svc}-rls",
-                        namespace=self.namespace,
+                        namespace=ns,
                     )
                 )
                 self.graph.layer3_edges.append(
@@ -588,6 +667,9 @@ class ThreeLayerGraphGenerator:
         # 数据面：envoy route 配置节点
         dp_relations = self.data_plane_data.get("serviceRelations", {})
         for svc in dp_relations:
+            ns = self._resolve_live_namespace(svc)
+            if not ns:
+                continue
             dp_route_id = f"dp_{svc}_route"
             self.graph.layer3_nodes.append(
                 Layer3Node(
@@ -597,7 +679,7 @@ class ThreeLayerGraphGenerator:
                     service_name=svc,
                     plane_type=PlaneType.DATA_PLANE,
                     config_name=f"{svc}-envoy-route",
-                    namespace=self.namespace,
+                    namespace=ns,
                 )
             )
 
@@ -669,6 +751,12 @@ class ThreeLayerGraphGenerator:
             },
             "cross_layer_edges": len(self.graph.cross_layer_edges),
             "issue_count": len(self.issues),
+            "namespaces": sorted({
+                n.namespace for n in (
+                    list(self.graph.layer2_nodes) + list(self.graph.layer3_nodes)
+                ) if getattr(n, "namespace", None)
+            }) or ([self.namespace] if self.namespace else []),
+            "namespace": self.namespace,
             "legend": {
                 "layer1": "控制面/数据面/一致性检查器",
                 "layer2": "服务与子服务、功能关系",

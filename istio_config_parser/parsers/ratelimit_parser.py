@@ -66,28 +66,44 @@ def _extract_listener_obj(item: Dict) -> Optional[Dict]:
     return item.get('listener') or item
 
 
+def _is_http_connection_manager(name: Any) -> bool:
+    return 'http_connection_manager' in str(name or '')
+
+
 def _extract_http_filters_from_listener(listener: Dict) -> List[Dict]:
-    """从 listener 提取所有 HTTP filter 配置"""
+    """从 listener 提取所有 HTTP filter 配置，含 inbound virtualInbound。"""
     filters = []
-    for fc in listener.get('filterChains', listener.get('filter_chains', [])):
+
+    def _from_filter_chain(fc: Dict):
+        if not isinstance(fc, dict):
+            return
         for nf in fc.get('filters', []):
-            if nf.get('name') in ('envoy.filters.network.http_connection_manager',):
-                tc = nf.get('typedConfig') or nf.get('typed_config', {})
-                hf = tc.get('httpFilters') or tc.get('http_filters', [])
-                filters.extend(hf)
-    # default_filter_chain
+            if not _is_http_connection_manager(nf.get('name')):
+                continue
+            tc = nf.get('typedConfig') or nf.get('typed_config', {}) or {}
+            hf = tc.get('httpFilters') or tc.get('http_filters', [])
+            filters.extend(hf)
+            # 有的限流挂在 typed_per_filter_config 而不是 http_filters 列表
+            tpf = tc.get('typedPerFilterConfig') or tc.get('typed_per_filter_config') or {}
+            if isinstance(tpf, dict):
+                for fname, fcfg in tpf.items():
+                    if 'ratelimit' in str(fname).lower() and isinstance(fcfg, dict):
+                        filters.append({'name': fname, **fcfg})
+
+    for fc in listener.get('filterChains', listener.get('filter_chains', [])):
+        _from_filter_chain(fc)
     dfc = listener.get('defaultFilterChain') or listener.get('default_filter_chain', {})
     if dfc:
-        for nf in dfc.get('filters', []):
-            if nf.get('name') in ('envoy.filters.network.http_connection_manager',):
-                tc = nf.get('typedConfig') or nf.get('typed_config', {})
-                hf = tc.get('httpFilters') or tc.get('http_filters', [])
-                filters.extend(hf)
+        _from_filter_chain(dfc)
     return filters
 
 
-def _infer_service_from_listener(listener: Dict) -> tuple:
-    """从 listener 推断 (service_name, namespace)，用于数据平面"""
+def _infer_service_from_listener(listener: Dict, item: Optional[Dict] = None) -> tuple:
+    """从 listener 推断 (service_name, namespace)，优先用 dump 时打的 sidecar 标签。"""
+    tagged_app = (listener or {}).get('_meshscope_app') or (item or {}).get('_meshscope_app')
+    tagged_ns = (listener or {}).get('_meshscope_namespace') or (item or {}).get('_meshscope_namespace')
+    if tagged_app:
+        return tagged_app, tagged_ns or 'default'
     name = listener.get('name', '')
     # 尝试从 route_config virtual_hosts 获取
     for fc in listener.get('filterChains', listener.get('filter_chains', [])):
@@ -103,6 +119,8 @@ def _infer_service_from_listener(listener: Dict) -> tuple:
                         return parts[0], parts[1]
                     if parts:
                         return parts[0], 'default'
+    if name:
+        return name, tagged_ns or 'default'
     return 'unknown', 'default'
 
 
@@ -227,7 +245,7 @@ class RateLimitParser(FunctionParser):
             if not listener:
                 continue
 
-            service_name, namespace = _infer_service_from_listener(listener)
+            service_name, namespace = _infer_service_from_listener(listener, item)
             key = f"{namespace}.{service_name}"
 
             for http_filter in _extract_http_filters_from_listener(listener):
@@ -244,7 +262,10 @@ class RateLimitParser(FunctionParser):
                             'rate_limit_type': RateLimitType.LOCAL,
                             'rate_limit_service': None
                         }
-                    parsed = _extract_token_bucket_from_typed_config(typed_config)
+                    parsed = (
+                        _extract_token_bucket_from_typed_config(typed_config)
+                        or _extract_token_bucket_from_typed_config(http_filter)
+                    )
                     if parsed:
                         service_configs[key]['rules'].append({
                             'requests_per_unit': parsed.get('max_tokens') or parsed.get('tokens_per_fill') or 0,

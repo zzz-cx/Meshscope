@@ -33,6 +33,7 @@ class UnifiedParser:
         enable_parallel: bool = True,
         max_workers: Optional[int] = None,
         tau: float = 0.1,
+        timeout_abs: float = 0.0,
     ):
         """
         初始化统一解析器
@@ -41,13 +42,18 @@ class UnifiedParser:
             enable_parallel: 是否启用并行处理
             max_workers: 最大工作线程数，None表示使用CPU核心数
             tau: 数值约束相对容差，写入 ModelAligner
+            timeout_abs: 超时绝对容差（秒）
         """
         self.registry = ParserRegistry()
         self.enable_parallel = enable_parallel
         self.max_workers = max_workers or min(32, os.cpu_count() + 4 if os.cpu_count() else 8)
         self.tau = tau
+        self.timeout_abs = timeout_abs
         self._register_default_parsers()
-        logger.info(f"统一解析器初始化完成，并行处理: {enable_parallel}, 最大工作线程: {self.max_workers}, tau={tau}")
+        logger.info(
+            f"统一解析器初始化完成，并行处理: {enable_parallel}, 最大工作线程: {self.max_workers}, "
+            f"tau={tau}, timeout_abs={timeout_abs}"
+        )
     
     def _register_default_parsers(self):
         """注册默认解析器"""
@@ -446,7 +452,7 @@ class UnifiedParser:
         
         # 对齐模型（离散字段精确比较，数值约束允许 tau）
         logger.info("开始对齐配置...")
-        aligner = ModelAligner(tau=self.tau)
+        aligner = ModelAligner(tau=self.tau, timeout_abs=self.timeout_abs)
         aligned_pairs = aligner.align(cp_models, dp_models)
         
         logger.info(f"对齐完成，共 {len(aligned_pairs)} 对配置")

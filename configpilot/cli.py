@@ -58,7 +58,10 @@ def cmd_collect(args: argparse.Namespace) -> int:
         extra.extend(["--vm-user", args.vm_user])
     if args.vm_password:
         extra.extend(["--vm-password", args.vm_password])
-    extra.extend(["--namespace", args.namespace or "default", "--update-now"])
+    ns = args.namespace or "all"
+    if ns == "default":
+        ns = "all"
+    extra.extend(["--namespace", ns, "--update-now"])
     print("采集控制面/数据面快照...")
     return _run_module(
         "istio_config_parser.istio_monitor.istio_sidecar_monitor", extra
@@ -68,7 +71,10 @@ def cmd_collect(args: argparse.Namespace) -> int:
 def cmd_static(args: argparse.Namespace) -> int:
     from consistency_checker.config import fill_args_from_config
     fill_args_from_config(args, {"namespace": "namespace"})
-    extra = ["--namespace", args.namespace or "default"]
+    extra: List[str] = []
+    ns = args.namespace
+    if ns and ns != "default":
+        extra.extend(["--namespace", ns])
     if args.export:
         extra.append("--export")
     return _run_module("istio_config_parser.main_parser", extra)
@@ -91,10 +97,16 @@ def cmd_check(args: argparse.Namespace) -> int:
 def cmd_run(args: argparse.Namespace) -> int:
     from consistency_checker.config import fill_args_from_config
     from consistency_checker.main import run_full_pipeline, setup_logging
+    from istio_Dynamic_Test.internal.pipeline.guards import options_from_config
 
     fill_args_from_config(args, {"namespace": "namespace"})
     setup_logging(args.log_level)
-    run_full_pipeline(args.namespace or "default")
+    safety = options_from_config({
+        "allow_load_test": getattr(args, "allow_load_test", None),
+        "allow_fault_injection": getattr(args, "allow_fault_injection", None),
+        "allow_rollout": getattr(args, "allow_rollout", None),
+    })
+    run_full_pipeline(args.namespace or "default", safety=safety)
     return 0
 
 
@@ -108,6 +120,30 @@ def cmd_web(args: argparse.Namespace) -> int:
     return 0
 
 
+def _add_dynamic_guard_flags(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--load-test",
+        dest="allow_load_test",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="是否做高压测试（限流高压、连接池打满）。默认读 configpilot.json。",
+    )
+    parser.add_argument(
+        "--fault-injection",
+        dest="allow_fault_injection",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="是否改 VirtualService 注入 abort/delay。关闭时熔断、超时、重试无法动态验证。",
+    )
+    parser.add_argument(
+        "--rollout",
+        dest="allow_rollout",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="是否 patch Deployment 打开 Envoy access log。etcd 不稳时请关闭。",
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m configpilot",
@@ -115,9 +151,10 @@ def build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""常用命令:
   python -m configpilot run --namespace default
+  python -m configpilot run --namespace default --no-load-test --no-fault-injection --no-rollout
   python -m configpilot web --port 8080
   python -m configpilot static --namespace default --export
-  python -m configpilot dynamic -- --from-control-plane --ingress-url http://HOST:PORT/productpage
+  python -m configpilot dynamic -- --from-control-plane --ingress-url http://HOST:PORT
   python -m configpilot collect --vm-host HOST --vm-user root --vm-password PASS
   python -m configpilot check --namespace default
 """,
@@ -160,10 +197,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_run = sub.add_parser("run", help="完整流水线：采集、静态、动态、一致性")
     p_run.add_argument("--namespace", default=None)
+    _add_dynamic_guard_flags(p_run)
     p_run.set_defaults(func=cmd_run)
 
     p_e2e = sub.add_parser("e2e", help="run 的别名")
     p_e2e.add_argument("--namespace", default=None)
+    _add_dynamic_guard_flags(p_e2e)
     p_e2e.set_defaults(func=cmd_run)
 
     p_web = sub.add_parser("web", help="启动 Web 可视化界面")

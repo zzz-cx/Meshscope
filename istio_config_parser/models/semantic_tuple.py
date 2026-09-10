@@ -19,6 +19,7 @@ from istio_config_parser.models.function_models import (
     RoutingFunctionModel,
     TimeoutFunctionModel,
     TrafficShiftingFunctionModel,
+    _is_unlimited_threshold,
 )
 
 
@@ -168,6 +169,8 @@ def function_model_to_tuples(model: AnyFunctionModel) -> List[SemanticTuple]:
         return tuples
 
     if isinstance(model, CircuitBreakerFunctionModel):
+        if not model.has_declared_policy():
+            return tuples
         tuples.append(SemanticTuple(
             tuple_id=f"{ns}.{svc}.circuit_breaker",
             function_type=FunctionType.CIRCUIT_BREAKER.value,
@@ -255,7 +258,12 @@ def _numeric_pairs(obj: Any, prefix: str = "") -> List[Tuple[str, float]]:
     return pairs
 
 
-def compare_tuples(control: SemanticTuple, data: SemanticTuple, tau: float = 0.1) -> List[Dict[str, Any]]:
+def compare_tuples(
+    control: SemanticTuple,
+    data: SemanticTuple,
+    tau: float = 0.1,
+    timeout_abs: float = 0.0,
+) -> List[Dict[str, Any]]:
     diffs: List[Dict[str, Any]] = []
     if _clean(control.predicate) != _clean(data.predicate):
         diffs.append({
@@ -298,6 +306,13 @@ def compare_tuples(control: SemanticTuple, data: SemanticTuple, tau: float = 0.1
     for key in sorted(keys):
         cv, dv = c_nums.get(key), d_nums.get(key)
         if cv is None or dv is None:
+            present = cv if cv is not None else dv
+            # Envoy uint32 默认无限（4294967295）不是声明意图，缺一侧时忽略
+            if present is not None and _is_unlimited_threshold(present):
+                continue
+            # Istio 未声明 port 时 Envoy 仍会从 cluster 名填端口，不算声明不一致
+            if str(key).endswith(".port"):
+                continue
             diffs.append({
                 "kind": "constraint",
                 "field": key,
@@ -307,7 +322,15 @@ def compare_tuples(control: SemanticTuple, data: SemanticTuple, tau: float = 0.1
             })
             continue
         denom = max(abs(cv), 1.0)
-        if abs(cv - dv) / denom > tau:
+        abs_delta = abs(cv - dv)
+        if "timeout" in str(key).lower() and timeout_abs > 0 and abs_delta <= timeout_abs:
+            continue
+        # kube Service 端口 80 与容器 targetPort（9080/8080）是同一条 Istio 规则的重复投影
+        if str(key).endswith(".port"):
+            ports = {int(cv), int(dv)}
+            if 80 in ports and ports - {80}:
+                continue
+        if abs_delta / denom > tau:
             diffs.append({
                 "kind": "constraint",
                 "field": key,

@@ -100,6 +100,11 @@ class SemanticGenerator(BaseGenerator):
     def generate_matrix_dicts(self) -> List[Dict[str, Any]]:
         artifact = self._artifact or load_aligned_semantic(self._aligned_path)
         tuples = artifact.get("expected_tuples") or []
+        if self._namespace:
+            tuples = [
+                t for t in tuples
+                if (t.get("namespace") or "default") == self._namespace
+            ]
         if not tuples:
             raise AlignedModelMissingError(
                 "对齐模型中没有 matched/partial_matched 元组，无法生成动态期望。"
@@ -113,6 +118,10 @@ class SemanticGenerator(BaseGenerator):
             if policy is None:
                 continue
             built = self._tuple_to_cases(tup, policy, counter)
+            svc = str(tup.get("service_name") or (tup.get("scope") or {}).get("service") or "")
+            for case in built:
+                case.setdefault("target_service", svc)
+                case.setdefault("source_service", svc)
             cases.extend(built)
             counter += len(built)
         if not cases:
@@ -148,6 +157,10 @@ class SemanticGenerator(BaseGenerator):
         scope = tup.get("scope") or {}
         host = _host_from_tuple(tup)
         path = _path_from_predicate(predicate)
+        if path in ("", "/") and tup.get("namespace") == "meshscope-demo":
+            svc = str(tup.get("service_name") or scope.get("service") or host or "").strip()
+            if svc and svc not in ("*", "demo-ingress"):
+                path = f"/demo/{svc.split('.')[0]}"
         headers = _flatten_headers(predicate.get("headers") if isinstance(predicate, dict) else None)
         source = tup.get("service_name") or scope.get("service") or host
         params: Dict[str, Any] = {"host": host or "*", "path": path or "/"}
@@ -222,8 +235,17 @@ class SemanticGenerator(BaseGenerator):
             return cases
 
         if policy == PolicyType.CIRCUIT_BREAKER:
+            pool = constraint.get("connection_pool") or {}
             outlier = constraint.get("outlier_detection") or {}
-            threshold = outlier.get("consecutive_5xx") or outlier.get("consecutive5xxErrors")
+            if not pool and not outlier:
+                return []
+            threshold = outlier.get("consecutive_5xx") or outlier.get("consecutive5xxErrors") or outlier.get("consecutive_5xx_errors")
+            params = dict(params)
+            if outlier:
+                params["trigger_condition"] = "simulate_config_fault"
+                params["fault_type"] = "abort"
+                params["fault_status"] = 503
+                params["fault_percentage"] = 100
             cases.append({
                 "case_id": cid(start_id),
                 "description": f"熔断 {source}",
@@ -265,6 +287,7 @@ class SemanticGenerator(BaseGenerator):
             delay = constraint.get("delay") or {}
             params = dict(params)
             if abort:
+                params["trigger_condition"] = "simulate_config_fault"
                 params["fault_type"] = "abort"
                 params["fault_status"] = abort.get("httpStatus") or abort.get("http_status")
                 params["fault_percentage"] = (abort.get("percentage") or {}).get("value") if isinstance(abort.get("percentage"), dict) else abort.get("percentage")
@@ -279,6 +302,7 @@ class SemanticGenerator(BaseGenerator):
                 })
             if delay:
                 delay_params = dict(params)
+                delay_params["trigger_condition"] = "simulate_config_fault"
                 delay_params["fault_type"] = "delay"
                 delay_params["fault_delay"] = delay.get("fixedDelay") or delay.get("fixed_delay")
                 cases.append({

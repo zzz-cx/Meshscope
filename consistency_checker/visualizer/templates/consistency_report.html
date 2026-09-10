@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MeshScope 一致性检验报告</title>
+  <style>
+    :root {
+      --bg: #151515;
+      --panel: #1b1d21;
+      --panel-2: #212427;
+      --line: #3c3f42;
+      --text: #f0f0f0;
+      --muted: #b8bbbe;
+      --accent: #73bcf7;
+      --ok: #5ba352;
+      --warn: #f0ab00;
+      --bad: #c46162;
+      --info: #73bcf7;
+      --focus: rgba(115, 188, 247, 0.35);
+      --radius: 3px;
+      --font: "Segoe UI", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+      --mono: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; line-height: 1.5; }
+    .wrap { max-width: 1280px; margin: 0 auto; padding: 24px 20px 64px; }
+    header.hero {
+      border: 1px solid var(--line); background: var(--panel);
+      padding: 22px 24px; margin-bottom: 16px;
+    }
+    .kicker { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+    h1 { font-size: 22px; font-weight: 600; margin: 4px 0 8px; }
+    .meta { color: var(--muted); font-size: 13px; }
+    .meta code { font-family: var(--mono); color: var(--accent); font-size: 12px; }
+    .status-pill {
+      display: inline-block; margin-top: 12px; padding: 3px 10px;
+      border: 1px solid var(--line); font-size: 12px; font-weight: 700; letter-spacing: 0.04em;
+    }
+    .status-pill.consistent { background: #1c2b1c; color: var(--ok); border-color: #2d4a2d; }
+    .status-pill.partial { background: #2b2618; color: var(--warn); border-color: #5c4a1c; }
+    .status-pill.inconsistent { background: #2b1c1c; color: #f0b4b4; border-color: #5c2b2b; }
+    .status-pill.unknown { background: var(--panel-2); color: var(--muted); }
+
+    .metrics { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-bottom: 16px; }
+    .metric {
+      background: var(--panel); border: 1px solid var(--line); padding: 12px 14px;
+    }
+    .metric .lbl { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+    .metric .num { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+    h2 { font-size: 15px; font-weight: 600; margin: 22px 0 10px; }
+    .lead { color: var(--muted); font-size: 13px; margin-bottom: 12px; }
+
+    .layers { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 8px; }
+    .layer-card {
+      background: var(--panel); border: 1px solid var(--line); padding: 14px 16px;
+      border-top: 3px solid var(--line);
+    }
+    .layer-card[data-layer="layer1"] { border-top-color: var(--accent); }
+    .layer-card[data-layer="layer2"] { border-top-color: var(--warn); }
+    .layer-card[data-layer="layer3"] { border-top-color: #b2a3ff; }
+    .layer-card h3 { font-size: 13px; margin-bottom: 6px; }
+    .layer-card p { font-size: 12px; color: var(--muted); }
+    .layer-card ul { margin-top: 8px; padding-left: 16px; color: var(--muted); font-size: 12px; }
+    .layer-card li { margin: 3px 0; }
+    .layer-card .count { float: right; font-family: var(--mono); font-size: 12px; color: var(--accent); }
+
+    .checks { background: var(--panel); border: 1px solid var(--line); padding: 4px 0; margin-bottom: 16px; }
+    .check-row {
+      display: grid; grid-template-columns: 140px 160px 1fr;
+      gap: 12px; padding: 8px 16px; border-bottom: 1px solid var(--line);
+      font-size: 12px;
+    }
+    .check-row:last-child { border-bottom: 0; }
+    .check-row .t { color: var(--accent); font-family: var(--mono); }
+    .check-row .n { color: var(--text); }
+    .check-row .d { color: var(--muted); }
+
+    .toolbar {
+      display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+      margin: 8px 0 12px;
+    }
+    .chip {
+      background: var(--panel-2); color: var(--muted); border: 1px solid var(--line);
+      padding: 4px 10px; font-size: 12px; cursor: pointer; font-family: inherit;
+    }
+    .chip.on { color: #151515; background: var(--accent); border-color: var(--accent); font-weight: 600; }
+    .search {
+      margin-left: auto; background: var(--bg); color: var(--text);
+      border: 1px solid var(--line); padding: 5px 10px; min-width: 220px; font-family: inherit;
+    }
+    .search:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--focus); }
+
+    .finding {
+      background: var(--panel); border: 1px solid var(--line);
+      border-left: 3px solid var(--line); padding: 14px 16px; margin-bottom: 10px;
+    }
+    .finding.critical, .finding.high { border-left-color: var(--bad); }
+    .finding.medium { border-left-color: var(--warn); }
+    .finding.low, .finding.info { border-left-color: var(--accent); }
+    .finding-top { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+    .finding h3 { font-size: 14px; font-weight: 600; }
+    .badges { display: flex; flex-wrap: wrap; gap: 4px; }
+    .badge {
+      font-size: 11px; padding: 2px 8px; border: 1px solid var(--line); font-weight: 600;
+    }
+    .badge.sev-critical, .badge.sev-high { background: #2b1c1c; color: #f0b4b4; border-color: #5c2b2b; }
+    .badge.sev-medium { background: #2b2618; color: var(--warn); border-color: #5c4a1c; }
+    .badge.sev-low, .badge.sev-info { background: #1b2834; color: var(--accent); border-color: #2b4a66; }
+    .badge.layer1 { background: #1b2834; color: var(--accent); border-color: #2b4a66; }
+    .badge.layer2 { background: #2b2618; color: var(--warn); border-color: #5c4a1c; }
+    .badge.layer3 { background: #241c2b; color: #b2a3ff; border-color: #4a3a5c; }
+    .facts {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+      margin: 10px 0 8px; font-size: 12px;
+    }
+    .facts dt { color: var(--muted); font-size: 11px; }
+    .facts dd { color: var(--text); font-family: var(--mono); font-size: 12px; word-break: break-all; }
+    .tuples { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 10px; }
+    .tuple {
+      background: var(--bg); border: 1px solid var(--line); padding: 10px 12px; min-height: 88px;
+    }
+    .tuple .who { font-size: 11px; color: var(--muted); letter-spacing: 0.06em; margin-bottom: 4px; }
+    .tuple .who b { color: var(--accent); font-weight: 700; letter-spacing: 0; }
+    .tuple .sum { font-size: 12px; color: var(--text); margin-bottom: 8px; }
+    .tuple pre {
+      font-family: var(--mono); font-size: 11px; color: var(--muted);
+      white-space: pre-wrap; word-break: break-word; max-height: 180px; overflow: auto;
+    }
+    .tuple.empty .sum { color: var(--muted); }
+    .cause { margin-top: 10px; font-size: 12px; color: var(--muted); }
+    .cause strong { color: var(--text); font-weight: 600; }
+    .sugs { margin-top: 6px; padding-left: 16px; font-size: 12px; color: var(--muted); }
+    .cmp { width: 100%; border-collapse: collapse; font-size: 12px; margin: 8px 0; }
+    .cmp th, .cmp td { padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; text-align: left; }
+    .cmp th { color: var(--muted); font-weight: 500; font-size: 11px; }
+    .cmp td.k { color: var(--muted); width: 92px; white-space: nowrap; }
+    .cmp tr.diff td.v { background: #2b1c1c; }
+    .cmp .empty-cell { color: var(--muted); }
+    .cmp .plane { color: var(--accent); font-weight: 600; }
+    .wbar {
+      display: flex; height: 22px; overflow: hidden; min-width: 120px;
+      background: var(--panel-2); border: 1px solid var(--line);
+    }
+    .wseg {
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 600; overflow: hidden; white-space: nowrap; min-width: 0;
+    }
+    .wseg:nth-child(1) { background: #73bcf7; color: #151515; }
+    .wseg:nth-child(2) { background: #c46162; color: #f0f0f0; }
+    .wseg:nth-child(3) { background: #5ba352; color: #151515; }
+    .wseg:nth-child(4) { background: #b2a3ff; color: #151515; }
+    details.raw { margin-top: 10px; }
+    details.raw summary { cursor: pointer; color: var(--accent); font-size: 12px; }
+    .empty { color: var(--muted); padding: 24px; text-align: center; border: 1px dashed var(--line); }
+    .recs { background: var(--panel); border: 1px solid var(--line); padding: 14px 18px; }
+    .recs li { margin: 6px 0; color: var(--muted); font-size: 13px; }
+    footer { margin-top: 24px; color: var(--muted); font-size: 12px; }
+    @media (max-width: 980px) {
+      .metrics { grid-template-columns: 1fr 1fr 1fr; }
+      .layers, .tuples, .facts, .check-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap" id="app"></div>
+  <script id="report-data" type="application/json">__REPORT_JSON__</script>
+  <script>
+    const DATA = JSON.parse(document.getElementById("report-data").textContent);
+    const app = document.getElementById("app");
+    let layerFilter = "all";
+    let query = "";
+
+    function esc(v) {
+      return String(v == null ? "" : v)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+    function join(arr) {
+      return (arr || []).filter(Boolean).join(", ") || "—";
+    }
+    function fmtCompact(val) {
+      if (val == null || val === "") return "";
+      if (typeof val === "string" || typeof val === "number" || typeof val === "boolean") return String(val);
+      if (Array.isArray(val)) return val.map(fmtCompact).filter(Boolean).join(", ");
+      if (typeof val === "object") {
+        return Object.entries(val).map(([k, v]) => v == null ? "" : (typeof v === "object" ? k + "=" + fmtCompact(v) : k + "=" + v)).filter(Boolean).join(" · ");
+      }
+      return String(val);
+    }
+    function destItems(tup) {
+      const cons = (tup && tup.constraint) || {};
+      const actual = (tup && tup.actual) || {};
+      const expected = (tup && tup.expected) || {};
+      const from = cons.destinations || actual.destinations || expected.destinations;
+      if (Array.isArray(from) && from.length) {
+        return from.map((d) => ({ name: d.subset || d.host || "?", weight: Number(d.weight) }));
+      }
+      const weights = cons.weights || actual.weights || expected.weights;
+      if (weights && typeof weights === "object") {
+        return Object.entries(weights).map(([name, weight]) => ({ name, weight: Number(weight) }));
+      }
+      return [];
+    }
+    function fmtMatch(pred) {
+      if (!pred || typeof pred !== "object" || !Object.keys(pred).length) return "";
+      const bits = [];
+      const uri = pred.uri || pred.prefix || pred.path;
+      if (uri && typeof uri === "object") {
+        const key = Object.keys(uri)[0];
+        bits.push((key || "uri") + "=" + uri[key]);
+      } else if (uri) bits.push("uri=" + uri);
+      if (pred.headers) bits.push("headers=" + fmtCompact(pred.headers));
+      if (pred.method) bits.push("method=" + fmtCompact(pred.method));
+      if (pred.fault) bits.push("fault=" + pred.fault);
+      return bits.join(" · ");
+    }
+    function weightBars(items) {
+      if (!items || !items.length) return "";
+      const total = items.reduce((sum, item) => sum + (Number.isFinite(item.weight) ? Math.max(0, item.weight) : 0), 0) || 100;
+      return `<div class="wbar">${items.map((item) => {
+        const pct = Number.isFinite(item.weight) ? item.weight : 0;
+        const width = Math.max(0, pct) / total * 100;
+        return `<div class="wseg" style="width:${width}%" title="${esc(item.name)} ${pct}%"><span>${esc(item.name)} ${pct}%</span></div>`;
+      }).join("")}</div>`;
+    }
+    function tupleFields(tup) {
+      if (!tup) return {};
+      const fields = {};
+      const match = fmtMatch(tup.predicate);
+      if (match) fields["匹配"] = match;
+      const action = (tup.action && tup.action.type) || "";
+      if (action && action !== "observe") fields["动作"] = action;
+      const scope = tup.scope || {};
+      if (scope.service) fields["服务"] = scope.service;
+      if (scope.namespace) fields["命名空间"] = scope.namespace;
+      const subsets = [].concat(scope.subsets || []).filter(Boolean);
+      if (subsets.length) fields["Subset"] = subsets.join(", ");
+      const dests = destItems(tup);
+      if (dests.length) fields["分流"] = dests;
+      const skip = { destinations: 1, weights: 1 };
+      Object.keys(tup.constraint || {}).forEach((key) => {
+        const val = tup.constraint[key];
+        if (skip[key] || val == null || typeof val === "object") return;
+        fields[key] = String(val);
+      });
+      if (tup.expected && Object.keys(tup.expected).length) {
+        if (tup.expected.weights || tup.expected.destinations) fields["期望分流"] = destItems({ constraint: tup.expected });
+        else fields["期望"] = fmtCompact(tup.expected);
+      }
+      if (tup.actual && Object.keys(tup.actual).length) {
+        if (tup.actual.weights || tup.actual.destinations) fields["实测分流"] = destItems({ constraint: tup.actual });
+        else fields["实测"] = fmtCompact(tup.actual);
+      }
+      if (tup.test_case_id) fields["用例"] = tup.test_case_id;
+      if (tup.verified === false) fields["结果"] = "未通过";
+      if (tup.verified === true) fields["结果"] = "通过";
+      return fields;
+    }
+    function fieldKey(val) {
+      if (Array.isArray(val) && val[0] && val[0].name != null) return val.map((item) => item.name + ":" + item.weight).join("|");
+      return String(val == null ? "" : val);
+    }
+    function renderFieldValue(val) {
+      if (val == null || val === "") return `<span class="empty-cell">—</span>`;
+      if (Array.isArray(val) && val[0] && val[0].name != null) return weightBars(val);
+      return esc(val);
+    }
+    function renderTupleCompare(decl, dp, rt) {
+      const planes = [
+        { fields: tupleFields(decl) },
+        { fields: tupleFields(dp) },
+        { fields: tupleFields(rt) },
+      ];
+      const order = ["匹配", "动作", "服务", "命名空间", "Subset", "分流", "期望分流", "实测分流", "期望", "实测", "结果", "用例"];
+      const keys = [];
+      const seen = {};
+      order.concat(planes.flatMap((p) => Object.keys(p.fields))).forEach((key) => {
+        if (seen[key]) return;
+        if (planes.some((p) => key in p.fields)) { seen[key] = 1; keys.push(key); }
+      });
+      if (!keys.length) return "<p class='d'>本条没有可对照的语义字段</p>";
+      return `<table class="cmp"><thead><tr><th></th>
+        <th><span class="plane">Sdecl</span> 声明</th>
+        <th><span class="plane">Sdp</span> 数据面</th>
+        <th><span class="plane">Srt</span> 运行时</th>
+      </tr></thead><tbody>${keys.map((key) => {
+        const vals = planes.map((p) => p.fields[key]);
+        const present = vals.map(fieldKey).filter(Boolean);
+        const differ = present.length > 1 && present.some((v) => v !== present[0]);
+        return `<tr class="${differ ? "diff" : ""}"><td class="k">${esc(key)}</td>${vals.map((v) => `<td class="v">${renderFieldValue(v)}</td>`).join("")}</tr>`;
+      }).join("")}</tbody></table>`;
+    }
+    const records = DATA.records || DATA.inconsistencies || [];
+    const layers = DATA.layers || [];
+    const byLayer = Object.assign({}, DATA.by_layer || {});
+    if (!Object.keys(byLayer).length) {
+      records.forEach((r) => { if (r.layer) byLayer[r.layer] = (byLayer[r.layer] || 0) + 1; });
+    }
+
+    function renderFinding(r) {
+      const sev = (r.severity || "medium").toLowerCase();
+      const layer = r.layer || "layer2";
+      const kind = r.resource_kind || "—";
+      const name = r.resource_name || "—";
+      return `<article class="finding ${esc(sev)}" data-layer="${esc(layer)}" data-text="${esc((r.inconsistency_type || "") + " " + (r.description || "") + " " + kind + " " + name).toLowerCase()}">
+        <div class="finding-top">
+          <h3>${esc(r.description || r.inconsistency_type)}</h3>
+          <div class="badges">
+            <span class="badge sev-${esc(sev)}">${esc((r.severity || "").toUpperCase())}</span>
+            <span class="badge ${esc(layer)}">${esc(r.layer_name || layer)}</span>
+            <span class="badge">${esc(r.inconsistency_type || r.type || "")}</span>
+          </div>
+        </div>
+        <dl class="facts">
+          <div><dt>资源</dt><dd>${esc(kind)} / ${esc(name)}</dd></div>
+          <div><dt>受影响服务</dt><dd>${esc(join(r.affected_services))}</dd></div>
+          <div><dt>Subset</dt><dd>${esc(join(r.affected_subsets))}</dd></div>
+          <div><dt>功能 / 对齐</dt><dd>${esc(r.function_type || "—")} · ${esc(r.alignment_status || "—")}</dd></div>
+        </dl>
+        ${renderTupleCompare(r.Sdecl || r.s_decl, r.Sdp || r.s_dp, r.Srt || r.s_rt)}
+        <div class="cause"><strong>根因</strong> ${esc(r.root_cause || "待确认")}</div>
+        ${(r.suggestions || []).length ? `<ul class="sugs">${r.suggestions.map((s) => `<li>${esc(s)}</li>`).join("")}</ul>` : ""}
+      </article>`;
+    }
+
+    function filtered() {
+      return records.filter((r) => {
+        if (layerFilter !== "all" && r.layer !== layerFilter) return false;
+        if (!query) return true;
+        const text = [
+          r.inconsistency_type, r.type, r.description, r.resource_kind, r.resource_name,
+          (r.affected_services || []).join(" "), (r.affected_subsets || []).join(" "),
+        ].join(" ").toLowerCase();
+        return text.includes(query);
+      });
+    }
+
+    function paintList() {
+      const box = document.getElementById("findings");
+      const rows = filtered();
+      box.innerHTML = rows.length ? rows.map(renderFinding).join("") : `<div class="empty">当前筛选下没有记录</div>`;
+      document.getElementById("shown").textContent = rows.length + " / " + records.length;
+    }
+
+    function page() {
+      const status = (DATA.overall_status || "unknown").toLowerCase();
+      const rate = typeof DATA.consistency_rate === "number" ? (DATA.consistency_rate * 100).toFixed(1) + "%" : "—";
+      const m = DATA.metrics || {};
+      app.innerHTML = `
+        <header class="hero">
+          <div class="kicker">MeshScope · ConfigPilot</div>
+          <h1>${esc(DATA.title || "Istio 配置一致性检验报告")}</h1>
+          <p class="meta">命名空间 <code>${esc(DATA.namespace || "default")}</code>
+            · ${esc(DATA.timestamp || "")}
+            · 报告 <code>${esc(DATA.report_id || "")}</code></p>
+          <span class="status-pill ${esc(status)}">${esc((DATA.overall_status || "unknown").toUpperCase())}</span>
+        </header>
+        <div class="metrics">
+          <div class="metric"><div class="lbl">一致性率</div><div class="num">${esc(rate)}</div></div>
+          <div class="metric"><div class="lbl">检验记录</div><div class="num">${records.length}</div></div>
+          <div class="metric"><div class="lbl">第一层</div><div class="num">${byLayer.layer1 || 0}</div></div>
+          <div class="metric"><div class="lbl">第二层</div><div class="num">${byLayer.layer2 || 0}</div></div>
+          <div class="metric"><div class="lbl">第三层</div><div class="num">${byLayer.layer3 || 0}</div></div>
+          <div class="metric"><div class="lbl">已验证策略</div><div class="num">${m.verified_policies ?? DATA.verified_policies ?? "—"}</div></div>
+        </div>
+        <h2>检验了什么</h2>
+        <p class="lead">一致性检验按三层图展开：全局平面对齐、服务关系上的运行时偏差、配置资源之间的引用冲突。每条记录给出资源 kind/名称、受影响服务与 subset，以及 Sdecl、Sdp、Srt 摘要。</p>
+        <div class="layers">
+          ${layers.map((l) => `
+            <div class="layer-card" data-layer="${esc(l.id)}">
+              <h3>${esc(l.name)} <span class="count">${byLayer[l.id] || 0}</span></h3>
+              <p>${esc(l.what)}</p>
+              <ul>${(l.checks || []).map((c) => `<li><code>${esc(c.type)}</code> ${esc(c.name)}</li>`).join("")}</ul>
+            </div>`).join("")}
+        </div>
+        <h2>检验项目</h2>
+        <div class="checks">
+          ${(DATA.checks || []).map((c) => `
+            <div class="check-row">
+              <div class="t">${esc(c.layer_name || c.layer)}</div>
+              <div class="n">${esc(c.name)} <code>${esc(c.type)}</code></div>
+              <div class="d">${esc(c.description)}</div>
+            </div>`).join("")}
+        </div>
+        <h2>检验记录 <span id="shown" style="color:var(--muted);font-weight:500;font-size:13px"></span></h2>
+        <div class="toolbar">
+          <button class="chip on" data-layer="all">全部</button>
+          <button class="chip" data-layer="layer1">第一层</button>
+          <button class="chip" data-layer="layer2">第二层</button>
+          <button class="chip" data-layer="layer3">第三层</button>
+          <input class="search" id="q" placeholder="搜索类型 / 资源 / 服务…">
+        </div>
+        <div id="findings"></div>
+        <h2>建议</h2>
+        <div class="recs"><ul>${(DATA.recommendations || []).map((r) => `<li>${esc(r)}</li>`).join("") || "<li>无额外建议</li>"}</ul></div>
+        <footer>Sdecl = 声明式控制面语义元组 · Sdp = 数据面 Envoy 语义元组 · Srt = 运行时观测。记录与 JSON 报告字段一致。</footer>
+      `;
+      document.querySelectorAll(".chip").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".chip").forEach((b) => b.classList.remove("on"));
+          btn.classList.add("on");
+          layerFilter = btn.dataset.layer;
+          paintList();
+        });
+      });
+      const input = document.getElementById("q");
+      input.addEventListener("input", () => { query = input.value.trim().toLowerCase(); paintList(); });
+      paintList();
+    }
+    page();
+  </script>
+</body>
+</html>

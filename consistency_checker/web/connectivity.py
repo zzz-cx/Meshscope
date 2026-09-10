@@ -120,14 +120,26 @@ def _probe_http_service(item_id: str, name: str, urls: List[str]) -> Dict[str, A
         parsed = urlparse(url if "://" in url else "http://" + url)
         host = parsed.hostname
         port = parsed.port or (443 if parsed.scheme == "https" else 80)
+        origin = f"{parsed.scheme or 'http'}://{parsed.netloc}" if parsed.netloc else url
         if host and not _tcp_open(host, port):
             last_err = f"{host}:{port} 端口关闭"
             last_url = url
             continue
-        ok, detail, used = _http_ok(url)
-        if ok:
-            return _item(item_id, name, "up", detail, used)
-        last_err, last_url = detail, used
+        candidates = [url]
+        if item_id == "ingress":
+            candidates = [
+                origin + "/demo/reviews",
+                origin + "/demo/productpage",
+                origin + "/productpage",
+                origin,
+            ]
+        for candidate in candidates:
+            ok, detail, used = _http_ok(candidate)
+            if ok:
+                return _item(item_id, name, "up", detail, used)
+            last_err, last_url = detail, used
+        if item_id == "ingress" and host and _tcp_open(host, port):
+            return _item(item_id, name, "up", f"{host}:{port} 端口可达", origin)
         probe = url.rstrip("/") + "/-/ready"
         if item_id == "prometheus":
             ok, detail, used = _http_ok(probe)

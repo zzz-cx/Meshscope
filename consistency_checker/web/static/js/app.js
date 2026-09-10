@@ -5,13 +5,16 @@ function switchPage(name) {
   document.querySelectorAll(".page").forEach((p) => p.classList.toggle("active", p.id === "page-" + name));
   document.body.classList.toggle("graph-page", name === "graph");
   if (name === "graph") ensureGraphFrame();
+  if (name === "static") loadClusterSnapshot();
+  if (name === "dynamic") loadLatestDynamicResults();
 }
 
 function ensureGraphFrame() {
   const frame = $("graph-frame");
   if (!frame) return;
   if (!frame.dataset.loaded) {
-    frame.src = "/three_layer_graph";
+    const q = encodeURIComponent(ns("consistency-namespace") || ns("static-namespace") || "");
+    frame.src = "/three_layer_graph" + (q ? "?namespace=" + q : "");
     frame.dataset.loaded = "1";
     return;
   }
@@ -25,7 +28,8 @@ function ensureGraphFrame() {
 function reloadGraphFrame() {
   const frame = $("graph-frame");
   if (!frame) return;
-  frame.src = "/three_layer_graph?t=" + Date.now();
+  const q = encodeURIComponent(ns("consistency-namespace") || ns("static-namespace") || "");
+  frame.src = "/three_layer_graph?t=" + Date.now() + (q ? "&namespace=" + q : "");
   frame.dataset.loaded = "1";
 }
 
@@ -37,6 +41,83 @@ function showStatus(id, kind, text) {
 
 function ns(id) {
   return ($(id) && $(id).value) || "default";
+}
+
+function ensureSelectOption(el, value) {
+  if (!el || !value) return;
+  const exists = Array.from(el.options).some((opt) => opt.value === value);
+  if (!exists) {
+    const opt = document.createElement("option");
+    opt.value = value;
+    opt.textContent = value;
+    el.insertBefore(opt, el.firstChild);
+  }
+}
+
+let clusterNamespaces = [];
+
+function fillNamespaceSelect(el, names, preferred) {
+  if (!el) return;
+  const current = el.value || preferred || el.dataset.current || "default";
+  const list = [];
+  (names || []).forEach((n) => {
+    if (n && list.indexOf(n) < 0) list.push(n);
+  });
+  el.innerHTML = list.map((n) => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join("");
+  el.value = list.indexOf(current) >= 0 ? current : (list[0] || "default");
+}
+
+async function loadClusterNamespaces(force) {
+  const ids = ["static-namespace", "dynamic-namespace", "consistency-namespace"];
+  try {
+    const url = force ? "/api/namespaces?refresh=1" : "/api/namespaces";
+    const { data } = await axios.get(url, { timeout: 12000 });
+    const names = data.namespaces || [];
+    clusterNamespaces = names.slice();
+    const preferred = data.current || "default";
+    ids.forEach((id) => {
+      const el = $(id);
+      fillNamespaceSelect(el, names, (el && el.dataset.current) || preferred);
+      if (el && data.error) el.title = data.error;
+      else if (el) el.title = names.length ? "当前分析命名空间（只测这一份）" : "";
+    });
+    bindNamespaceSelects();
+    fillStaticFilters();
+    if (staticGraph && (staticGraph.nodes || []).length) paintStaticGraph();
+    if (!data.ok && data.error) {
+      ids.forEach((id) => {
+        const el = $(id);
+        if (el && !el.options.length) ensureSelectOption(el, preferred);
+      });
+    }
+  } catch (err) {
+    ids.forEach((id) => {
+      const el = $(id);
+      if (el) el.title = "无法加载集群命名空间：" + (err.message || "未知错误");
+    });
+  }
+}
+
+function bindNamespaceSelects() {
+  ["static-namespace", "dynamic-namespace", "consistency-namespace"].forEach((id) => {
+    const el = $(id);
+    if (!el || el.dataset.nsBound) return;
+    el.dataset.nsBound = "1";
+    el.addEventListener("change", () => {
+      const val = el.value;
+      el.dataset.current = val;
+      ["static-namespace", "dynamic-namespace", "consistency-namespace"].forEach((other) => {
+        if (other === id) return;
+        const oel = $(other);
+        if (!oel) return;
+        if (oel.tagName === "SELECT") ensureSelectOption(oel, val);
+        oel.value = val;
+        if (oel.dataset) oel.dataset.current = val;
+      });
+      fillStaticFilters();
+      if (staticGraph && (staticGraph.nodes || []).length) paintStaticGraph();
+    });
+  });
 }
 
 const CONN_LABEL = { up: "已连接", down: "未连接", unknown: "未配置" };
@@ -92,19 +173,108 @@ function renderConnectivity(data) {
 function collectEndpointValues() {
   const values = {};
   document.querySelectorAll("#endpoint-fields [id^='ep-']").forEach((el) => {
+    const key = el.id.slice(3);
+    if (el.tagName === "SELECT") {
+      values[key] = el.value;
+      return;
+    }
     if (el.tagName !== "INPUT") return;
-    values[el.id.slice(3)] = el.value.trim();
+    if (el.type === "checkbox") {
+      values[key] = el.checked;
+      return;
+    }
+    values[key] = el.value.trim();
   });
   return values;
 }
 
+function isTruthy(value) {
+  return value === true || value === "true" || value === 1 || value === "1";
+}
+
+function readGuard(idDyn, idPipe, fallback) {
+  const a = $(idDyn);
+  const b = $(idPipe);
+  if (a) return a.checked;
+  if (b) return b.checked;
+  return fallback;
+}
+
+function dynamicGuardPayload() {
+  return {
+    allow_load_test: readGuard("dyn-allow-load-test", "pipe-allow-load-test", true),
+    allow_fault_injection: readGuard("dyn-allow-fault", "pipe-allow-fault", false),
+    allow_rollout: readGuard("dyn-allow-rollout", "pipe-allow-rollout", false),
+  };
+}
+
+function applyGuardDefaults(values) {
+  const pairs = [
+    ["dyn-allow-load-test", "pipe-allow-load-test", "allow_load_test", true],
+    ["dyn-allow-fault", "pipe-allow-fault", "allow_fault_injection", false],
+    ["dyn-allow-rollout", "pipe-allow-rollout", "allow_rollout", false],
+  ];
+  pairs.forEach(([a, b, key, fallback]) => {
+    const on = values && values[key] != null ? isTruthy(values[key]) : fallback;
+    if ($(a)) $(a).checked = on;
+    if ($(b)) $(b).checked = on;
+  });
+  updateGuardHints();
+}
+
+function updateGuardHints() {
+  const guards = dynamicGuardPayload();
+  const bits = [];
+  if (!guards.allow_load_test) bits.push("未开高压：限流高压、连接池打满可能无法验证。");
+  if (!guards.allow_fault_injection) bits.push("未开故障注入：熔断（outlier）、超时、重试无法诱发异常，将跳过这些用例。");
+  if (!guards.allow_rollout) bits.push("未允许 rollout：不会 patch sidecar 开 access log。");
+  const text = bits.length
+    ? bits.join("\n")
+    : "高压、故障注入、rollout 均已打开：熔断、超时、重试、限流高压将尝试动态验证。";
+  ["dyn-guard-hint", "pipe-guard-hint"].forEach((id) => {
+    const el = $(id);
+    if (!el) return;
+    el.textContent = text;
+    el.classList.toggle("has-warn", bits.length > 0);
+  });
+}
+
+function formatGuardWarnings(data) {
+  const warns = data && data.warnings;
+  if (Array.isArray(warns) && warns.length) return warns.join(" ");
+  return "";
+}
+
 function renderField(field, values, secrets) {
+  if (field.type === "heading") {
+    return `<div class="ep-heading">${escapeHtml(field.label || "")}</div>`;
+  }
   const isSecret = !!field.secret;
   const raw = values[field.key];
   const val = isSecret ? "" : (raw == null ? "" : raw);
   const configured = isSecret && secrets && secrets[field.key] ? '<span class="env-tag">已配置</span>' : "";
   const env = field.env ? `<span class="env-tag">${escapeHtml(field.env)}</span>` : "";
   const hint = field.hint ? `<div class="field-hint">${escapeHtml(field.hint)}</div>` : "";
+  if (field.type === "checkbox") {
+    const checked = raw == null || isTruthy(raw) ? " checked" : "";
+    return `<label class="ep-check">${env}${configured}
+      <span class="ep-check-row"><input id="ep-${escapeHtml(field.key)}" type="checkbox"${checked}>${escapeHtml(field.label)}</span>
+      ${hint}
+    </label>`;
+  }
+  if (field.type === "select") {
+    const current = raw == null ? "" : String(raw);
+    const opts = (field.options || []).map((opt) => {
+      const ov = opt && typeof opt === "object" ? String(opt.value) : String(opt);
+      const ol = opt && typeof opt === "object" ? String(opt.label) : String(opt);
+      const sel = ov === current ? " selected" : "";
+      return `<option value="${escapeHtml(ov)}"${sel}>${escapeHtml(ol)}</option>`;
+    }).join("");
+    return `<label>${escapeHtml(field.label)} ${env}${configured}
+      <select id="ep-${escapeHtml(field.key)}">${opts}</select>
+      ${hint}
+    </label>`;
+  }
   return `<label>${escapeHtml(field.label)} ${env}${configured}
     <input id="ep-${escapeHtml(field.key)}" type="${isSecret ? "password" : "text"}" value="${escapeHtml(val)}" placeholder="${escapeHtml(field.placeholder || "")}" autocomplete="off">
     ${hint}
@@ -121,7 +291,7 @@ function renderEndpointFields(data) {
   box.innerHTML = groups.map((group) => {
     const fields = (group.fields || []).map((field) => renderField(field, values, secrets)).join("");
     const hint = group.hint ? `<p class="lead" style="margin:6px 0 0">${escapeHtml(group.hint)}</p>` : "";
-    return `<div class="ep-section">
+    return `<div class="ep-section${group.wide ? " ep-wide" : ""}" data-id="${escapeHtml(group.id || "")}">
       <h3>${escapeHtml(group.title || "")}</h3>
       ${hint}
       <div class="ep-grid">${fields}</div>
@@ -143,7 +313,7 @@ function fillEndpointsFromHost() {
   if ($("ep-zipkin_url")) $("ep-zipkin_url").value = "";
   if ($("ep-kiali_url")) $("ep-kiali_url").value = "http://" + host + ":20001";
   if ($("ep-grafana_url")) $("ep-grafana_url").value = "http://" + host + ":3000";
-  if ($("ep-ingress_url")) $("ep-ingress_url").value = "http://" + host + ":" + ingressPort + "/productpage";
+  if ($("ep-ingress_url")) $("ep-ingress_url").value = "http://" + host + ":" + ingressPort;
   showStatus("endpoint-status", "info", "已按主机填入默认 URL，点击「保存并检测」后生效");
 }
 
@@ -151,6 +321,7 @@ async function loadEndpoints() {
   try {
     const { data } = await axios.get("/api/endpoints");
     renderEndpointFields(data);
+    applyGuardDefaults(data.values || {});
   } catch (err) {
     showStatus("endpoint-status", "err", "加载地址配置失败：" + (err.message || "未知错误"));
   }
@@ -161,6 +332,7 @@ async function saveEndpoints() {
   try {
     const { data } = await axios.put("/api/endpoints", collectEndpointValues(), { timeout: 25000 });
     renderEndpointFields(data);
+    applyGuardDefaults(data.values || {});
     if (data.connectivity) renderConnectivity(data.connectivity);
     if (data.values && data.values.ingress_url && $("ingress-url")) {
       $("ingress-url").value = data.values.ingress_url;
@@ -170,8 +342,13 @@ async function saveEndpoints() {
       ["stat-ns", "static-namespace", "dynamic-namespace", "consistency-namespace"].forEach((id) => {
         const el = $(id);
         if (!el) return;
-        if (el.tagName === "INPUT") el.value = nsVal;
-        else el.textContent = nsVal;
+        if (el.tagName === "INPUT" || el.tagName === "SELECT") {
+          if (el.tagName === "SELECT") ensureSelectOption(el, nsVal);
+          el.value = nsVal;
+          if (el.dataset) el.dataset.current = nsVal;
+        } else {
+          el.textContent = nsVal;
+        }
       });
     }
     showStatus("endpoint-status", "ok", "已写入 configpilot.json。集群、可观测与一致性容差立即生效，不必重启。");
@@ -206,7 +383,17 @@ async function loadSummary() {
   try {
     const { data } = await axios.get("/api/summary");
     $("stat-reports").textContent = data.report_count;
-    $("stat-ns").textContent = data.namespace || "-";
+    if ($("stat-findings")) {
+      $("stat-findings").textContent = (data.storage && data.storage.findings != null) ? data.storage.findings : "-";
+    }
+    if ($("stat-ns")) $("stat-ns").textContent = data.namespace || "-";
+    if ($("storage-summary") && data.storage) {
+      $("storage-summary").textContent =
+        "SQLite · " + (data.storage.path || "results/meshscope.db") +
+        " · 报告 " + (data.storage.reports ?? 0) +
+        " · 检验记录 " + (data.storage.findings ?? 0) +
+        " · 图 " + (data.storage.graphs ?? 0);
+    }
     if (data.latest) {
       const rate = data.latest.consistency_rate;
       $("stat-rate").textContent = typeof rate === "number" ? (rate * 100).toFixed(1) + "%" : "-";
@@ -220,8 +407,46 @@ async function loadSummary() {
   }
 }
 
+let clusterSnapshotLoaded = false;
+
+async function loadClusterSnapshot(force) {
+  if (clusterSnapshotLoaded && !force) return;
+  const status = $("static-status");
+  if (status) showStatus("static-status", "info", "正在加载集群快照…");
+  try {
+    const { data } = await axios.get("/api/static/snapshot");
+    if (!data.success) throw new Error(data.error || "快照不可用");
+    clusterSnapshotLoaded = true;
+    const meta = (data.graph_data && data.graph_data.metadata) || {};
+    const nsList = data.namespace ? [data.namespace] : (data.namespaces || meta.namespaces || []);
+    if (data.namespace) {
+      const el = $("static-namespace");
+      if (el) {
+        ensureSelectOption(el, data.namespace);
+        el.value = data.namespace;
+        el.dataset.current = data.namespace;
+      }
+    }
+    if (status) {
+      showStatus(
+        "static-status",
+        "ok",
+        "已加载上次对齐结果" + (data.generated_at ? "（" + data.generated_at + "）" : "") +
+          "，不是 kubectl 实时列表。命名空间 " + (nsList.join(", ") || "-") +
+          "，服务 " + (meta.service_count || 0) +
+          "，资源 " + (meta.resource_count || 0) +
+          "。要点「执行静态分析」才会用监控重新采集。"
+      );
+    }
+    renderStaticSummary(data);
+    if (data.graph_data) drawGraph(data.graph_data);
+  } catch (err) {
+    if (status) showStatus("static-status", "err", "加载集群快照失败: " + (err.response?.data?.error || err.message));
+  }
+}
+
 async function runStaticAnalysis() {
-  showStatus("static-status", "info", "正在执行静态分析...");
+  showStatus("static-status", "info", "正在从集群采集配置并做静态对齐...");
   try {
     const { data } = await axios.post("/api/static/analyze", {
       namespace: ns("static-namespace"),
@@ -231,7 +456,8 @@ async function runStaticAnalysis() {
     showStatus(
       "static-status",
       "ok",
-      "静态对齐完成：服务 " + (meta.service_count || (data.services || []).length) +
+      (data.collect_note ? data.collect_note + "。 " : "") +
+        "静态对齐完成：服务 " + (meta.service_count || (data.services || []).length) +
         "，资源 " + (meta.resource_count || 0) +
         "，跨资源冲突 " + conflictN + " 项"
     );
@@ -246,7 +472,7 @@ function renderStaticSummary(data) {
   const box = $("static-results");
   const s = data.summary || {};
   const conflicts = data.conflicts || [];
-  const nsList = ((data.graph_data || {}).metadata || {}).namespaces || [];
+  const nsList = (((data.graph_data || {}).metadata || {}).namespaces || []).filter(isLiveNamespace);
   box.innerHTML =
     `<div class="static-stat-row">
       <span>命名空间 <strong>${escapeHtml(nsList.join(", ") || "-")}</strong></span>
@@ -290,11 +516,22 @@ function nodeFill(d) {
   return KIND_COLOR[d.kind] || "#8a8d90";
 }
 
+function liveNamespaceSet() {
+  return new Set(clusterNamespaces || []);
+}
+
+function isLiveNamespace(ns) {
+  const live = liveNamespaceSet();
+  if (!live.size) return true;
+  return !ns || live.has(ns);
+}
+
 function visibleStaticNodes() {
   const ns = ($("static-ns-filter") && $("static-ns-filter").value) || "all";
   const typ = ($("static-type-filter") && $("static-type-filter").value) || "all";
   const q = (($("static-search") && $("static-search").value) || "").trim().toLowerCase();
   return (staticGraph.nodes || []).filter((n) => {
+    if (!isLiveNamespace(n.namespace)) return false;
     if (ns !== "all" && n.namespace !== ns) return false;
     if (typ === "service" && n.type !== "service") return false;
     if (typ !== "all" && typ !== "service" && n.kind !== typ) return false;
@@ -330,11 +567,15 @@ function fillStaticFilters() {
   const sel = $("static-ns-filter");
   if (!sel) return;
   const current = sel.value || "all";
-  const nss = ((staticGraph.metadata || {}).namespaces || []).slice().sort();
+  const live = liveNamespaceSet();
+  let nss = ((staticGraph.metadata || {}).namespaces || []).slice().sort();
+  if (live.size) nss = nss.filter((n) => live.has(n));
+  const preferred = ns("static-namespace");
   sel.innerHTML = '<option value="all">全部</option>' + nss.map((n) =>
     `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`
   ).join("");
-  sel.value = nss.indexOf(current) >= 0 || current === "all" ? current : "all";
+  if (preferred && (preferred === "all" || nss.indexOf(preferred) >= 0)) sel.value = preferred;
+  else sel.value = nss.indexOf(current) >= 0 || current === "all" ? current : "all";
 }
 
 function bindStaticFilters() {
@@ -530,6 +771,56 @@ function renderStaticInspector(node) {
   });
 }
 
+function specView(m) {
+  const kind = m.kind || "Resource";
+  const name = (m.metadata && m.metadata.name) || "";
+  const spec = m.spec || {};
+  const bits = [];
+  if (kind === "VirtualService") {
+    if (spec.hosts) bits.push(`<div><dt>hosts</dt><dd>${escapeHtml((spec.hosts || []).join(", "))}</dd></div>`);
+    if (spec.gateways) bits.push(`<div><dt>gateways</dt><dd>${escapeHtml((spec.gateways || []).join(", "))}</dd></div>`);
+    (spec.http || []).forEach((http, idx) => {
+      const match = http.match || {};
+      const uri = (match.uri && (match.uri.prefix || match.uri.exact || match.uri.regex)) || match.uri || "*";
+      const dests = (http.route || []).map((r) => {
+        const dest = r.destination || {};
+        const label = [dest.host, dest.subset].filter(Boolean).join("/") || "?";
+        return r.weight != null ? label + " " + r.weight + "%" : label;
+      }).join(" / ");
+      const extra = [];
+      if (http.timeout) extra.push("timeout " + http.timeout);
+      if (http.retries) extra.push("retry " + (http.retries.attempts || "") + " " + (http.retries.retryOn || ""));
+      bits.push(`<div class="route-line">http[${idx}] ${escapeHtml(String(uri))} → ${escapeHtml(dests)}${extra.length ? " · " + escapeHtml(extra.join(" · ")) : ""}</div>`);
+    });
+  } else if (kind === "DestinationRule") {
+    bits.push(`<div><dt>host</dt><dd>${escapeHtml(spec.host || "—")}</dd></div>`);
+    const subsets = (spec.subsets || []).map((s) => s.name).filter(Boolean);
+    if (subsets.length) bits.push(`<div><dt>subsets</dt><dd>${escapeHtml(subsets.join(", "))}</dd></div>`);
+    const tp = spec.trafficPolicy || {};
+    if (tp.connectionPool) bits.push(`<div><dt>连接池</dt><dd>${escapeHtml(fmtCompact(tp.connectionPool))}</dd></div>`);
+    if (tp.outlierDetection) bits.push(`<div><dt>outlier</dt><dd>${escapeHtml(fmtCompact(tp.outlierDetection))}</dd></div>`);
+    if (tp.loadBalancer) bits.push(`<div><dt>负载均衡</dt><dd>${escapeHtml(fmtCompact(tp.loadBalancer))}</dd></div>`);
+  } else if (kind === "Gateway") {
+    bits.push(`<div><dt>selector</dt><dd>${escapeHtml(fmtCompact(spec.selector || {}))}</dd></div>`);
+    (spec.servers || []).forEach((s, idx) => {
+      const port = (s.port && (s.port.number + "/" + (s.port.protocol || ""))) || "";
+      bits.push(`<div class="route-line">server[${idx}] ${escapeHtml(port)} hosts=${escapeHtml((s.hosts || []).join(", "))}</div>`);
+    });
+  } else {
+    Object.keys(spec).slice(0, 8).forEach((k) => {
+      const val = spec[k];
+      if (val == null || typeof val === "object") return;
+      bits.push(`<div><dt>${escapeHtml(k)}</dt><dd>${escapeHtml(String(val))}</dd></div>`);
+    });
+  }
+  return `<div class="manifest">
+    <div class="sec-title">${escapeHtml(kind + "/" + name)}</div>
+    <dl class="facts" style="grid-template-columns:repeat(2,1fr)">${bits.filter((b) => b.includes("<dt>")).join("")}</dl>
+    ${bits.filter((b) => b.includes("route-line")).join("")}
+    <details class="raw"><summary>原始字段</summary><pre>${escapeHtml(JSON.stringify(m, null, 2))}</pre></details>
+  </div>`;
+}
+
 function serviceInspectorHtml(d) {
   const funcs = (d.functions || []).map((f) =>
     `<span class="badge ${alignmentClass(f.alignment_status)}">${escapeHtml(f.function_type)} · ${escapeHtml(f.alignment_status)}</span>`
@@ -538,9 +829,7 @@ function serviceInspectorHtml(d) {
   const resBtns = (d.resources || []).map((r) =>
     `<button type="button" class="res-btn" data-res="${escapeHtml(r.id)}">${escapeHtml(r.kind)}/${escapeHtml(r.name)} <span style="color:var(--muted)">${escapeHtml(r.namespace)}</span></button>`
   ).join("");
-  const manifests = (d.declarative || []).map((m) =>
-    `<div class="sec-title">${escapeHtml((m.kind || "Resource") + "/" + ((m.metadata || {}).name || ""))}</div><pre>${escapeHtml(JSON.stringify(m, null, 2))}</pre>`
-  ).join("");
+  const manifests = (d.declarative || []).map(specView).join("");
   const dps = (d.data_plane_rules || []).map(dataPlaneBlock).join("");
   return `
     <div class="insp-title">${escapeHtml(d.label)}</div>
@@ -561,9 +850,7 @@ function serviceInspectorHtml(d) {
 }
 
 function resourceInspectorHtml(d) {
-  const manifests = (d.declarative || []).map((m) =>
-    `<pre>${escapeHtml(JSON.stringify(m, null, 2))}</pre>`
-  ).join("");
+  const manifests = (d.declarative || []).map(specView).join("");
   const svc = (staticGraph.nodes || []).find((n) =>
     n.type === "service" && (n.resources || []).some((r) => r.id === d.id)
   );
@@ -597,27 +884,171 @@ function dataPlaneBlock(rule) {
     lines.push("route " + uri + " → " + dests);
   });
   if (rule.timeout) lines.push("timeout: " + rule.timeout);
-  if (rule.retry_policy) lines.push("retry: " + JSON.stringify(rule.retry_policy));
+  if (rule.retry_policy) lines.push("retry: " + fmtCompact(rule.retry_policy));
   if (rule.algorithm) lines.push("lb: " + rule.algorithm);
-  if (rule.rules) lines.push("rate_limit: " + JSON.stringify(rule.rules));
-  if (rule.connection_pool) lines.push("connection_pool: " + JSON.stringify(rule.connection_pool));
-  if (rule.outlier_detection) lines.push("outlier: " + JSON.stringify(rule.outlier_detection));
+  if (rule.rules) lines.push("rate_limit: " + fmtCompact(rule.rules));
+  if (rule.connection_pool) lines.push("connection_pool: " + fmtCompact(rule.connection_pool));
+  if (rule.outlier_detection) lines.push("outlier: " + fmtCompact(rule.outlier_detection));
   if (rule.envoy_clusters) {
     rule.envoy_clusters.forEach((c) => lines.push("cluster " + (c.name || "") + " lb=" + (c.lb_policy || "") + " timeout=" + (c.connect_timeout || "")));
   }
   if (rule.envoy_routes) {
     rule.envoy_routes.forEach((r) => {
-      const match = (r.match && (r.match.prefix || JSON.stringify(r.match))) || "/";
+      const match = (r.match && (r.match.prefix || fmtCompact(r.match))) || "/";
       lines.push("envoy " + match + " cluster=" + (r.cluster || "") + (r.weighted_clusters ? " weighted" : ""));
     });
   }
   if (rule.destinations) {
-    lines.push("destinations: " + JSON.stringify(rule.destinations));
+    const dests = (rule.destinations || []).map((d) => {
+      const name = d.subset || d.host || "?";
+      return d.weight != null ? name + " " + d.weight + "%" : name;
+    }).join(" / ");
+    lines.push("destinations: " + dests);
   }
   return `<div class="dp-block">
     <div class="ttl">${escapeHtml(rule.function_type || "rule")} <span class="badge ${alignmentClass(status)}">${escapeHtml(status || "")}</span></div>
-    <pre>${escapeHtml(lines.join("\n") || JSON.stringify(rule, null, 2))}</pre>
+    ${lines.map((line) => `<div class="route-line">${escapeHtml(line)}</div>`).join("") || '<div class="empty" style="padding:0">无规则摘要</div>'}
   </div>`;
+}
+
+function renderDynamicCases(data) {
+  const cases = data.cases || [];
+  const passed = cases.filter((c) => c.status === "passed").length;
+  const failed = cases.filter((c) => c.status === "failed").length;
+  const skipped = cases.filter((c) => c.status === "skipped").length;
+  const pending = cases.filter((c) => c.status === "pending").length;
+  const kpis = `<div class="result-kpis">
+    <div class="card"><h3>用例</h3><div class="num">${cases.length || data.total_cases || 0}</div></div>
+    <div class="card"><h3>动态一致</h3><div class="num">${passed}</div></div>
+    <div class="card"><h3>动态不一致</h3><div class="num">${failed}</div></div>
+    <div class="card"><h3>跳过 / 未打</h3><div class="num">${skipped + pending}</div></div>
+  </div>`;
+  if (!cases.length) {
+    if (data.http_results && Object.keys(data.http_results).length) return kpis + renderHttpResultView(data);
+    return kpis + "<p class='lead'>还没有动态用例。请先生成测试矩阵或执行动态测试。</p>";
+  }
+  return kpis + cases.map(renderCaseCard).join("");
+}
+
+function caseStatusClass(status) {
+  return ({ passed: "consistent", failed: "inconsistent", warning: "partial", skipped: "unknown", pending: "unknown" })[status] || "unknown";
+}
+
+function renderCaseRows(rows) {
+  if (!rows || !rows.length) return "<p class='lead' style='margin:0'>—</p>";
+  return `<dl class="case-kv">${rows.map((row) =>
+    `<dt>${esc(row.label)}</dt><dd>${esc(row.value)}</dd>`
+  ).join("")}</dl>`;
+}
+
+function renderCaseCard(c) {
+  const req = c.request || {};
+  const target = [req.host, req.path].filter(Boolean).join(" ") || req.url || "";
+  const details = (c.details || []).map((d) => `<div class="case-dim">
+    <span class="badge ${caseStatusClass(d.status)}">${esc(d.status || "")}</span>
+    <span>${esc(d.dimension || "")}</span>
+    <div class="field-hint">${esc(d.message || "")}</div>
+  </div>`).join("");
+  return `<article class="case-card">
+    <header>
+      <div>
+        <span class="mono">${esc(c.case_id)}</span>
+        <strong>${esc(c.description || "—")}</strong>
+      </div>
+      <span class="badge ${caseStatusClass(c.status)}">${esc(c.consistency || c.status || "")}</span>
+    </header>
+    <p class="case-hint">${esc(c.hint || "")}${target ? " · " + esc(target) : ""}</p>
+    <div class="case-compare">
+      <div class="tuple">
+        <div class="who"><b>预期行为</b></div>
+        ${renderCaseRows(c.expected_rows)}
+      </div>
+      <div class="tuple">
+        <div class="who"><b>实际行为</b></div>
+        ${renderCaseRows(c.actual_rows)}
+      </div>
+      <div class="tuple">
+        <div class="who"><b>一致性判定</b></div>
+        <p class="sum">${esc(c.summary || "")}</p>
+        ${details}
+      </div>
+    </div>
+  </article>`;
+}
+
+async function loadLatestDynamicResults() {
+  const box = $("dynamic-results");
+  if (!box || box.innerHTML.trim()) return;
+  try {
+    const { data } = await axios.get("/api/dynamic/results");
+    if (data && (data.cases || []).length) box.innerHTML = renderDynamicCases(data);
+  } catch (err) {
+    /* 没有历史结果时保持空白 */
+  }
+}
+
+function renderMatrixView(data) {
+  if (data.cases && data.cases.length) return renderDynamicCases(data);
+  const cases = (data.test_matrix && data.test_matrix.test_cases) || data.test_cases || [];
+  const kpis = `<div class="result-kpis">
+    <div class="card"><h3>用例数</h3><div class="num">${cases.length || data.total_cases || 0}</div></div>
+  </div>`;
+  if (!cases.length) return kpis + "<p class='lead'>矩阵为空</p>";
+  const rows = cases.map((c) => {
+    const req = c.request_params || {};
+    const load = c.load_params || {};
+    return `<tr>
+      <td class="mono">${esc(c.case_id)}</td>
+      <td>${esc(c.description || c.name || "—")}</td>
+      <td>${esc((c.test_strategies || []).join(", ") || c.type || "—")}</td>
+      <td class="mono">${esc(req.host || c.source_service || "—")}${req.path ? " " + esc(req.path) : ""}</td>
+      <td>${load.num_requests != null ? esc(load.num_requests) + " × " + esc(load.concurrency || 1) : "—"}</td>
+    </tr>`;
+  }).join("");
+  return kpis + `<table class="result-table">
+    <thead><tr><th>用例</th><th>说明</th><th>策略</th><th>目标</th><th>负载</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+function renderHttpResultView(data) {
+  if (data.cases && data.cases.length) return renderDynamicCases(data);
+  const results = data.http_results || {};
+  const ids = Object.keys(results);
+  const kpis = `<div class="result-kpis">
+    <div class="card"><h3>执行用例</h3><div class="num">${data.total_cases || ids.length}</div></div>
+    <div class="card"><h3>有结果</h3><div class="num">${ids.length}</div></div>
+  </div>`;
+  if (!ids.length) return kpis + "<p class='lead'>没有 HTTP 执行结果</p>";
+  const rows = ids.map((id) => {
+    const r = results[id] || {};
+    if (r.skipped) {
+      return `<tr>
+        <td class="mono">${esc(id)}</td>
+        <td>—</td>
+        <td>跳过</td>
+        <td>—</td>
+        <td colspan="2">${esc(r.message || "安全开关未打开")}</td>
+      </tr>`;
+    }
+    const codes = r.status_codes
+      ? (Array.isArray(r.status_codes) ? r.status_codes.join(", ") : fmtCompact(r.status_codes))
+      : "—";
+    const rate = r.success_rate != null ? (Number(r.success_rate) <= 1 ? (r.success_rate * 100).toFixed(1) + "%" : r.success_rate + "%") : "—";
+    const lat = r.avg_response_time != null ? Number(r.avg_response_time).toFixed(0) + " ms" : "—";
+    return `<tr>
+      <td class="mono">${esc(id)}</td>
+      <td>${esc(r.total_requests ?? "—")}</td>
+      <td>${esc(rate)}</td>
+      <td>${esc(lat)}</td>
+      <td>${esc(codes)}</td>
+      <td>${esc(r.error_count ?? 0)}</td>
+    </tr>`;
+  }).join("");
+  return kpis + `<table class="result-table">
+    <thead><tr><th>用例</th><th>请求</th><th>成功率</th><th>平均时延</th><th>状态码</th><th>错误</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
 }
 
 async function generateTestMatrix() {
@@ -626,9 +1057,11 @@ async function generateTestMatrix() {
     const { data } = await axios.post("/api/dynamic/generate", {
       namespace: ns("dynamic-namespace"),
       ingress_url: $("ingress-url").value,
+      ...dynamicGuardPayload(),
     });
-    showStatus("dynamic-status", "ok", "测试矩阵已生成，共 " + data.total_cases + " 个用例");
-    $("dynamic-results").innerHTML = "<pre>" + JSON.stringify(data, null, 2) + "</pre>";
+    const extra = formatGuardWarnings(data);
+    showStatus("dynamic-status", "ok", "测试矩阵已生成，共 " + data.total_cases + " 个用例" + (extra ? "。" + extra : ""));
+    $("dynamic-results").innerHTML = renderDynamicCases(data);
   } catch (err) {
     showStatus("dynamic-status", "err", "生成失败: " + (err.response?.data?.error || err.message));
   }
@@ -637,9 +1070,18 @@ async function generateTestMatrix() {
 async function runDynamicTests() {
   showStatus("dynamic-status", "info", "正在执行动态测试...");
   try {
-    const { data } = await axios.post("/api/dynamic/run_tests", { namespace: ns("dynamic-namespace") });
-    showStatus("dynamic-status", "ok", "动态测试完成");
-    $("dynamic-results").innerHTML = "<pre>" + JSON.stringify(data, null, 2) + "</pre>";
+    const { data } = await axios.post("/api/dynamic/run_tests", {
+      namespace: ns("dynamic-namespace"),
+      ...dynamicGuardPayload(),
+    });
+    const extra = formatGuardWarnings(data);
+    const skipped = (data.skipped || []).length;
+    showStatus(
+      "dynamic-status",
+      "ok",
+      "动态测试完成" + (skipped ? "，跳过 " + skipped + " 条" : "") + (extra ? "。" + extra : "")
+    );
+    $("dynamic-results").innerHTML = renderDynamicCases(data);
   } catch (err) {
     showStatus("dynamic-status", "err", "执行失败: " + (err.response?.data?.error || err.message));
   }
@@ -651,13 +1093,17 @@ async function buildConsistencyGraph() {
     const { data } = await axios.post("/api/consistency/graph", {
       namespace: ns("consistency-namespace"),
     });
+    const summary = data.summary || {};
+    const conflicts = data.conflicts || [];
+    const note = $("graph-summary");
+    if (note) {
+      note.innerHTML = `<div class="graph-note">三层图已生成。对齐 ${esc(summary.aligned_pair_count ?? summary.total_pairs ?? "—")} 对 · 冲突 ${conflicts.length} 条。可在「三层依赖图」中查看。
+        ${conflicts.length ? `<div class="conflict-list">${conflicts.slice(0, 6).map((c) =>
+          `<div class="conflict-item"><div class="ttl">${esc(c.type || c.conflict_type || "冲突")}</div>${esc(c.description || c.message || "")}</div>`
+        ).join("")}</div>` : ""}
+      </div>`;
+    }
     showStatus("consistency-status", "ok", "三层图已生成，可在「三层依赖图」中交互查看");
-    const box = $("reports-container");
-    box.innerHTML = "<pre>" + JSON.stringify({
-      summary: data.summary,
-      conflicts: data.conflicts,
-      graph_path: data.graph_path,
-    }, null, 2) + "</pre>";
     reloadGraphFrame();
   } catch (err) {
     showStatus("consistency-status", "err", "构图失败: " + (err.response?.data?.error || err.message));
@@ -667,17 +1113,456 @@ async function buildConsistencyGraph() {
 async function runPipeline() {
   showStatus("consistency-status", "info", "正在执行完整流水线...");
   try {
-    const { data } = await axios.post("/api/run_pipeline", { namespace: ns("consistency-namespace") });
-    showStatus("consistency-status", "ok", "流水线完成，报告 " + data.report_id);
+    const { data } = await axios.post("/api/run_pipeline", {
+      namespace: ns("consistency-namespace"),
+      ...dynamicGuardPayload(),
+    });
+    const extra = formatGuardWarnings(data);
+    showStatus("consistency-status", "ok", "流水线完成，已写出 JSON 与 HTML 报告 " + data.report_id + (extra ? "。" + extra : ""));
     await loadReports();
     await loadSummary();
+    if (data.report_id) await openReport(data.report_id);
   } catch (err) {
     showStatus("consistency-status", "err", "执行失败: " + (err.response?.data?.error || err.message));
   }
 }
 
-async function loadReports() {
+function esc(v) {
+  return String(v == null ? "" : v)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function joinList(arr) {
+  return (arr || []).filter(Boolean).join(", ") || "—";
+}
+
+function fmtCompact(val) {
+  if (val == null || val === "") return "";
+  if (typeof val === "string" || typeof val === "number" || typeof val === "boolean") return String(val);
+  if (Array.isArray(val)) return val.map(fmtCompact).filter(Boolean).join(", ");
+  if (typeof val === "object") {
+    return Object.entries(val).map(([k, v]) => {
+      if (v == null) return "";
+      if (typeof v === "object") return k + "=" + fmtCompact(v);
+      return k + "=" + v;
+    }).filter(Boolean).join(" · ");
+  }
+  return String(val);
+}
+
+const TYPE_NAMES = {
+  matched: "静态对齐一致",
+  dynamic_passed: "动态验证通过",
+  dynamic_skipped: "动态未观测",
+  control_only: "仅控制面",
+  data_only: "仅数据面",
+  mismatched: "平面语义不匹配",
+  partial_matched: "部分匹配",
+  timeout_mismatch: "超时不一致",
+  behavior_deviation: "运行时行为偏差",
+  traffic_split_drift: "流量分割漂移",
+  scope_mismatch: "作用范围未覆盖",
+  policy_not_verified: "策略未验证",
+  missing_subset: "Subset 缺失",
+  gateway_unmatched: "Gateway 未匹配",
+  gateway_selector_empty: "Gateway 选择器为空",
+  gateway_selector_conflict: "Gateway 选择器冲突",
+  route_priority_conflict: "路由优先级冲突",
+  policy_conflict: "策略冲突",
+};
+
+function destItems(tup) {
+  const cons = (tup && tup.constraint) || {};
+  const actual = (tup && tup.actual) || {};
+  const expected = (tup && tup.expected) || {};
+  const from = cons.destinations || actual.destinations || expected.destinations;
+  if (Array.isArray(from) && from.length) {
+    return from.map((d) => ({ name: d.subset || d.host || "?", weight: Number(d.weight) }));
+  }
+  const weights = cons.weights || actual.weights || expected.weights;
+  if (weights && typeof weights === "object") {
+    return Object.entries(weights).map(([name, weight]) => ({ name, weight: Number(weight) }));
+  }
+  return [];
+}
+
+function fmtMatch(pred) {
+  if (!pred || typeof pred !== "object" || !Object.keys(pred).length) return "";
+  const bits = [];
+  const uri = pred.uri || pred.prefix || pred.path;
+  if (uri && typeof uri === "object") {
+    const key = Object.keys(uri)[0];
+    bits.push((key || "uri") + "=" + uri[key]);
+  } else if (uri) {
+    bits.push("uri=" + uri);
+  }
+  if (pred.headers) bits.push("headers=" + fmtCompact(pred.headers));
+  if (pred.method) bits.push("method=" + fmtCompact(pred.method));
+  if (pred.fault) bits.push("fault=" + pred.fault);
+  const used = { uri: 1, prefix: 1, path: 1, headers: 1, method: 1, fault: 1 };
+  Object.keys(pred).forEach((k) => {
+    if (!used[k] && pred[k] != null && typeof pred[k] !== "object") bits.push(k + "=" + pred[k]);
+  });
+  return bits.join(" · ");
+}
+
+function weightBars(items) {
+  if (!items || !items.length) return "";
+  const total = items.reduce((sum, item) => sum + (Number.isFinite(item.weight) ? Math.max(0, item.weight) : 0), 0) || 100;
+  return `<div class="wbar">${items.map((item) => {
+    const pct = Number.isFinite(item.weight) ? item.weight : 0;
+    const width = Math.max(0, pct) / total * 100;
+    return `<div class="wseg" style="width:${width}%" title="${esc(item.name)} ${pct}%"><span>${esc(item.name)} ${pct}%</span></div>`;
+  }).join("")}</div>`;
+}
+
+function tupleFields(tup) {
+  if (!tup) return {};
+  const fields = {};
+  const match = fmtMatch(tup.predicate);
+  if (match) fields["匹配"] = match;
+  const action = (tup.action && tup.action.type) || "";
+  if (action && action !== "observe") fields["动作"] = action;
+  const scope = tup.scope || {};
+  if (scope.service) fields["服务"] = scope.service;
+  if (scope.namespace) fields["命名空间"] = scope.namespace;
+  if (scope.source) fields["来源"] = scope.source;
+  const subsets = [].concat(scope.subsets || []).filter(Boolean);
+  if (subsets.length) fields["Subset"] = subsets.join(", ");
+  const dests = destItems(tup);
+  if (dests.length) fields["分流"] = dests;
+  const skip = { destinations: 1, weights: 1 };
+  Object.keys(tup.constraint || {}).forEach((key) => {
+    const val = tup.constraint[key];
+    if (skip[key] || val == null || typeof val === "object") return;
+    fields[key] = String(val);
+  });
+  if (tup.expected && Object.keys(tup.expected).length) {
+    if (tup.expected.weights || tup.expected.destinations) fields["期望分流"] = destItems({ constraint: tup.expected, actual: {}, expected: {} });
+    else fields["期望"] = fmtCompact(tup.expected);
+  }
+  if (tup.actual && Object.keys(tup.actual).length) {
+    if (tup.actual.weights || tup.actual.destinations) fields["实测分流"] = destItems({ constraint: tup.actual, actual: {}, expected: {} });
+    else fields["实测"] = fmtCompact(tup.actual);
+  }
+  if (tup.test_case_id) fields["用例"] = tup.test_case_id;
+  if (tup.skipped) fields["结果"] = "未观测";
+  else if (tup.verified === false) fields["结果"] = "未通过";
+  if (tup.verified === true) fields["结果"] = "通过";
+  if (tup.function_type) fields["功能"] = tup.function_type;
+  return fields;
+}
+
+function fieldKey(val) {
+  if (Array.isArray(val) && val[0] && val[0].name != null) {
+    return val.map((item) => item.name + ":" + item.weight).join("|");
+  }
+  return String(val == null ? "" : val);
+}
+
+function renderFieldValue(val) {
+  if (val == null || val === "") return `<span class="empty-cell">—</span>`;
+  if (Array.isArray(val) && val[0] && val[0].name != null) return weightBars(val);
+  return esc(val);
+}
+
+function renderTupleCompare(decl, dp, rt) {
+  const planes = [
+    { tag: "Sdecl", label: "声明", fields: tupleFields(decl) },
+    { tag: "Sdp", label: "数据面", fields: tupleFields(dp) },
+    { tag: "Srt", label: "运行时", fields: tupleFields(rt) },
+  ];
+  const order = ["匹配", "动作", "服务", "命名空间", "来源", "Subset", "分流", "期望分流", "实测分流", "期望", "实测", "结果", "用例", "功能"];
+  const keys = [];
+  const seen = {};
+  order.concat(planes.flatMap((p) => Object.keys(p.fields))).forEach((key) => {
+    if (seen[key]) return;
+    if (planes.some((p) => key in p.fields)) {
+      seen[key] = 1;
+      keys.push(key);
+    }
+  });
+  if (!keys.length) {
+    const summary = (decl && decl.summary) || (dp && dp.summary) || (rt && rt.summary);
+    return summary ? `<p class="lead">${esc(summary)}</p>` : "<p class='lead'>本条没有可对照的语义字段</p>";
+  }
+  const body = keys.map((key) => {
+    const vals = planes.map((p) => p.fields[key]);
+    const present = vals.map(fieldKey).filter(Boolean);
+    const differ = present.length > 1 && present.some((v) => v !== present[0]);
+    return `<tr class="${differ ? "diff" : ""}">
+      <td class="k">${esc(key)}</td>
+      ${vals.map((v) => `<td class="v">${renderFieldValue(v)}</td>`).join("")}
+    </tr>`;
+  }).join("");
+  return `<table class="cmp">
+    <thead><tr><th></th>
+      <th><span class="plane">Sdecl</span> 声明</th>
+      <th><span class="plane">Sdp</span> 数据面</th>
+      <th><span class="plane">Srt</span> 运行时</th>
+    </tr></thead>
+    <tbody>${body}</tbody>
+  </table>`;
+}
+
+function typeLabel(r) {
+  const key = r.inconsistency_type || r.type || "";
+  return TYPE_NAMES[key] || key || "未分类";
+}
+
+function findingKey(r, idx) {
+  return r.id || r.inconsistency_id || String(idx);
+}
+
+function renderFindingDetail(r) {
+  const raw = {
+    predicate_action_scope_constraint: {
+      Sdecl: r.Sdecl || r.s_decl,
+      Sdp: r.Sdp || r.s_dp,
+      Srt: r.Srt || r.s_rt,
+    },
+    static_expectation: r.static_expectation,
+    dynamic_observation: r.dynamic_observation,
+    details: r.details,
+  };
+  return `
+    <p class="lead">${esc(r.description || typeLabel(r))}</p>
+    <dl class="facts">
+      <div><dt>资源</dt><dd>${esc(r.resource_kind || "—")} / ${esc(r.resource_name || "—")}</dd></div>
+      <div><dt>受影响服务</dt><dd>${esc(joinList(r.affected_services))}</dd></div>
+      <div><dt>Subset</dt><dd>${esc(joinList(r.affected_subsets))}</dd></div>
+      <div><dt>功能 / 对齐</dt><dd>${esc(r.function_type || "—")} · ${esc(r.alignment_status || "—")}</dd></div>
+    </dl>
+    ${renderTupleCompare(r.Sdecl || r.s_decl, r.Sdp || r.s_dp, r.Srt || r.s_rt)}
+    <div class="cause"><strong>根因</strong> ${esc(r.root_cause || "待确认")}</div>
+    ${(r.suggestions || []).length ? `<ul class="sugs">${r.suggestions.map((s) => `<li>${esc(s)}</li>`).join("")}</ul>` : ""}
+    <details class="raw"><summary>原始数据</summary><pre>${esc(JSON.stringify(raw, null, 2))}</pre></details>
+  `;
+}
+
+function reportRecords(data) {
+  return data.records
+    || data.detailed_findings
+    || (data.consistency_check && data.consistency_check.inconsistencies)
+    || [];
+}
+
+let currentReport = null;
+let reportLayerFilter = "all";
+let reportQuery = "";
+let openFindingId = "";
+
+function paintReportFindings() {
+  const box = $("findings-list");
+  const drawer = $("finding-drawer");
+  if (!box || !currentReport) return;
+  const records = reportRecords(currentReport);
+  const rows = records.filter((r) => {
+    if (reportLayerFilter !== "all" && r.layer !== reportLayerFilter) return false;
+    if (!reportQuery) return true;
+    const text = [
+      r.inconsistency_type, r.type, TYPE_NAMES[r.inconsistency_type], r.description,
+      r.function_type, r.resource_kind, r.resource_name,
+      (r.affected_services || []).join(" "), (r.affected_subsets || []).join(" "),
+    ].join(" ").toLowerCase();
+    return text.includes(reportQuery);
+  });
+
+  const selected = openFindingId
+    ? rows.find((r, idx) => findingKey(r, idx) === openFindingId)
+    : null;
+
+  if (drawer) {
+    if (!selected) {
+      drawer.innerHTML = `<div class="panel"><p class="lead">点击左侧一条记录，对照 Sdecl / Sdp / Srt 字段差异</p></div>`;
+    } else {
+      drawer.innerHTML = `<div class="panel">${renderFindingDetail(selected)}</div>`;
+    }
+  }
+
+  const stamp = [reportLayerFilter, reportQuery, rows.length, records.length].join("|");
+  const table = box.querySelector("table.finding-table");
+  if (table && box.dataset.stamp === stamp) {
+    box.querySelectorAll(".finding-row").forEach((row) => {
+      row.classList.toggle("on", row.dataset.fid === openFindingId);
+    });
+  } else if (!rows.length) {
+    box.dataset.stamp = stamp;
+    box.innerHTML = "<p class='lead'>当前筛选下没有记录</p>";
+  } else {
+    box.dataset.stamp = stamp;
+    box.innerHTML = `<table class="finding-table">
+      <thead><tr><th>级别</th><th>类型</th><th>功能</th><th>服务</th><th>层次</th></tr></thead>
+      <tbody>${rows.map((r, idx) => {
+        const id = findingKey(r, idx);
+        const sev = (r.severity || "medium").toLowerCase();
+        const layer = r.layer || "layer2";
+        const open = openFindingId === id;
+        return `<tr class="finding-row${open ? " on" : ""}" data-fid="${esc(id)}">
+          <td><span class="badge sev-${esc(sev)}">${esc((r.severity || "").toUpperCase())}</span></td>
+          <td>${esc(typeLabel(r))}</td>
+          <td>${esc(r.function_type || r.alignment_status || "—")}</td>
+          <td>${esc(joinList(r.affected_services))}</td>
+          <td><span class="badge ${esc(layer)}">${esc(r.layer_name || layer)}</span></td>
+        </tr>
+        `;
+      }).join("")}</tbody>
+    </table>`;
+    box.querySelectorAll(".finding-row").forEach((row) => {
+      row.addEventListener("click", () => {
+        openFindingId = openFindingId === row.dataset.fid ? "" : row.dataset.fid;
+        paintReportFindings();
+      });
+    });
+  }
+  const shown = $("findings-shown");
+  if (shown) shown.textContent = rows.length + " / " + records.length;
+}
+
+async function openReport(reportId) {
+  const box = $("report-detail");
+  if (!box) return;
+  box.innerHTML = "<div class='panel'><p class='lead'>加载报告…</p></div>";
+  try {
+    const { data } = await axios.get("/api/report/" + encodeURIComponent(reportId));
+    if (data.error) {
+      box.innerHTML = "<div class='panel'><p class='lead'>" + esc(data.error) + "</p></div>";
+      return;
+    }
+    currentReport = data;
+    reportLayerFilter = "all";
+    reportQuery = "";
+    openFindingId = "";
+    const cc = data.consistency_check || {};
+    const meta = data.metadata || {};
+    const layers = meta.layers || (cc.summary && cc.summary.layers) || [];
+    const checks = meta.checks_performed || (cc.summary && cc.summary.checks_performed) || [];
+    const records = reportRecords(data);
+    const byLayer = Object.assign({}, (cc.summary && cc.summary.by_layer) || {});
+    if (!Object.keys(byLayer).length) {
+      records.forEach((r) => { if (r.layer) byLayer[r.layer] = (byLayer[r.layer] || 0) + 1; });
+    }
+    const status = (cc.overall_status || "unknown").toLowerCase();
+    const summary = cc.summary || {};
+    const metrics = data.metrics || {};
+    const fmtRate = (val) => (typeof val === "number" && Number.isFinite(val) ? (val * 100).toFixed(1) + "%" : "—");
+    const staticRate = fmtRate(summary.static_match_rate != null ? summary.static_match_rate : cc.consistency_rate);
+    const dynRate = fmtRate(summary.dynamic_verify_rate);
+    const splitRate = fmtRate(summary.split_consistency_rate);
+    const matchedN = summary.matched_functions != null ? summary.matched_functions : (metrics.matched_functions || "—");
+    const declaredN = summary.declared_functions != null ? summary.declared_functions : (metrics.declared_functions || records.length);
+    box.innerHTML = `
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>${esc(data.title || reportId)}</h2>
+            <p class="lead" style="margin:6px 0 0">${esc(data.namespace || "")} · ${esc(data.timestamp || "")} · <code>${esc(reportId)}</code></p>
+          </div>
+          <div class="row">
+            <span class="badge ${esc(status)}">${esc((cc.overall_status || "unknown").toUpperCase())}</span>
+            <a class="btn secondary" style="text-decoration:none" href="/api/report/${encodeURIComponent(reportId)}" target="_blank">JSON</a>
+            <a class="btn secondary" style="text-decoration:none" href="/api/report/${encodeURIComponent(reportId)}/html" target="_blank">HTML</a>
+            <a class="btn secondary" style="text-decoration:none" href="/three_layer_graph?report_id=${encodeURIComponent(reportId)}" target="_blank">三层图</a>
+            <button class="btn danger" type="button" data-delete="${esc(reportId)}">删除</button>
+          </div>
+        </div>
+        <div class="cards" style="margin-top:14px">
+          <div class="card"><h3>静态对齐率</h3><div class="num">${esc(staticRate)}</div><p class="lead">${esc(String(matchedN))} / ${esc(String(declaredN))} 声明功能 Sdecl↔Sdp</p></div>
+          <div class="card"><h3>动态通过率</h3><div class="num">${esc(dynRate)}</div><p class="lead">通过 ${esc(String(summary.dynamic_passed ?? metrics.dynamic_passed ?? "—"))} · 失败 ${esc(String(summary.dynamic_failed ?? "—"))} · 未观测 ${esc(String(summary.dynamic_skipped ?? "—"))}</p></div>
+          <div class="card"><h3>分流一致</h3><div class="num">${esc(splitRate)}</div><p class="lead">权重与落到的服务对照模型</p></div>
+          <div class="card"><h3>检验记录</h3><div class="num">${records.length}</div><p class="lead">点一条看四元组字段差</p></div>
+        </div>
+        <h2 style="margin-top:8px">检验了什么</h2>
+        <p class="lead">声明式 YAML 抽四元组与数据面 dump 匹配为静态一致；再打真实流量，分流指标和目标服务与模型一致为动态一致。</p>
+        <div class="layer-grid">
+          ${layers.map((l) => `
+            <div class="layer-card" data-layer="${esc(l.id)}">
+              <h3>${esc(l.name)} <span class="count">${byLayer[l.id] || 0}</span></h3>
+              <p>${esc(l.what)}</p>
+            </div>`).join("") || "<p class='lead'>此报告尚未包含层次说明（请重新跑流水线）。</p>"}
+        </div>
+        ${checks.length ? `
+        <details class="raw">
+          <summary>检验项目（${checks.length}）</summary>
+          <table class="check-table">
+            <thead><tr><th>层次</th><th>类型</th><th>说明</th></tr></thead>
+            <tbody>${checks.map((c) => `<tr>
+              <td>${esc(c.layer_name || c.layer)}</td>
+              <td>${esc(c.name)} <code>${esc(c.type)}</code></td>
+              <td>${esc(c.description)}</td>
+            </tr>`).join("")}</tbody>
+          </table>
+        </details>` : ""}
+        <h2>检验记录 <span id="findings-shown" style="color:var(--muted);font-weight:500;font-size:13px"></span></h2>
+        <div class="report-three">
+          <div class="report-mid">
+            <div class="report-toolbar">
+              <button class="chip on" data-layer="all" type="button">全部</button>
+              <button class="chip" data-layer="layer1" type="button">第一层</button>
+              <button class="chip" data-layer="layer2" type="button">第二层</button>
+              <button class="chip" data-layer="layer3" type="button">第三层</button>
+              <input class="chip-search" id="finding-q" placeholder="搜索类型 / 资源 / 服务…">
+            </div>
+            <div id="findings-list"></div>
+          </div>
+          <aside class="report-drawer" id="finding-drawer">
+            <div class="panel"><p class="lead">点击左侧记录查看详情</p></div>
+          </aside>
+        </div>
+        ${(data.recommendations || []).length ? `<h2>建议</h2><ul class="recs">${data.recommendations.map((s) => `<li>${esc(s)}</li>`).join("")}</ul>` : ""}
+      </div>`;
+    box.querySelectorAll(".chip[data-layer]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        box.querySelectorAll(".chip[data-layer]").forEach((b) => b.classList.remove("on"));
+        btn.classList.add("on");
+        reportLayerFilter = btn.dataset.layer;
+        paintReportFindings();
+      });
+    });
+    const input = $("finding-q");
+    if (input) input.addEventListener("input", () => {
+      reportQuery = input.value.trim().toLowerCase();
+      paintReportFindings();
+    });
+    paintReportFindings();
+    const delBtn = box.querySelector("[data-delete]");
+    if (delBtn) delBtn.addEventListener("click", (ev) => deleteReport(delBtn.dataset.delete, ev));
+    document.querySelectorAll(".report-item").forEach((el) => {
+      el.classList.toggle("active", el.dataset.id === reportId);
+    });
+  } catch (err) {
+    box.innerHTML = "<div class='panel'><p class='lead'>加载失败: " + esc(err.message) + "</p></div>";
+  }
+}
+
+function reportKey(report) {
+  return (report && (report.report_id || report.id)) || "";
+}
+
+async function deleteReport(reportId, ev) {
+  if (ev) ev.preventDefault();
+  if (ev) ev.stopPropagation();
+  if (!reportId) return;
+  if (!window.confirm("确定删除报告 " + reportId + "？对应的 JSON / HTML / 图文件也会删除，且不可恢复。")) return;
+  try {
+    await axios.delete("/api/report/" + encodeURIComponent(reportId));
+    if (reportKey(currentReport) === reportId) {
+      currentReport = null;
+      const detail = $("report-detail");
+      if (detail) detail.innerHTML = "";
+    }
+    showStatus("consistency-status", "ok", "已删除报告 " + reportId);
+    await loadReports({ skipAutoOpen: true });
+    await loadSummary();
+  } catch (err) {
+    showStatus("consistency-status", "err", "删除失败: " + ((err.response && err.response.data && err.response.data.error) || err.message));
+  }
+}
+
+async function loadReports(opts) {
   const box = $("reports-container");
+  const skipAutoOpen = opts && opts.skipAutoOpen;
   box.innerHTML = "<p class='lead'>加载中...</p>";
   try {
     const { data } = await axios.get("/api/reports");
@@ -688,18 +1573,30 @@ async function loadReports() {
     }
     box.innerHTML = reports.map((r) => {
       const cls = (r.status || "unknown").toLowerCase();
-      return `<div class="report-item">
+      const rate = typeof r.consistency_rate === "number" ? (r.consistency_rate * 100).toFixed(1) + "%" : "";
+      return `<div class="report-item" data-id="${esc(r.id)}">
         <div>
-          <strong>${r.title || r.id}</strong>
-          <div class="lead" style="margin:4px 0 0">${r.id} · ${r.timestamp || ""}</div>
+          <strong>${esc(r.title || r.id)}</strong>
+          <div class="lead" style="margin:4px 0 0">${esc(r.id)} · ${esc(r.timestamp || "")}${r.record_count != null ? " · " + r.record_count + " 条记录" : ""}</div>
         </div>
-        <div>
-          <span class="badge ${cls}">${(r.status || "unknown").toUpperCase()}</span>
-          <a class="btn secondary" style="margin-left:8px;text-decoration:none" href="/api/report/${r.id}" target="_blank">详情</a>
-          <a class="btn secondary" style="margin-left:8px;text-decoration:none" href="/three_layer_graph?report_id=${encodeURIComponent(r.id)}" target="_blank">三层图</a>
+        <div class="report-actions">
+          <span class="badge ${cls}">${esc((r.status || "unknown").toUpperCase())}${rate ? " · " + rate : ""}</span>
+          <button class="btn secondary" type="button" data-open="${esc(r.id)}">详情</button>
+          <a class="btn secondary" style="text-decoration:none" href="/api/report/${encodeURIComponent(r.id)}" target="_blank">JSON</a>
+          <a class="btn secondary" style="text-decoration:none" href="/api/report/${encodeURIComponent(r.id)}/html" target="_blank">HTML</a>
+          <a class="btn secondary" style="text-decoration:none" href="/three_layer_graph?report_id=${encodeURIComponent(r.id)}" target="_blank">三层图</a>
+          <button class="btn danger" type="button" data-delete="${esc(r.id)}">删除</button>
         </div>
       </div>`;
     }).join("");
+    box.querySelectorAll("[data-open]").forEach((btn) => {
+      btn.addEventListener("click", () => openReport(btn.dataset.open));
+    });
+    box.querySelectorAll("[data-delete]").forEach((btn) => {
+      btn.addEventListener("click", (ev) => deleteReport(btn.dataset.delete, ev));
+    });
+    const preferred = reports.find((r) => r.id === "report_cluster_live") || reports.find((r) => r.id !== "report_demo_bookinfo");
+    if (preferred && !currentReport && !skipAutoOpen) openReport(preferred.id);
   } catch (err) {
     box.innerHTML = "<p class='lead'>加载失败: " + err.message + "</p>";
   }
@@ -718,5 +1615,25 @@ document.addEventListener("DOMContentLoaded", () => {
   loadReports();
   loadEndpoints();
   loadConnectivity(false);
+  loadClusterNamespaces(false);
+  bindNamespaceSelects();
+  document.querySelectorAll("[data-ns-refresh]").forEach((btn) => {
+    btn.addEventListener("click", () => loadClusterNamespaces(true));
+  });
+  [
+    ["dyn-allow-load-test", "pipe-allow-load-test"],
+    ["dyn-allow-fault", "pipe-allow-fault"],
+    ["dyn-allow-rollout", "pipe-allow-rollout"],
+  ].forEach(([a, b]) => {
+    if ($(a)) $(a).addEventListener("change", () => {
+      if ($(b)) $(b).checked = $(a).checked;
+      updateGuardHints();
+    });
+    if ($(b)) $(b).addEventListener("change", () => {
+      if ($(a)) $(a).checked = $(b).checked;
+      updateGuardHints();
+    });
+  });
+  updateGuardHints();
   connTimer = setInterval(() => loadConnectivity(false), 30000);
 });

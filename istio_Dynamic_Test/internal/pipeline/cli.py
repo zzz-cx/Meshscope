@@ -68,8 +68,10 @@ from istio_Dynamic_Test.internal.models.testcase import (
     TestCase,
     TestSuite,
     TestType,
+    ValidationDetail,
+    ValidationResult,
+    ValidationStatus,
 )
-from istio_Dynamic_Test.internal.models.testcase import ValidationStatus
 from istio_Dynamic_Test.internal.testcase.generators.base import BaseGenerator
 from istio_Dynamic_Test.internal.models.testcase import PolicyType
 from istio_Dynamic_Test.internal.traffic.executors.base import BaseExecutor
@@ -91,23 +93,36 @@ from istio_Dynamic_Test.internal.validation.composite import CompositeValidator
 from istio_Dynamic_Test.internal.validation.report import ReportGenerator
 from istio_Dynamic_Test.pkg.runtime.ssh import SSHClient
 from istio_Dynamic_Test.pkg.k8s.ingress_shard import synth_ingress_vs_name_for_case
+from istio_Dynamic_Test.internal.pipeline.guards import (
+    DynamicSafetyOptions,
+    banner_text,
+    case_block_reasons,
+    options_from_config,
+)
 
 
 def _post_http_collect_sleep_seconds(
-    tc: TestCase, *, has_pre_prometheus: bool, prom_url: Optional[str]
+    tc: TestCase,
+    *,
+    has_pre_prometheus: bool,
+    prom_url: Optional[str],
+    body_usable: bool = False,
 ) -> float:
-    """采集前等待秒数：默认保持旧行为；可用环境变量与 DYNAMIC_TEST_SLEEP_SCALE 缩放。"""
+    """采集前等待秒数：body 能观察分流时不等 Prometheus 抓取。"""
     try:
         scale = float(os.getenv("DYNAMIC_TEST_SLEEP_SCALE", "1") or "1")
     except ValueError:
         scale = 1.0
     if PolicyType.TRAFFIC_SPLIT in (tc.policy_types or []):
-        if has_pre_prometheus:
+        if body_usable:
+            key = "DYNAMIC_TEST_SLEEP_TRAFFIC_SPLIT_BODY_S"
+            default = "0"
+        elif has_pre_prometheus or prom_url:
             key = "DYNAMIC_TEST_SLEEP_TRAFFIC_SPLIT_PROM_S"
             default = "12"
         else:
             key = "DYNAMIC_TEST_SLEEP_TRAFFIC_SPLIT_NO_PROM_S"
-            default = "2"
+            default = "0"
     elif PolicyType.RATE_LIMIT in (tc.policy_types or []) and prom_url:
         key = "DYNAMIC_TEST_SLEEP_RATE_LIMIT_PROM_S"
         default = "10"
@@ -154,10 +169,14 @@ class DynamicTester:
         namespace: str = "default",
         prometheus_url: Optional[str] = None,
         ingress_url: Optional[str] = None,
+        jaeger_url: Optional[str] = None,
+        zipkin_url: Optional[str] = None,
+        safety: Optional[DynamicSafetyOptions] = None,
     ):
         self._generator = generator
-        self._collector = collector
         self._prometheus_url = prometheus_url
+        self._jaeger_url = jaeger_url
+        self._safety = safety or options_from_config()
         self._validator = (
             validator
             or CompositeValidator(
@@ -171,8 +190,19 @@ class DynamicTester:
         # SSH 客户端
         self._ssh = SSHClient(**(ssh_config or {}))
 
+        if collector is None:
+            from istio_Dynamic_Test.internal.telemetry.collectors.composite import CompositeCollector
+            collector = CompositeCollector(
+                prometheus_url=prometheus_url,
+                namespace=namespace,
+                ssh_client=self._ssh,
+                jaeger_url=jaeger_url,
+                zipkin_url=zipkin_url,
+            )
+        self._collector = collector
+
         self._executor_registry = ExecutorRegistry(
-            self._ssh, namespace=namespace, custom=executor
+            self._ssh, namespace=namespace, custom=executor, ingress_url=ingress_url
         )
         self._cp_outlier_executor = ConnectionPoolOutlierExecutor(self._ssh, namespace=namespace)
 
@@ -214,11 +244,14 @@ class DynamicTester:
         print(f"  Istio 动态验证流水线")
         print(f"  用例数量: {total}")
         print(f"  入口URL: {suite.ingress_url}")
+        print(banner_text(self._safety))
         print(f"{'=' * 60}\n")
 
-        # 预热 Collector（启用 access log）
-        if self._collector and hasattr(self._collector, "warmup_for_suite"):
+        # 预热 Collector（启用 access log）—— 会 patch Deployment / rollout
+        if self._safety.allow_rollout and self._collector and hasattr(self._collector, "warmup_for_suite"):
             self._collector.warmup_for_suite(flatten_cases_for_warmup(suite.cases))
+        elif not self._safety.allow_rollout:
+            print("  [GUARD] 未允许 rollout，跳过 sidecar access log 预热（不会 patch Deployment）")
 
         results: List[PipelineResult] = []
         start_time = time.time()
@@ -279,6 +312,14 @@ class DynamicTester:
 
             print(f"\n[{i}/{total}] {tc.case_id}: {tc.description}")
             print(f"  策略: {[p.value for p in tc.policy_types]}")
+
+            skip_reasons = self._block_reasons_for_row(tc)
+            if skip_reasons:
+                for pr in self._skip_row(tc, skip_reasons):
+                    results.append(pr)
+                    if pr.validation:
+                        print(f"  => SKIPPED: {pr.validation.summary}")
+                continue
 
             # 特殊：connection_pool_outlier_validation 把等待阶段外提，允许等待期间继续跑其它用例
             if tc.metadata.get("is_orthogonal_fault_bundle"):
@@ -377,10 +418,60 @@ class DynamicTester:
 
     def run_single(self, test_case: TestCase) -> PipelineResult:
         """运行单个测试用例的完整流水线。"""
+        reasons = case_block_reasons(test_case, self._safety)
+        if reasons:
+            print(f"\n[1/1] {test_case.case_id}: {test_case.description}")
+            return self._skip_result(test_case, reasons)
         return self._run_single(test_case)
+
+    def _block_reasons_for_row(self, tc: TestCase) -> List[str]:
+        if tc.metadata.get("is_orthogonal_fault_bundle"):
+            reasons: List[str] = []
+            for sub in tc.metadata.get("bundle_subcases") or []:
+                reasons.extend(case_block_reasons(sub, self._safety))
+            seen = set()
+            uniq = []
+            for item in reasons:
+                if item not in seen:
+                    seen.add(item)
+                    uniq.append(item)
+            return uniq
+        return case_block_reasons(tc, self._safety)
+
+    def _skip_result(self, tc: TestCase, reasons: List[str]) -> PipelineResult:
+        msg = "；".join(reasons) or "安全开关未打开，跳过动态验证"
+        print(f"  [SKIP] {msg}")
+        return PipelineResult(
+            test_case=tc,
+            execution=None,
+            collection=None,
+            validation=ValidationResult(
+                case_id=tc.case_id,
+                overall_status=ValidationStatus.SKIPPED,
+                details=[
+                    ValidationDetail(
+                        dimension="safety_guard",
+                        status=ValidationStatus.SKIPPED,
+                        message=msg,
+                    )
+                ],
+                summary=msg,
+            ),
+            case_duration_seconds=0.0,
+        )
+
+    def _skip_row(self, tc: TestCase, reasons: List[str]) -> List[PipelineResult]:
+        if tc.metadata.get("is_orthogonal_fault_bundle"):
+            subs = tc.metadata.get("bundle_subcases") or []
+            if subs:
+                return [self._skip_result(sub, reasons) for sub in subs]
+        return [self._skip_result(tc, reasons)]
 
     def _run_case_results(self, tc: TestCase) -> List[PipelineResult]:
         """单调度行对应的流水线结果（bundle 会展开为多份子用例结果）。"""
+        skip_reasons = self._block_reasons_for_row(tc)
+        if skip_reasons:
+            return self._skip_row(tc, skip_reasons)
         if tc.metadata.get("is_orthogonal_fault_bundle"):
             subs = tc.metadata.get("bundle_subcases") or []
             return self._run_orthogonal_fault_bundle(subs)
@@ -388,6 +479,11 @@ class DynamicTester:
 
     def _run_orthogonal_fault_bundle(self, subcases: List[TestCase]) -> List[PipelineResult]:
         """同一入口 VS 一次 patch 多条 match；对每个子用例分别请求、采集与校验。"""
+        if not self._safety.allow_fault_injection:
+            reasons = [
+                "未开启故障注入，无法诱发 5xx/时延；熔断、超时、重试无法做动态验证"
+            ]
+            return [self._skip_result(sc, reasons) for sc in subcases]
         bundle_start = time.time()
         injector = None  # type: Optional[FaultInjector]
         results: List[PipelineResult] = []
@@ -425,12 +521,15 @@ class DynamicTester:
 
             wait_max = 0.0
             for sc in subcases:
+                ex = executions.get(sc.case_id)
+                body_usable = bool(((ex.metadata if ex else {}) or {}).get("body_usable"))
                 wait_max = max(
                     wait_max,
                     _post_http_collect_sleep_seconds(
                         sc,
                         has_pre_prometheus=False,
                         prom_url=self._prometheus_url,
+                        body_usable=body_usable,
                     ),
                 )
             if wait_max > 0:
@@ -443,7 +542,10 @@ class DynamicTester:
                 validation = None
                 if self._collector:
                     pre = pre_log_lines.get(sc.case_id, {})
-                    collection = self._collector.collect(sc, pre_snapshot=pre)
+                    skip_telemetry = bool(((execution.metadata if execution else {}) or {}).get("body_usable"))
+                    collection = self._collector.collect(
+                        sc, pre_snapshot=pre, skip_telemetry=skip_telemetry
+                    )
                 validation = self._validator.validate(sc, execution, collection)
                 results.append(
                     PipelineResult(
@@ -506,14 +608,19 @@ class DynamicTester:
 
             # Phase 3: 数据采集（traffic_split 用 Prometheus 时等待，时长可由环境变量配置）
             if self._collector:
+                body_usable = bool((execution.metadata or {}).get("body_usable"))
                 wait = _post_http_collect_sleep_seconds(
                     tc,
                     has_pre_prometheus=pre_prometheus is not None,
                     prom_url=self._prometheus_url,
+                    body_usable=body_usable,
                 )
                 if wait > 0:
                     time.sleep(wait)
-                collect_kw = {"pre_snapshot": pre_log_lines}
+                collect_kw = {
+                    "pre_snapshot": pre_log_lines,
+                    "skip_telemetry": body_usable,
+                }
                 if pre_prometheus is not None:
                     collect_kw["pre_prometheus"] = pre_prometheus
                 collection = self._collector.collect(tc, **collect_kw)
@@ -542,6 +649,8 @@ class DynamicTester:
         return self._executor_registry.select(tc)
 
     def _inject_fault(self, tc: TestCase) -> Optional[FaultInjector]:
+        if not self._safety.allow_fault_injection:
+            return None
         trigger = tc.trigger_condition
         # 单入口模型对齐：timeout 测试矩阵里常用 simulate_slow_response/response_delay 表达“需要变慢”，
         # 但实际 workload（http-echo）不会主动 sleep。这里用入口 VS 的 delay fault 做确定性触发，
@@ -665,17 +774,40 @@ def main():
         help="直接从 --control-plane-config 目录生成用例（验证当前集群配置），不依赖 -i/--input 文件。",
     )
     parser.add_argument("--prometheus-url", default="", help="Prometheus URL（流量分割验证用，如 http://192.168.92.131:31012）")
+    parser.add_argument("--jaeger-url", default="", help="Jaeger URL（响应体无版本信号时回退）")
     parser.add_argument("--ssh-host", help="SSH 主机")
     parser.add_argument("--ssh-user", help="SSH 用户名")
     parser.add_argument("--ssh-password", help="SSH 密码")
     parser.add_argument("--ssh-port", type=int, default=None, help="SSH 端口")
     parser.add_argument("--single-case", help="只运行指定用例 (如 case_005)")
+    parser.add_argument(
+        "--load-test",
+        dest="allow_load_test",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="是否做高压测试（限流高压、连接池打满）。关闭时这些用例将跳过。",
+    )
+    parser.add_argument(
+        "--fault-injection",
+        dest="allow_fault_injection",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="是否改 VirtualService 注入 abort/delay。关闭时熔断、超时、重试无法动态验证。",
+    )
+    parser.add_argument(
+        "--rollout",
+        dest="allow_rollout",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="是否 patch Deployment 打开 Envoy access log。etcd 不稳时请关闭。",
+    )
     args = parser.parse_args()
     try:
         from consistency_checker.config import fill_args_from_config, get_config
         fill_args_from_config(args, {
             "ingress_url": "ingress_url",
             "prometheus_url": "prometheus_url",
+            "jaeger_url": "jaeger_url",
             "ssh_host": "ssh_host",
             "ssh_user": "ssh_user",
             "ssh_password": "ssh_password",
@@ -683,9 +815,14 @@ def main():
             "namespace": "namespace",
             "control_plane_config": "control_plane_config_dir",
             "service_deps": "service_dependencies_file",
+            "allow_load_test": "allow_load_test",
+            "allow_fault_injection": "allow_fault_injection",
+            "allow_rollout": "allow_rollout",
         })
         if not args.ingress_url:
             args.ingress_url = get_config().get_ingress_url() or ""
+        from istio_Dynamic_Test.internal.traffic.entry import resolve_ingress_base
+        args.ingress_url = resolve_ingress_base(args.ingress_url)
         if not args.input and not args.matrix and not args.from_control_plane:
             args.input = get_config().istio_config_file
     except Exception:
@@ -729,27 +866,29 @@ def main():
             namespace=args.namespace,
         )
 
-    ssh = SSHClient(**(ssh_config or {}))
-
-    from istio_Dynamic_Test.internal.telemetry.collectors.envoy import EnvoyCollector
-    from istio_Dynamic_Test.internal.telemetry.collectors.composite import CompositeCollector
-    if args.prometheus_url:
-        collector = CompositeCollector(
-            prometheus_url=args.prometheus_url,
-            namespace=args.namespace,
-            ssh_client=ssh,
-        )
-    else:
-        collector = EnvoyCollector(ssh_client=ssh, namespace=args.namespace)
-
     ingress_url = (suite.ingress_url if suite else "") or args.ingress_url
+    jaeger_url = getattr(args, "jaeger_url", "") or ""
+    zipkin_url = ""
+    try:
+        cfg = get_config()
+        if not jaeger_url:
+            jaeger_url = cfg.jaeger_url or ""
+        zipkin_url = cfg.zipkin_url or ""
+    except Exception:
+        pass
     tester = DynamicTester(
         generator=generator,
-        collector=collector,
         ssh_config=ssh_config,
         namespace=args.namespace,
         prometheus_url=args.prometheus_url or None,
         ingress_url=ingress_url or None,
+        jaeger_url=jaeger_url or None,
+        zipkin_url=zipkin_url or None,
+        safety=options_from_config({
+            "allow_load_test": getattr(args, "allow_load_test", None),
+            "allow_fault_injection": getattr(args, "allow_fault_injection", None),
+            "allow_rollout": getattr(args, "allow_rollout", None),
+        }),
     )
     # 进程退出时（含 Ctrl+C）确保故障恢复
     atexit.register(tester._clear_all_faults)

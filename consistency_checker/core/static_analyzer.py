@@ -70,7 +70,7 @@ class StaticAnalyzer:
             bundle = parse_static_semantic(
                 control_plane_dir=self.control_plane_config_dir,
                 data_plane_dir=self.data_plane_config_dir,
-                namespace=self.namespace if self.namespace != "default" else None,
+                namespace=self.namespace,
             )
             artifact = bundle["artifact"]
 
@@ -78,6 +78,36 @@ class StaticAnalyzer:
 
     def _consume_artifact(self, artifact: Dict[str, Any]) -> Dict[str, Any]:
         self.artifact = artifact or {}
+        scope = self.namespace
+        if scope:
+            pairs = [
+                p for p in (self.artifact.get("pairs") or [])
+                if (p.get("namespace") or "default") == scope
+            ]
+            conflicts = [
+                c for c in (self.artifact.get("conflicts") or [])
+                if (c.get("namespace") or "default") == scope
+            ]
+            self.artifact = dict(self.artifact)
+            self.artifact["pairs"] = pairs
+            self.artifact["conflicts"] = conflicts
+            graph = dict(self.artifact.get("graph_data") or {})
+            nodes = [
+                n for n in (graph.get("nodes") or [])
+                if (n.get("namespace") or "default") == scope
+            ]
+            ids = {n.get("id") for n in nodes}
+            graph["nodes"] = nodes
+            graph["edges"] = [
+                e for e in (graph.get("edges") or [])
+                if e.get("source") in ids and e.get("target") in ids
+            ]
+            meta = dict(graph.get("metadata") or {})
+            meta["namespaces"] = [scope]
+            meta["service_count"] = sum(1 for n in nodes if n.get("type") == "service")
+            meta["resource_count"] = sum(1 for n in nodes if n.get("type") == "resource")
+            graph["metadata"] = meta
+            self.artifact["graph_data"] = graph
         self.control_plane_data = self.artifact.get("control_plane") or {}
         self.data_plane_data = self.artifact.get("data_plane") or {}
         self.static_policies = []
@@ -123,6 +153,10 @@ class StaticAnalyzer:
                 "has_inconsistencies": len(issues) > 0,
                 "conflict_count": len(conflicts),
                 "tau": self.artifact.get("tau"),
+                "declared_functions": (self.artifact.get("summary") or {}).get("declared_functions"),
+                "matched_functions": (self.artifact.get("summary") or {}).get("matched_functions"),
+                "static_match_rate": (self.artifact.get("summary") or {}).get("static_match_rate"),
+                "consistency_rate": (self.artifact.get("summary") or {}).get("consistency_rate"),
             },
         }
 
@@ -168,8 +202,17 @@ class StaticAnalyzer:
         graph = self.artifact.get("graph_data") or {}
         service_map: Dict[str, ServiceNode] = {}
         relations = (self.control_plane_data or {}).get("serviceRelations") or {}
+        scoped_svcs = None
+        if self.namespace:
+            scoped_svcs = {
+                n.get("label") or (n.get("id") or "").split("/")[-1]
+                for n in (graph.get("nodes") or [])
+                if n.get("type") == "service" and (n.get("namespace") or "default") == self.namespace
+            }
 
         for svc_name, rels in relations.items():
+            if scoped_svcs is not None and svc_name not in scoped_svcs:
+                continue
             subsets = [s["name"] for s in rels.get("subsets", []) if isinstance(s, dict) and s.get("name")]
             node = ServiceNode(
                 service_name=svc_name,

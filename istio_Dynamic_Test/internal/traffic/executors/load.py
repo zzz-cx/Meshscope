@@ -51,7 +51,7 @@ class LoadExecutor(BaseExecutor):
         c = max(int(tc.concurrency or 1), 1)
         if n < c:
             n = c
-        hey_cmd = f'hey -n {n} -c {c}{extra} {header_str} "{url}"'
+        hey_cmd = f'timeout 40 hey -n {n} -c {c}{extra} {header_str} "{url}"'
         print(f"  [LOAD] {hey_cmd}")
         output, error = self._ssh.run_command(hey_cmd)
         if error:

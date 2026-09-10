@@ -15,8 +15,13 @@ from consistency_checker.models.data_models import (
     ConsistencyResult,
     SeverityLevel
 )
+from consistency_checker.core.finding_records import LAYER_CATALOG, checks_performed
 
 logger = logging.getLogger(__name__)
+
+_HTML_TEMPLATE = os.path.join(
+    os.path.dirname(__file__), "templates", "consistency_report.html"
+)
 
 
 class ComprehensiveReportGenerator:
@@ -42,6 +47,7 @@ class ComprehensiveReportGenerator:
         self.dynamic_result = dynamic_result
         self.consistency_result = consistency_result
         self.namespace = namespace
+        self._report: Optional[VerificationReport] = None
         
     def generate(self) -> VerificationReport:
         """
@@ -77,11 +83,15 @@ class ComprehensiveReportGenerator:
             # 报告内容
             executive_summary=self._generate_executive_summary(),
             detailed_findings=self._generate_detailed_findings(),
-            recommendations=self._generate_recommendations()
+            recommendations=self._generate_recommendations(),
+            metadata={
+                "layers": LAYER_CATALOG,
+                "checks_performed": checks_performed(),
+            },
         )
         
         logger.info(f"  ✓ 报告生成完成: {report_id}")
-        
+        self._report = report
         return report
     
     def _summarize_static_analysis(self) -> Dict[str, Any]:
@@ -108,6 +118,7 @@ class ComprehensiveReportGenerator:
             "total_test_cases": len(self.dynamic_result.get('dynamic_behaviors', [])),
             "verified_tests": self.dynamic_result.get('summary', {}).get('verified_tests', 0),
             "failed_tests": self.dynamic_result.get('summary', {}).get('failed_tests', 0),
+            "skipped_tests": self.dynamic_result.get('summary', {}).get('skipped_tests', 0),
             "verification_rate": self.dynamic_result.get('statistics', {}).get('verification_rate', 0.0),
             "tests_by_policy_type": self.dynamic_result.get('statistics', {}).get('by_policy_type', {})
         }
@@ -159,29 +170,13 @@ class ComprehensiveReportGenerator:
         return "\n".join(summary_parts)
     
     def _generate_detailed_findings(self) -> List[Dict[str, Any]]:
-        """生成详细发现"""
+        """生成详细发现：每条含层次、资源、Sdecl / Sdp / Srt。"""
         findings = []
-        
-        # 按严重程度分组
         for inc in sorted(
             self.consistency_result.inconsistencies,
             key=lambda x: ["critical", "high", "medium", "low", "info"].index(x.severity.value)
         ):
-            finding = {
-                "id": inc.inconsistency_id,
-                "type": inc.inconsistency_type,
-                "severity": inc.severity.value,
-                "title": inc.description,
-                "affected_policies": inc.affected_policies,
-                "affected_services": inc.affected_services,
-                "static_expectation": inc.static_expectation,
-                "dynamic_observation": inc.dynamic_observation,
-                "root_cause": inc.root_cause,
-                "suggestions": inc.suggestions,
-                "impact_scope": inc.impact_scope
-            }
-            findings.append(finding)
-        
+            findings.append(inc.to_record())
         return findings
     
     def _generate_recommendations(self) -> List[str]:
@@ -260,140 +255,65 @@ class ComprehensiveReportGenerator:
         
         html_content = self._build_html_content(graph_data)
         
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html_content)
         
         logger.info(f"  ✓ HTML报告已保存")
+
+    def html_payload(self, report: Optional[VerificationReport] = None) -> Dict[str, Any]:
+        """HTML / 前端共用的报告载荷。"""
+        cr = self.consistency_result
+        report = report or getattr(self, "_report", None)
+        records = [inc.to_record() for inc in cr.inconsistencies]
+        return {
+            "report_id": report.report_id if report else None,
+            "title": report.title if report else f"Istio配置一致性验证报告 - {self.namespace}",
+            "namespace": self.namespace,
+            "timestamp": (report.timestamp.isoformat() if report else datetime.now().isoformat()),
+            "overall_status": cr.overall_status.value,
+            "consistency_rate": cr.consistency_rate,
+            "verified_policies": cr.verified_policies,
+            "total_policies": cr.total_policies,
+            "metrics": {
+                "total_policies": cr.total_policies,
+                "verified_policies": cr.verified_policies,
+                "unverified_policies": len(cr.unverified_policies),
+                "critical_issues": cr.summary.get("critical_issues", 0),
+                "high_issues": cr.summary.get("high_issues", 0),
+                "static_match_rate": cr.summary.get("static_match_rate"),
+                "dynamic_verify_rate": cr.summary.get("dynamic_verify_rate"),
+                "split_consistency_rate": cr.summary.get("split_consistency_rate"),
+                "declared_functions": cr.summary.get("declared_functions"),
+                "matched_functions": cr.summary.get("matched_functions"),
+                "dynamic_passed": cr.summary.get("dynamic_passed"),
+                "dynamic_failed": cr.summary.get("dynamic_failed"),
+                "dynamic_skipped": cr.summary.get("dynamic_skipped"),
+                "dynamic_total": cr.summary.get("dynamic_total"),
+            },
+            "by_layer": cr.summary.get("by_layer") or {},
+            "by_type": cr.summary.get("by_type") or {},
+            "layers": LAYER_CATALOG,
+            "checks": checks_performed(),
+            "records": records,
+            "inconsistencies": records,
+            "recommendations": self._generate_recommendations(),
+            "static_analysis": self._summarize_static_analysis(),
+            "dynamic_testing": self._summarize_dynamic_testing(),
+        }
     
     def _build_html_content(self, graph_data: Optional[Dict[str, Any]]) -> str:
-        """构建HTML内容"""
-        cr = self.consistency_result
-        
-        # 简化的HTML模板
-        html = f"""<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Istio一致性验证报告 - {self.namespace}</title>
-    <style>
-        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-        body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; padding: 20px; background: #f5f5f5; }}
-        .container {{ max-width: 1400px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
-        h1 {{ color: #333; border-bottom: 3px solid #4caf50; padding-bottom: 10px; margin-bottom: 20px; }}
-        h2 {{ color: #555; margin-top: 30px; margin-bottom: 15px; border-left: 4px solid #4caf50; padding-left: 10px; }}
-        h3 {{ color: #666; margin-top: 20px; margin-bottom: 10px; }}
-        .status-badge {{ display: inline-block; padding: 5px 15px; border-radius: 20px; font-weight: bold; }}
-        .status-consistent {{ background: #4caf50; color: white; }}
-        .status-partial {{ background: #f57c00; color: white; }}
-        .status-inconsistent {{ background: #d32f2f; color: white; }}
-        .metrics {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 20px 0; }}
-        .metric-card {{ background: #f9f9f9; padding: 20px; border-radius: 8px; border-left: 4px solid #4caf50; }}
-        .metric-value {{ font-size: 32px; font-weight: bold; color: #333; }}
-        .metric-label {{ color: #666; font-size: 14px; margin-top: 5px; }}
-        .issue-list {{ list-style: none; }}
-        .issue-item {{ background: #fff3e0; padding: 15px; margin: 10px 0; border-radius: 5px; border-left: 4px solid #f57c00; }}
-        .issue-critical {{ background: #ffebee; border-left-color: #d32f2f; }}
-        .issue-high {{ background: #fff3e0; border-left-color: #f57c00; }}
-        .issue-medium {{ background: #e3f2fd; border-left-color: #2196f3; }}
-        .severity {{ font-weight: bold; text-transform: uppercase; }}
-        .severity-critical {{ color: #d32f2f; }}
-        .severity-high {{ color: #f57c00; }}
-        .severity-medium {{ color: #2196f3; }}
-        .severity-low {{ color: #4caf50; }}
-        .recommendations {{ background: #e8f5e9; padding: 20px; border-radius: 8px; margin: 20px 0; }}
-        .recommendations ul {{ padding-left: 20px; }}
-        .recommendations li {{ margin: 10px 0; }}
-        #graph {{ width: 100%; height: 600px; border: 1px solid #ddd; border-radius: 8px; margin: 20px 0; background: #fafafa; }}
-        table {{ width: 100%; border-collapse: collapse; margin: 20px 0; }}
-        th, td {{ padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }}
-        th {{ background: #f5f5f5; font-weight: bold; color: #333; }}
-        tr:hover {{ background: #f9f9f9; }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Istio配置一致性验证报告</h1>
-        <p><strong>命名空间:</strong> {self.namespace} | <strong>生成时间:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
-        
-        <h2>总体状态</h2>
-        <p><span class="status-badge status-{cr.overall_status.value}">{cr.overall_status.value.upper()}</span></p>
-        
-        <div class="metrics">
-            <div class="metric-card">
-                <div class="metric-value">{cr.consistency_rate:.1%}</div>
-                <div class="metric-label">一致性率</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-value">{cr.total_policies}</div>
-                <div class="metric-label">总策略数</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-value">{cr.verified_policies}</div>
-                <div class="metric-label">已验证策略</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-value">{len(cr.inconsistencies)}</div>
-                <div class="metric-label">不一致性问题</div>
-            </div>
-        </div>
-        
-        <h2>静态分析结果</h2>
-        <table>
-            <tr><th>指标</th><th>数值</th></tr>
-            <tr><td>服务数量</td><td>{self.static_result.get('summary', {}).get('total_services', 0)}</td></tr>
-            <tr><td>策略数量</td><td>{self.static_result.get('summary', {}).get('total_policies', 0)}</td></tr>
-            <tr><td>配置边数量</td><td>{self.static_result.get('summary', {}).get('total_edges', 0)}</td></tr>
-        </table>
-        
-        <h2>动态测试结果</h2>
-        <table>
-            <tr><th>指标</th><th>数值</th></tr>
-            <tr><td>测试用例数</td><td>{self.dynamic_result.get('summary', {}).get('total_tests', 0)}</td></tr>
-            <tr><td>验证通过</td><td>{self.dynamic_result.get('summary', {}).get('verified_tests', 0)}</td></tr>
-            <tr><td>验证失败</td><td>{self.dynamic_result.get('summary', {}).get('failed_tests', 0)}</td></tr>
-            <tr><td>验证率</td><td>{self.dynamic_result.get('statistics', {}).get('verification_rate', 0.0):.1%}</td></tr>
-        </table>
-        
-        <h2>不一致性详情</h2>
-        <ul class="issue-list">
-"""
-        
-        # 添加不一致性列表
-        for inc in cr.inconsistencies[:20]:  # 限制显示前20个
-            severity_class = f"issue-{inc.severity.value}"
-            html += f"""
-            <li class="issue-item {severity_class}">
-                <div><span class="severity severity-{inc.severity.value}">[{inc.severity.value}]</span> {inc.description}</div>
-                <div style="margin-top: 10px; font-size: 14px; color: #666;">
-                    <strong>受影响服务:</strong> {', '.join(inc.affected_services)}<br>
-                    <strong>根本原因:</strong> {inc.root_cause or '未知'}
-                </div>
-            </li>
-"""
-        
-        html += """
-        </ul>
-        
-        <h2>修复建议</h2>
-        <div class="recommendations">
-            <ul>
-"""
-        
-        # 添加建议列表
-        for rec in self._generate_recommendations():
-            html += f"<li>{rec}</li>\n"
-        
-        html += """
-            </ul>
-        </div>
-        
-    </div>
-</body>
-</html>
-"""
-        
-        return html
+        """构建 PatternFly 深色交互式 HTML 报告。"""
+        with open(_HTML_TEMPLATE, "r", encoding="utf-8") as f:
+            template = f.read()
+        payload = self.html_payload()
+        if graph_data is not None:
+            payload["graph_summary"] = {
+                "nodes": len((graph_data or {}).get("nodes") or []),
+                "edges": len((graph_data or {}).get("edges") or []),
+            }
+        blob = json.dumps(payload, ensure_ascii=False, default=str)
+        blob = blob.replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
+        return template.replace("__REPORT_JSON__", blob)
 
 

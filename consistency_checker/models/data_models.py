@@ -81,6 +81,7 @@ class DynamicBehavior:
     
     # 验证结果
     is_verified: bool = False
+    skipped: bool = False
     verification_details: Dict[str, Any] = field(default_factory=dict)
     
     # 时间信息
@@ -88,27 +89,75 @@ class DynamicBehavior:
     duration_ms: Optional[float] = None
 
 
+_LAYER_NAMES = {
+    "layer1": "第一层 · 控制面 / 数据面全局",
+    "layer2": "第二层 · 服务关系",
+    "layer3": "第三层 · 配置资源",
+}
+
+
 @dataclass
 class InconsistencyAnnotation:
-    """不一致性标注"""
+    """不一致性标注：一条检验记录。"""
     inconsistency_id: str
-    inconsistency_type: str  # scope_mismatch, behavior_deviation, policy_ineffective等
+    inconsistency_type: str
     severity: SeverityLevel
-    
+
     description: str
     affected_policies: List[str]
     affected_services: List[str]
-    
-    # 静态和动态对比
+    affected_subsets: List[str] = field(default_factory=list)
+
+    layer: str = "layer2"
+    layer_name: str = ""
+    resource_kind: Optional[str] = None
+    resource_name: Optional[str] = None
+    resource_namespace: Optional[str] = None
+    function_type: Optional[str] = None
+    alignment_status: Optional[str] = None
+
+    s_decl: Optional[Dict[str, Any]] = None
+    s_dp: Optional[Dict[str, Any]] = None
+    s_rt: Optional[Dict[str, Any]] = None
+
     static_expectation: Dict[str, Any] = field(default_factory=dict)
     dynamic_observation: Dict[str, Any] = field(default_factory=dict)
-    
-    # 根因分析
+    details: Dict[str, Any] = field(default_factory=dict)
+
     root_cause: Optional[str] = None
     suggestions: List[str] = field(default_factory=list)
-    
-    # 影响范围
     impact_scope: List[str] = field(default_factory=list)
+
+    def to_record(self) -> Dict[str, Any]:
+        """写出前端 / JSON / HTML 共用的一条检验记录。"""
+        severity = self.severity.value if isinstance(self.severity, Enum) else str(self.severity)
+        layer_name = self.layer_name or _LAYER_NAMES.get(self.layer, self.layer)
+        return {
+            "id": self.inconsistency_id,
+            "inconsistency_type": self.inconsistency_type,
+            "type": self.inconsistency_type,
+            "severity": severity,
+            "description": self.description,
+            "layer": self.layer,
+            "layer_name": layer_name,
+            "resource_kind": self.resource_kind,
+            "resource_name": self.resource_name,
+            "resource_namespace": self.resource_namespace,
+            "affected_services": list(self.affected_services or []),
+            "affected_subsets": list(self.affected_subsets or []),
+            "function_type": self.function_type,
+            "alignment_status": self.alignment_status,
+            "Sdecl": self.s_decl,
+            "Sdp": self.s_dp,
+            "Srt": self.s_rt,
+            "root_cause": self.root_cause,
+            "suggestions": list(self.suggestions or []),
+            "impact_scope": list(self.impact_scope or self.affected_services or []),
+            "affected_policies": list(self.affected_policies or []),
+            "static_expectation": self.static_expectation or {},
+            "dynamic_observation": self.dynamic_observation or {},
+            "details": self.details or {},
+        }
     
 
 @dataclass
@@ -229,16 +278,11 @@ class VerificationReport:
                 "total_policies": self.consistency_check.total_policies if self.consistency_check else 0,
                 "verified_policies": self.consistency_check.verified_policies if self.consistency_check else 0,
                 "consistency_rate": self.consistency_check.consistency_rate if self.consistency_check else 0.0,
+                "summary": self.consistency_check.summary if self.consistency_check else {},
                 "inconsistencies": [
-                    {
-                        "id": inc.inconsistency_id,
-                        "type": inc.inconsistency_type,
-                        "severity": inc.severity.value,
-                        "description": inc.description,
-                        "affected_services": inc.affected_services
-                    }
+                    inc.to_record()
                     for inc in (self.consistency_check.inconsistencies if self.consistency_check else [])
-                ]
+                ],
             },
             "graph_data": {
                 "nodes": [
@@ -265,6 +309,7 @@ class VerificationReport:
             },
             "executive_summary": self.executive_summary,
             "detailed_findings": self.detailed_findings,
+            "records": self.detailed_findings,
             "recommendations": self.recommendations,
             "metadata": self.metadata
         }

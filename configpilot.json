@@ -2,22 +2,22 @@
   "namespace": "default",
   "log_level": "INFO",
   "cluster": {
-    "ssh_host": "192.168.92.131",
+    "ssh_host": "127.0.0.1",
     "ssh_port": 22,
     "ssh_user": "root",
     "ssh_password": null,
-    "k8s_host": "192.168.92.131",
+    "k8s_host": "127.0.0.1",
     "k8s_port": 6443,
     "k8s_token": null
   },
   "observability": {
     "prometheus_url": "http://192.168.92.131:31012",
-    "jaeger_url": "http://192.168.92.131:16686",
-    "zipkin_url": "",
-    "kiali_url": "http://192.168.92.131:20001",
+    "jaeger_url": "http://10.104.192.142",
+    "zipkin_url": "http://10.99.26.187:9411",
+    "kiali_url": "http://192.168.92.131:30163",
     "grafana_url": "http://192.168.92.131:3000",
-    "ingress_url": "http://192.168.92.131:30476/productpage",
-    "ingress_port": 30476
+    "ingress_url": "http://192.168.92.131:32469",
+    "ingress_port": 32469
   },
   "static": {
     "control_plane_config_dir": "istio_config_parser/istio_monitor/istio_control_config",
@@ -38,7 +38,10 @@
       "rate_limit": true,
       "fault_injection": true,
       "orthogonal_minimize": true
-    }
+    },
+    "allow_load_test": true,
+    "allow_fault_injection": false,
+    "allow_rollout": false
   },
   "monitor": {
     "interval": 1200,
@@ -49,8 +52,27 @@
   "consistency": {
     "output_dir": "results/consistency",
     "visualization_output_dir": "results/visualization",
+    "database_path": "results/meshscope.db",
     "traffic_split_tolerance": 0.1,
-    "statistical_confidence": 0.95
+    "statistical_confidence": 0.95,
+    "alignment_tau": 0.1,
+    "timeout_tolerance_seconds": 0.5,
+    "min_split_requests": 30,
+    "min_severity": "info",
+    "check_layer1": true,
+    "check_layer2": true,
+    "check_layer3": true,
+    "report_unverified_policies": true,
+    "report_scope_gaps": true,
+    "report_partial_matched": true,
+    "check_routing": true,
+    "check_traffic_split": true,
+    "check_retry": true,
+    "check_timeout": true,
+    "check_circuit_breaker": true,
+    "check_rate_limit": true,
+    "check_fault_injection": true,
+    "check_orthogonal_minimize": true
   },
   "web": {
     "port": 8080,

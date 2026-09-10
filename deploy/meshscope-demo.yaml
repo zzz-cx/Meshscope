@@ -1,0 +1,486 @@
+# 现网可 kubectl get 到的演示网格：多服务 + VS/DR/超时/重试/熔断/故障注入
+# kubectl apply -f deploy/meshscope-demo.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: meshscope-demo
+  labels:
+    istio-injection: enabled
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: productpage
+  namespace: meshscope-demo
+  labels:
+    app: productpage
+spec:
+  ports:
+  - name: http
+    port: 9080
+    targetPort: 8080
+  selector:
+    app: productpage
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reviews
+  namespace: meshscope-demo
+  labels:
+    app: reviews
+spec:
+  ports:
+  - name: http
+    port: 9080
+    targetPort: 8080
+  selector:
+    app: reviews
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: catalog
+  namespace: meshscope-demo
+  labels:
+    app: catalog
+spec:
+  ports:
+  - name: http
+    port: 9080
+    targetPort: 8080
+  selector:
+    app: catalog
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: checkout
+  namespace: meshscope-demo
+  labels:
+    app: checkout
+spec:
+  ports:
+  - name: http
+    port: 9080
+    targetPort: 8080
+  selector:
+    app: checkout
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: productpage-v1
+  namespace: meshscope-demo
+  labels:
+    app: productpage
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: productpage
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: productpage
+        version: v1
+      annotations:
+        sidecar.istio.io/inject: "true"
+    spec:
+      containers:
+      - name: http
+        image: hashicorp/http-echo:0.2.3
+        imagePullPolicy: IfNotPresent
+        args: ["-listen=:8080", "-text=productpage-v1"]
+        ports:
+        - containerPort: 8080
+          name: http
+        resources:
+          requests: {cpu: 10m, memory: 32Mi}
+          limits: {cpu: 200m, memory: 64Mi}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: productpage-v2
+  namespace: meshscope-demo
+  labels:
+    app: productpage
+    version: v2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: productpage
+      version: v2
+  template:
+    metadata:
+      labels:
+        app: productpage
+        version: v2
+      annotations:
+        sidecar.istio.io/inject: "true"
+    spec:
+      containers:
+      - name: http
+        image: hashicorp/http-echo:0.2.3
+        imagePullPolicy: IfNotPresent
+        args: ["-listen=:8080", "-text=productpage-v2"]
+        ports:
+        - containerPort: 8080
+          name: http
+        resources:
+          requests: {cpu: 10m, memory: 32Mi}
+          limits: {cpu: 200m, memory: 64Mi}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reviews-v1
+  namespace: meshscope-demo
+  labels:
+    app: reviews
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reviews
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: reviews
+        version: v1
+      annotations:
+        sidecar.istio.io/inject: "true"
+    spec:
+      containers:
+      - name: http
+        image: hashicorp/http-echo:0.2.3
+        imagePullPolicy: IfNotPresent
+        args: ["-listen=:8080", "-text=reviews-v1"]
+        ports:
+        - containerPort: 8080
+          name: http
+        resources:
+          requests: {cpu: 10m, memory: 32Mi}
+          limits: {cpu: 200m, memory: 64Mi}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reviews-v2
+  namespace: meshscope-demo
+  labels:
+    app: reviews
+    version: v2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reviews
+      version: v2
+  template:
+    metadata:
+      labels:
+        app: reviews
+        version: v2
+      annotations:
+        sidecar.istio.io/inject: "true"
+    spec:
+      containers:
+      - name: http
+        image: hashicorp/http-echo:0.2.3
+        imagePullPolicy: IfNotPresent
+        args: ["-listen=:8080", "-text=reviews-v2"]
+        ports:
+        - containerPort: 8080
+          name: http
+        resources:
+          requests: {cpu: 10m, memory: 32Mi}
+          limits: {cpu: 200m, memory: 64Mi}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalog-v1
+  namespace: meshscope-demo
+  labels:
+    app: catalog
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: catalog
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: catalog
+        version: v1
+      annotations:
+        sidecar.istio.io/inject: "true"
+    spec:
+      containers:
+      - name: http
+        image: hashicorp/http-echo:0.2.3
+        imagePullPolicy: IfNotPresent
+        args: ["-listen=:8080", "-text=catalog-v1"]
+        ports:
+        - containerPort: 8080
+          name: http
+        resources:
+          requests: {cpu: 10m, memory: 32Mi}
+          limits: {cpu: 200m, memory: 64Mi}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: checkout-v1
+  namespace: meshscope-demo
+  labels:
+    app: checkout
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: checkout
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: checkout
+        version: v1
+      annotations:
+        sidecar.istio.io/inject: "true"
+    spec:
+      containers:
+      - name: http
+        image: hashicorp/http-echo:0.2.3
+        imagePullPolicy: IfNotPresent
+        args: ["-listen=:8080", "-text=checkout-v1"]
+        ports:
+        - containerPort: 8080
+          name: http
+        resources:
+          requests: {cpu: 10m, memory: 32Mi}
+          limits: {cpu: 200m, memory: 64Mi}
+---
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: productpage
+  namespace: meshscope-demo
+spec:
+  host: productpage
+  subsets:
+  - name: v1
+    labels:
+      version: v1
+  - name: v2
+    labels:
+      version: v2
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 10
+      http:
+        http1MaxPendingRequests: 8
+        maxRequestsPerConnection: 2
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 10s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 100
+---
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: reviews
+  namespace: meshscope-demo
+spec:
+  host: reviews
+  subsets:
+  - name: v1
+    labels:
+      version: v1
+  - name: v2
+    labels:
+      version: v2
+---
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: catalog
+  namespace: meshscope-demo
+spec:
+  host: catalog
+  subsets:
+  - name: v1
+    labels:
+      version: v1
+---
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: checkout
+  namespace: meshscope-demo
+spec:
+  host: checkout
+  subsets:
+  - name: v1
+    labels:
+      version: v1
+  trafficPolicy:
+    outlierDetection:
+      consecutive5xxErrors: 3
+      interval: 5s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 100
+---
+# 挂到现有 Ingress 8080 监听（default/bookinfo-gateway），路径与残留 /productpage 错开
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: demo-ingress
+  namespace: meshscope-demo
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - default/bookinfo-gateway
+  http:
+  - match:
+    - uri:
+        prefix: /demo/productpage
+      headers:
+        end-user:
+          exact: jason
+    route:
+    - destination:
+        host: productpage
+        subset: v1
+        port:
+          number: 9080
+  - match:
+    - uri:
+        prefix: /demo/productpage
+    route:
+    - destination:
+        host: productpage
+        subset: v1
+        port:
+          number: 9080
+      weight: 20
+    - destination:
+        host: productpage
+        subset: v2
+        port:
+          number: 9080
+      weight: 80
+  - match:
+    - uri:
+        prefix: /demo/reviews
+    route:
+    - destination:
+        host: reviews
+        subset: v1
+        port:
+          number: 9080
+      weight: 70
+    - destination:
+        host: reviews
+        subset: v2
+        port:
+          number: 9080
+      weight: 30
+  - match:
+    - uri:
+        prefix: /demo/catalog
+    timeout: 3s
+    retries:
+      attempts: 3
+      perTryTimeout: 1s
+      retryOn: 5xx,connect-failure,refused-stream
+    route:
+    - destination:
+        host: catalog
+        subset: v1
+        port:
+          number: 9080
+  - match:
+    - uri:
+        prefix: /demo/checkout
+    route:
+    - destination:
+        host: checkout
+        subset: v1
+        port:
+          number: 9080
+  - match:
+    - uri:
+        prefix: /demo/fault
+    fault:
+      abort:
+        httpStatus: 503
+        percentage:
+          value: 100
+    route:
+    - destination:
+        host: productpage
+        subset: v1
+        port:
+          number: 9080
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: reviews
+  namespace: meshscope-demo
+spec:
+  hosts:
+  - reviews
+  http:
+  - route:
+    - destination:
+        host: reviews
+        subset: v1
+      weight: 70
+    - destination:
+        host: reviews
+        subset: v2
+      weight: 30
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: productpage-local-ratelimit
+  namespace: meshscope-demo
+spec:
+  workloadSelector:
+    labels:
+      app: productpage
+  configPatches:
+  - applyTo: HTTP_FILTER
+    match:
+      context: SIDECAR_INBOUND
+      listener:
+        filterChain:
+          filter:
+            name: envoy.filters.network.http_connection_manager
+    patch:
+      operation: INSERT_BEFORE
+      value:
+        name: envoy.filters.http.local_ratelimit
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.http.local_ratelimit.v3.LocalRateLimit
+          stat_prefix: productpage_http_local_rl
+          token_bucket:
+            max_tokens: 8
+            tokens_per_fill: 8
+            fill_interval: 1s

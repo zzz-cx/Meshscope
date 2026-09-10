@@ -1,27 +1,40 @@
-"""TrafficSplitValidator —— 验证流量分割是否符合预期权重分布。
+"""TrafficSplitValidator —— 按观察链核对分流权重和落到的服务。
 
-使用 Prometheus pre/after 增量校验：执行前快照、发 N 次请求、等待 12s、执行后快照，求增量。
+顺序：HTTP 响应体/头 → Prometheus 增量 → Envoy access log → Jaeger。
+没有可用信号就失败，不再把「无增量」标成通过。
 """
 
 import math
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from istio_Dynamic_Test.internal.models.testcase import (
     CollectionResult,
     ExecutionResult,
     TestCase,
     ValidationDetail,
-    ValidationResult,
     ValidationStatus,
+    ValidationResult,
+)
+from istio_Dynamic_Test.internal.traffic.split_observe import (
+    counts_to_percent,
+    normalize_percent_weights,
+    version_signal_usable,
 )
 from .base import BaseValidator
 
 
-# 最小增量样本数，低于此值建议增加请求
-MIN_DELTA_SAMPLES = 20
+MIN_SAMPLES = 20
+
+_SOURCE_LABEL = {
+    "http_body": "入口HTTP响应体/头",
+    "prometheus": "Prometheus istio_requests_total",
+    "envoy_access_log": "Envoy access log",
+    "jaeger": "Jaeger/Zipkin traces",
+}
+
 
 class TrafficSplitValidator(BaseValidator):
-    """基于 Prometheus 的流量分布验证：固定 N 次请求 + pre/after 增量校验。"""
+    """分流验证：body 可用用 body，否则用可观测工具。"""
 
     def __init__(
         self,
@@ -39,79 +52,74 @@ class TrafficSplitValidator(BaseValidator):
         execution: Optional[ExecutionResult] = None,
         collection: Optional[CollectionResult] = None,
     ) -> ValidationResult:
-        details = []
-        expected_dist = test_case.expected_distribution
-
-        if not expected_dist:
+        expected = normalize_percent_weights(test_case.expected_distribution)
+        if not expected:
             return ValidationResult(
                 case_id=test_case.case_id,
                 overall_status=ValidationStatus.SKIPPED,
                 summary="未配置期望分布，跳过",
             )
 
-        # 使用 Collector 的 pre/after Prometheus 增量
-        pm = (collection and collection.prometheus_metrics) or {}
-        if "_error" in pm:
-            details.append(ValidationDetail(
-                dimension="流量分布",
-                status=ValidationStatus.FAILED,
-                message=f"Prometheus 采集失败: {pm['_error']}",
-            ))
+        observed = self._observe(execution, collection, expected)
+        counts = observed.get("counts") or {}
+        actual = observed.get("percentages") or {}
+        total = int(observed.get("total") or 0)
+        source = observed.get("source") or "none"
+        landed = observed.get("landed_services") or {}
+        tried = observed.get("tried") or []
+
+        if total == 0:
+            exec_codes = (execution.status_codes if execution else {}) or {}
             return ValidationResult(
                 case_id=test_case.case_id,
                 overall_status=ValidationStatus.FAILED,
-                details=details,
-                summary="流量分割验证: Prometheus 采集失败",
-            )
-
-        total = pm.get("total_requests", 0)
-        actual_pct = pm.get("version_percentages", {})
-        version_dist = pm.get("traffic_distribution", {})
-
-        if total == 0:
-            details.append(ValidationDetail(
-                dimension="流量分布",
-                status=ValidationStatus.SKIPPED,
-                message="Prometheus 无增量数据（请确保执行了请求且 Prometheus 可访问）",
-            ))
-            return ValidationResult(
-                case_id=test_case.case_id,
-                overall_status=ValidationStatus.SKIPPED,
-                details=details,
-                summary="流量分割验证: 无数据",
-            )
-
-        # 增量过少时建议多次少量请求
-        if total < MIN_DELTA_SAMPLES:
-            return ValidationResult(
-                case_id=test_case.case_id,
-                overall_status=ValidationStatus.SKIPPED,
                 details=[ValidationDetail(
                     dimension="流量分布",
-                    status=ValidationStatus.SKIPPED,
-                    message=f"增量过少({total} < {MIN_DELTA_SAMPLES})，建议多次少量请求(如 20×10) 以稳定分布",
-                    expected=expected_dist,
-                    actual=actual_pct,
-                    details={"total": total, "version_distribution": version_dist},
+                    status=ValidationStatus.FAILED,
+                    message=(
+                        "真实入口已打流，但响应体无法识别 subset，"
+                        f"且可观测回退也没有版本增量（tried={tried or ['http_body']}，"
+                        f"status_codes={exec_codes}）。"
+                    ),
+                    expected=expected,
+                    actual={},
+                    details={"tried": tried, "source": source},
                 )],
-                summary=f"流量分割验证: 增量过少，建议增加请求",
+                summary="流量分割验证未通过: 无可用的 subset 观察信号",
             )
 
-        # 合理波动范围：二项分布 95% 置信 + 抓取延迟噪声 + 小样本放宽
-        base_margin = max(0.15, test_case.margin_of_error)
-        margin = self._effective_margin(expected_dist, total, base_margin)
-        # 抓取延迟等噪声，容差额外 +8%
-        margin += 0.08
-        # 小样本（< 100）时再放宽
+        if total < MIN_SAMPLES:
+            return ValidationResult(
+                case_id=test_case.case_id,
+                overall_status=ValidationStatus.FAILED,
+                details=[ValidationDetail(
+                    dimension="流量分布",
+                    status=ValidationStatus.FAILED,
+                    message=f"可统计样本过少({total} < {MIN_SAMPLES})，来源 {source}",
+                    expected=expected,
+                    actual=actual,
+                    details={
+                        "total": total,
+                        "version_distribution": counts,
+                        "source": source,
+                        "tried": tried,
+                    },
+                )],
+                summary="流量分割验证未通过: 样本不足",
+            )
+
+        base_margin = float(test_case.margin_of_error or 0.1)
+        margin_pp = base_margin * 100.0 if base_margin <= 1.0 else base_margin
+        margin_pp = max(margin_pp, self._binomial_margin_pp(expected, total))
         if total < 100:
-            margin += 0.05
+            margin_pp += 5.0
 
         all_pass = True
         version_details = {}
-        for ver, expected_w in expected_dist.items():
-            actual_w = actual_pct.get(ver, 0.0)
+        for ver, expected_w in expected.items():
+            actual_w = float(actual.get(ver, 0.0) or 0.0)
             dev = abs(actual_w - expected_w)
-            ok = dev <= margin
+            ok = dev <= margin_pp
             if not ok:
                 all_pass = False
             version_details[ver] = {
@@ -121,47 +129,125 @@ class TrafficSplitValidator(BaseValidator):
                 "passed": ok,
             }
 
-        status = ValidationStatus.PASSED if all_pass else ValidationStatus.FAILED
-        # 输出流量数据对比日志
-        comp_parts = [f"{v}: 期望{expected_dist.get(v,0):.0%} 实际{actual_pct.get(v,0):.0%}({version_dist.get(v,0)}次)" for v in expected_dist]
-        print(f"  [TRAFFIC_SPLIT] 增量 N={total} | {' | '.join(comp_parts)} | {'通过' if all_pass else '未通过'}")
-        details.append(ValidationDetail(
-            dimension="流量分布(固定N次+Prometheus增量)",
+        expected_svc = (test_case.host or test_case.source_service or "").split(".")[0]
+        landed_ok = True
+        landed_msg = ""
+        if expected_svc and expected_svc not in {"*", ""} and landed:
+            top_svc = max(landed.items(), key=lambda kv: kv[1])[0]
+            if top_svc != expected_svc:
+                landed_ok = False
+                landed_msg = f"落到的服务 {top_svc} 与期望 {expected_svc} 不一致"
+            else:
+                landed_msg = f"落到的服务 {top_svc} 与期望一致"
+
+        status = ValidationStatus.PASSED if all_pass and landed_ok else ValidationStatus.FAILED
+        src_label = _SOURCE_LABEL.get(source, source)
+        parts = [
+            f"{v}: 期望{expected.get(v, 0):.0f}% 实际{actual.get(v, 0):.0f}%({counts.get(v, 0)}次)"
+            for v in expected
+        ]
+        print(f"  [TRAFFIC_SPLIT] {source} N={total} | {' | '.join(parts)} | {'通过' if status == ValidationStatus.PASSED else '未通过'}")
+        details = [ValidationDetail(
+            dimension=f"流量分布({src_label})",
             status=status,
-            message=self._summary_msg(version_details, margin),
-            expected=expected_dist,
-            actual=actual_pct,
+            message=self._summary_msg(version_details, margin_pp, landed_msg),
+            expected=expected,
+            actual=actual,
             deviation=self._avg_dev(version_details),
             details={
                 "version_details": version_details,
                 "total": total,
-                "margin": margin,
-                "version_distribution": version_dist,
+                "margin": margin_pp,
+                "version_distribution": counts,
+                "weights": actual,
+                "landed_services": landed,
+                "source": source,
+                "tried": tried,
+                "entry_url": ((execution.metadata if execution else {}) or {}).get("entry_url"),
             },
-        ))
-
-        overall = details[0].status if details else ValidationStatus.SKIPPED
+        )]
         return ValidationResult(
             case_id=test_case.case_id,
-            overall_status=overall,
+            overall_status=status,
             details=details,
-            summary=f"流量分割验证{'通过' if overall == ValidationStatus.PASSED else '未通过'}",
+            summary=f"流量分割验证{'通过' if status == ValidationStatus.PASSED else '未通过'}({src_label})",
+            metrics={"weights": actual, "counts": counts, "landed_services": landed, "source": source},
         )
 
-    # ── 内部方法 ──────────────────────────────────────────────────────────
+    def _observe(
+        self,
+        execution: Optional[ExecutionResult],
+        collection: Optional[CollectionResult],
+        expected: Dict[str, float],
+    ) -> Dict[str, Any]:
+        meta = (execution.metadata if execution else {}) or {}
+        coll_meta = (collection.metadata if collection else {}) or {}
+        tried: List[str] = []
+
+        body_counts = {k: int(v) for k, v in (meta.get("version_counts") or {}).items()}
+        if meta.get("body_usable") and version_signal_usable(body_counts, expected.keys()):
+            percents, total = counts_to_percent(body_counts, expected.keys())
+            return {
+                "counts": body_counts,
+                "percentages": percents,
+                "total": total,
+                "source": "http_body",
+                "landed_services": meta.get("landed_services") or {},
+                "tried": ["http_body"],
+            }
+        if body_counts:
+            tried.append("http_body")
+
+        pm = (collection.prometheus_metrics if collection else {}) or {}
+        pm_counts = {k: int(v or 0) for k, v in (pm.get("traffic_distribution") or {}).items() if k != "_error"}
+        tried.extend(coll_meta.get("tried") or [])
+        if pm_counts and "_error" not in pm and version_signal_usable(pm_counts, expected.keys()):
+            percents, total = counts_to_percent(pm_counts, expected.keys())
+            return {
+                "counts": pm_counts,
+                "percentages": percents,
+                "total": total,
+                "source": "prometheus",
+                "landed_services": meta.get("landed_services") or {},
+                "tried": tried or ["prometheus"],
+            }
+
+        for key, source in (
+            ("envoy_distribution", "envoy_access_log"),
+            ("jaeger_distribution", "jaeger"),
+        ):
+            dist = coll_meta.get(key) or {}
+            counts = {k: int(v or 0) for k, v in (dist.get("version_distribution") or {}).items()}
+            if version_signal_usable(counts, expected.keys()):
+                percents, total = counts_to_percent(counts, expected.keys())
+                return {
+                    "counts": counts,
+                    "percentages": percents,
+                    "total": total,
+                    "source": source,
+                    "landed_services": meta.get("landed_services") or {},
+                    "tried": tried or [source],
+                }
+
+        return {
+            "counts": {},
+            "percentages": {},
+            "total": 0,
+            "source": "none",
+            "landed_services": {},
+            "tried": tried or ["http_body"],
+        }
 
     @staticmethod
-    def _effective_margin(expected: Dict[str, float], n: int, base: float) -> float:
-        """基于二项分布 95% 置信区间的动态容错（与 curl_prometheus_monitor 一致）。"""
+    def _binomial_margin_pp(expected: Dict[str, float], n: int) -> float:
         if n <= 0:
-            return base
+            return 15.0
         margins = []
-        for p in expected.values():
-            p = max(0.0, min(1.0, float(p)))
+        for p100 in expected.values():
+            p = max(0.0, min(1.0, float(p100) / 100.0))
             se = math.sqrt(p * (1.0 - p) / n)
-            margins.append(1.96 * se)
-        dynamic = max(margins) + 0.01 if margins else 0.0
-        return max(base, dynamic)
+            margins.append(1.96 * se * 100.0)
+        return max(margins) + 1.0 if margins else 15.0
 
     @staticmethod
     def _avg_dev(vd: dict) -> float:
@@ -169,12 +255,13 @@ class TrafficSplitValidator(BaseValidator):
         return sum(devs) / len(devs) if devs else 0.0
 
     @staticmethod
-    def _summary_msg(vd: dict, margin: float) -> str:
+    def _summary_msg(vd: dict, margin: float, landed_msg: str) -> str:
         parts = []
         for ver, info in vd.items():
             icon = "PASS" if info["passed"] else "FAIL"
             parts.append(
-                f"{ver}: {info['actual']:.1%} (期望 {info['expected']:.1%}, "
-                f"偏差 {info['deviation']:.1%}) [{icon}]"
+                f"{ver}: {info['actual']:.1f}% (期望 {info['expected']:.1f}%, "
+                f"偏差 {info['deviation']:.1f}pp) [{icon}]"
             )
-        return f"容错±{margin:.1%} | " + " | ".join(parts)
+        extra = f" | {landed_msg}" if landed_msg else ""
+        return f"容错±{margin:.1f}pp | " + " | ".join(parts) + extra

@@ -65,7 +65,7 @@ DEFAULT_INGRESS_DEPLOYMENT = "istio-ingressgateway"
 DEFAULT_OUTPUT_DIR = "istio_config_parser/istio_monitor/istio_ingress_config"
 
 
-def _run_cmd(cmd: str, timeout: int = 60) -> Optional[str]:
+def _run_cmd(cmd: str, timeout: int = 90) -> Optional[str]:
     """执行 shell 命令"""
     try:
         result = subprocess.run(

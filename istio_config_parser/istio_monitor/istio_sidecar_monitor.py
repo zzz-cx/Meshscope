@@ -21,32 +21,42 @@ import argparse
 import threading
 import datetime
 import shutil
+import subprocess
 from typing import Dict, List, Any, Optional, Set
 from queue import Queue
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
+try:
+    from watchdog.observers import Observer
+    from watchdog.events import FileSystemEventHandler
+except ImportError:
+    Observer = None
+    FileSystemEventHandler = object
 import queue
 import yaml
 
 try:
     from .istio_api import IstioAPI
     from .export_control_plane_config import export_control_plane_config as do_export_control_plane
-    from .export_data_plane_config import parse_config_dump
+    from .export_data_plane_config import parse_config_dump, export_data_plane_config, export_namespace_sidecar_dumps
+    from .export_ingress_gateway_config import (
+        export_ingress_gateway_config,
+        get_ingress_gateway_pod,
+    )
+except ImportError:
+    sys.path.insert(0, os.path.dirname(__file__))
+    from istio_api import IstioAPI
+    from export_control_plane_config import export_control_plane_config as do_export_control_plane
+    from export_data_plane_config import parse_config_dump, export_data_plane_config, export_namespace_sidecar_dumps
+    from export_ingress_gateway_config import (
+        export_ingress_gateway_config,
+        get_ingress_gateway_pod,
+    )
+
+try:
     from kubernetes import client, config, watch
-except ImportError as e:
-    # 尝试相对导入
-    try:
-        import os
-        sys.path.insert(0, os.path.dirname(__file__))
-        from istio_api import IstioAPI
-        from export_control_plane_config import export_control_plane_config as do_export_control_plane
-        from export_data_plane_config import parse_config_dump
-        from kubernetes import client, config, watch
-    except ImportError as e2:
-        print(f"错误: {str(e2)}")
-        print("请确保已安装所有依赖:")
-        print("pip install -r requirements.txt")
-        sys.exit(1)
+except ImportError:
+    client = None
+    config = None
+    watch = None
 
 # 配置日志
 logging.basicConfig(
@@ -163,6 +173,10 @@ class IstioSidecarMonitor:
 
     def _init_k8s_client(self) -> None:
         """初始化 Kubernetes 客户端"""
+        self.k8s_client = None
+        if client is None or config is None:
+            logger.info("未安装 kubernetes 库，控制面采集将使用 kubectl")
+            return
         try:
             if self.k8s_host:
                 configuration = client.Configuration()
@@ -255,18 +269,53 @@ class IstioSidecarMonitor:
             logger.warning(f"从 K8s API 获取代理列表失败: {e}")
             return []
 
+    def _get_proxies_via_kubectl(self) -> List[str]:
+        """本机 kubectl 列出带 istio-proxy 的 Pod。"""
+        cmd = ["kubectl", "get", "pods", "-o", "json"]
+        if self.namespace == "all":
+            cmd = ["kubectl", "get", "pods", "-A", "-o", "json"]
+        else:
+            cmd = ["kubectl", "get", "pods", "-n", self.namespace, "-o", "json"]
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=20)
+            if result.returncode != 0:
+                logger.warning("kubectl get pods 失败: %s", (result.stderr or "")[:200])
+                return []
+            data = json.loads(result.stdout or "{}")
+            proxies = []
+            for pod in data.get("items") or []:
+                meta = pod.get("metadata") or {}
+                spec = pod.get("spec") or {}
+                status = pod.get("status") or {}
+                if status.get("phase") != "Running":
+                    continue
+                names = [c.get("name") for c in (spec.get("containers") or [])]
+                if "istio-proxy" in names:
+                    proxies.append(f"{meta.get('name')}.{meta.get('namespace') or self.namespace}")
+            return proxies
+        except Exception as e:
+            logger.warning("kubectl 获取代理列表失败: %s", e)
+            return []
+
     def _select_proxy(self) -> Optional[str]:
         """选择一个可用的代理"""
         try:
             # 优先使用已认证的 K8s API 获取代理（避免 istioctl/kubectl Unauthorized）
             proxies = self._get_proxies_from_k8s() if self.k8s_client else []
             if not proxies:
+                proxies = self._get_proxies_via_kubectl()
+            if not proxies:
                 proxies = self.api.get_proxies()
-            for proxy in proxies:
-                if self.namespace == "all" or proxy.endswith(f".{self.namespace}"):
-                    logger.info(f"已选择代理: {proxy}")
-                    return proxy
-            logger.error(f"在命名空间 {self.namespace} 中未找到可用的代理")
+            # 优先目标命名空间的 mesh sidecar，不要用 ingressgateway 冒充 sidecar dump
+            mesh = [p for p in proxies if "ingressgateway" not in p]
+            if self.namespace != "all":
+                in_ns = [p for p in mesh if p.endswith(f".{self.namespace}")]
+                if in_ns:
+                    mesh = in_ns
+            if mesh:
+                logger.info(f"已选择代理: {mesh[0]}")
+                return mesh[0]
+            logger.error(f"在命名空间 {self.namespace} 中未找到可用的 mesh sidecar")
             return None
         except Exception as e:
             logger.error(f"选择代理失败: {str(e)}")
@@ -374,19 +423,40 @@ class IstioSidecarMonitor:
         changes = {}
         
         try:
-            # 1. 获取控制平面配置
-            if self.k8s_client:
-                try:
-                    logger.info("获取控制平面配置")
-                    control_plane_configs = self._get_control_plane_configs()
-                    changes.update(control_plane_configs)
-                except Exception as e:
-                    logger.error(f"获取控制平面配置失败: {str(e)}")
-            
-            # 2. 获取数据平面配置
-            if not self.selected_proxy:
-                self.selected_proxy = self._select_proxy()
-            
+            logger.info("获取控制平面配置")
+            control_plane_configs = self._get_control_plane_configs()
+            changes.update(control_plane_configs)
+
+            ingress_dir = os.path.join(os.path.dirname(self.output_dir), "istio_ingress_config")
+            try:
+                if export_ingress_gateway_config(output_dir=ingress_dir, method="kubectl-exec"):
+                    changes["ingress_gateway"] = True
+                    logger.info("Ingress Gateway dump 已更新: %s", ingress_dir)
+            except Exception as e:
+                logger.warning("导出 Ingress Gateway 失败: %s", e)
+
+            sidecar_ok = False
+            target_ns = None if self.namespace == "all" else self.namespace
+            if target_ns:
+                sidecar_ok = export_namespace_sidecar_dumps(
+                    output_dir=self.output_dir,
+                    namespace=target_ns,
+                )
+            if not sidecar_ok:
+                if not self.selected_proxy:
+                    self.selected_proxy = self._select_proxy()
+                if self.selected_proxy and "." in self.selected_proxy:
+                    pod_name, pod_ns = self.selected_proxy.split(".", 1)
+                    sidecar_ok = export_data_plane_config(
+                        output_dir=self.output_dir,
+                        method="kubectl-exec",
+                        pod=pod_name,
+                        namespace=pod_ns,
+                    )
+            if sidecar_ok:
+                changes["sidecar_dump"] = True
+                return changes
+
             if not self.selected_proxy:
                 logger.error("未找到可用的代理")
                 return changes
@@ -439,24 +509,25 @@ class IstioSidecarMonitor:
 
     def _get_control_plane_configs(self) -> Dict[str, Any]:
         """获取控制平面配置（委托给 export_control_plane_config 模块）"""
-        if not self.k8s_client:
-            return {}
         try:
-            if self.configuration:
-                client.Configuration.set_default(self.configuration)
-                api_client = client.ApiClient(self.configuration)
+            if self.k8s_client and client is not None:
+                if self.configuration:
+                    client.Configuration.set_default(self.configuration)
+                    api_client = client.ApiClient(self.configuration)
+                else:
+                    api_client = client.ApiClient()
+                custom_api = client.CustomObjectsApi(api_client)
+                core_v1_api = client.CoreV1Api(api_client)
+                changes = do_export_control_plane(
+                    output_dir=self.control_plane_dir,
+                    k8s_client=custom_api,
+                    core_v1_api=core_v1_api,
+                )
             else:
-                api_client = client.ApiClient()
-            custom_api = client.CustomObjectsApi(api_client)
-            core_v1_api = client.CoreV1Api(api_client)
-            changes = do_export_control_plane(
-                output_dir=self.control_plane_dir,
-                k8s_client=custom_api,
-                core_v1_api=core_v1_api,
-            )
-            for config_key, data in changes.items():
+                changes = do_export_control_plane(output_dir=self.control_plane_dir)
+            for config_key, data in (changes or {}).items():
                 self.last_config_hashes[config_key] = self._calculate_hash(data)
-            return changes
+            return changes or {}
         except Exception as e:
             logger.error(f"获取控制平面配置失败: {str(e)}")
             return {}

@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Istio 服务拓扑可视化</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.26.0/cytoscape.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: white;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .main-view {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .toolbar {
+            background: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        #cy {
+            flex: 1;
+            background: white;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+
+        .info-section {
+            margin-bottom: 20px;
+        }
+
+        .info-section h3 {
+            color: #667eea;
+            font-size: 14px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 13px;
+        }
+
+        .stat-value {
+            color: #333;
+            font-weight: bold;
+            font-size: 13px;
+        }
+
+        .filter-group {
+            margin-bottom: 15px;
+        }
+
+        .filter-group label {
+            display: block;
+            color: #666;
+            font-size: 12px;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        select, input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background: #5568d3;
+        }
+
+        .detail-panel {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 350px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            padding: 20px;
+            display: none;
+        }
+
+        .detail-panel.show {
+            display: block;
+        }
+
+        .detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .detail-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .detail-content {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .config-item {
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+
+        .config-key {
+            color: #667eea;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .config-value {
+            color: #333;
+            font-size: 13px;
+            margin-top: 5px;
+        }
+
+        .legend {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .service-dot { background: #4CAF50; }
+        .subset-dot { background: #2196F3; }
+        .routing-line { width: 20px; height: 3px; background: #FF5722; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <h1>🔍 Istio 拓扑分析</h1>
+            
+            <div class="info-section">
+                <h3>统计信息</h3>
+                <div class="stat">
+                    <span class="stat-label">总服务数</span>
+                    <span class="stat-value" id="total-services">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">子集数</span>
+                    <span class="stat-value" id="total-subsets">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">路由边</span>
+                    <span class="stat-value" id="total-edges">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">配置项</span>
+                    <span class="stat-value" id="total-configs">0</span>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h3>过滤器</h3>
+                
+                <div class="filter-group">
+                    <label>命名空间</label>
+                    <select id="namespace-filter">
+                        <option value="all">全部</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label>节点类型</label>
+                    <select id="type-filter">
+                        <option value="all">全部</option>
+                        <option value="service">仅服务</option>
+                        <option value="subset">仅子集</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label>搜索服务</label>
+                    <input type="text" id="search-input" placeholder="输入服务名...">
+                </div>
+
+                <button class="btn" onclick="resetFilters()">重置过滤器</button>
+            </div>
+
+            <div class="info-section">
+                <h3>布局</h3>
+                <div class="filter-group">
+                    <select id="layout-selector" onchange="changeLayout()">
+                        <option value="cose">力导向布局</option>
+                        <option value="circle">圆形布局</option>
+                        <option value="grid">网格布局</option>
+                        <option value="breadthfirst">层次布局</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h3>图例</h3>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-dot service-dot"></div>
+                        <span>服务</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot subset-dot"></div>
+                        <span>子集</span>
+                    </div>
+                </div>
+                <div class="legend" style="margin-top: 10px;">
+                    <div class="legend-item">
+                        <div class="routing-line"></div>
+                        <span>路由</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主视图 -->
+        <div class="main-view">
+            <div class="toolbar">
+                <h2 style="margin: 0; color: #333; font-size: 18px;">服务网格拓扑图</h2>
+                <div style="flex: 1;"></div>
+                <button class="btn" onclick="fitGraph()">适应视图</button>
+                <button class="btn" onclick="exportPNG()">导出图片</button>
+            </div>
+            <div id="cy"></div>
+        </div>
+    </div>
+
+    <!-- 详情面板 -->
+    <div class="detail-panel" id="detail-panel">
+        <div class="detail-header">
+            <div class="detail-title" id="detail-title">服务详情</div>
+            <button class="close-btn" onclick="closeDetail()">&times;</button>
+        </div>
+        <div class="detail-content" id="detail-content">
+            <!-- 动态内容 -->
+        </div>
+    </div>
+
+    <script>
+        let cy;
+        let graphData;
+
+        // 加载数据并初始化图
+        async function loadData() {
+            try {
+                const response = await fetch('models_output/graph_visualization_data.json');
+                graphData = await response.json();
+                initGraph();
+                updateStats();
+                populateNamespaceFilter();
+            } catch (error) {
+                console.error('加载数据失败:', error);
+                alert('请确保 models_output/graph_visualization_data.json 文件存在');
+            }
+        }
+
+        function initGraph() {
+            // 转换数据格式
+            const elements = [];
+            
+            // 添加节点
+            graphData.nodes.forEach(node => {
+                elements.push({
+                    data: {
+                        id: node.id,
+                        label: node.service_name || node.subset_name,
+                        type: node.type,
+                        namespace: node.namespace,
+                        configs: node.configs || {},
+                        subsets: node.subsets || [],
+                        parent_service: node.parent_service
+                    },
+                    classes: node.type
+                });
+            });
+
+            // 添加边
+            graphData.edges.forEach((edge, idx) => {
+                elements.push({
+                    data: {
+                        id: `edge-${idx}`,
+                        source: edge.from,
+                        target: edge.to,
+                        weight: edge.weight || 100,
+                        type: edge.type,
+                        plane: edge.plane || ''
+                    },
+                    classes: edge.type
+                });
+            });
+
+            // 初始化Cytoscape
+            cy = cytoscape({
+                container: document.getElementById('cy'),
+                elements: elements,
+                style: [
+                    {
+                        selector: 'node.service',
+                        style: {
+                            'background-color': '#4CAF50',
+                            'label': 'data(label)',
+                            'width': 60,
+                            'height': 60,
+                            'text-valign': 'center',
+                            'text-halign': 'center',
+                            'font-size': '12px',
+                            'color': '#333',
+                            'text-outline-width': 2,
+                            'text-outline-color': '#fff',
+                            'border-width': 2,
+                            'border-color': '#388E3C'
+                        }
+                    },
+                    {
+                        selector: 'node.subset',
+                        style: {
+                            'background-color': '#2196F3',
+                            'label': 'data(label)',
+                            'width': 40,
+                            'height': 40,
+                            'font-size': '10px',
+                            'color': '#fff',
+                            'text-outline-width': 1,
+                            'text-outline-color': '#1976D2',
+                            'border-width': 2,
+                            'border-color': '#1976D2'
+                        }
+                    },
+                    {
+                        selector: 'edge.routing',
+                        style: {
+                            'width': ele => Math.max(2, ele.data('weight') / 20),
+                            'line-color': '#FF5722',
+                            'target-arrow-color': '#FF5722',
+                            'target-arrow-shape': 'triangle',
+                            'curve-style': 'bezier',
+                            'label': ele => ele.data('weight') !== 100 ? `${ele.data('weight')}%` : '',
+                            'font-size': '10px',
+                            'color': '#FF5722',
+                            'text-outline-width': 2,
+                            'text-outline-color': '#fff'
+                        }
+                    },
+                    {
+                        selector: 'edge.contains',
+                        style: {
+                            'line-style': 'dashed',
+                            'line-color': '#BDBDBD',
+                            'width': 1,
+                            'target-arrow-shape': 'none'
+                        }
+                    },
+                    {
+                        selector: 'node:selected',
+                        style: {
+                            'border-width': 4,
+                            'border-color': '#FFC107'
+                        }
+                    }
+                ],
+                layout: {
+                    name: 'cose',
+                    animate: true,
+                    animationDuration: 1000,
+                    nodeRepulsion: 8000,
+                    idealEdgeLength: 100,
+                    edgeElasticity: 100
+                }
+            });
+
+            // 添加交互事件
+            cy.on('tap', 'node', function(evt) {
+                const node = evt.target;
+                showNodeDetails(node);
+            });
+
+            cy.on('mouseover', 'node', function(evt) {
+                const node = evt.target;
+                node.connectedEdges().addClass('highlighted');
+            });
+
+            cy.on('mouseout', 'node', function(evt) {
+                const node = evt.target;
+                node.connectedEdges().removeClass('highlighted');
+            });
+
+            // 搜索功能
+            document.getElementById('search-input').addEventListener('input', function(e) {
+                const searchTerm = e.target.value.toLowerCase();
+                cy.nodes().forEach(node => {
+                    const label = node.data('label').toLowerCase();
+                    if (searchTerm === '' || label.includes(searchTerm)) {
+                        node.style('opacity', 1);
+                    } else {
+                        node.style('opacity', 0.2);
+                    }
+                });
+            });
+        }
+
+        function showNodeDetails(node) {
+            const data = node.data();
+            const panel = document.getElementById('detail-panel');
+            const title = document.getElementById('detail-title');
+            const content = document.getElementById('detail-content');
+
+            title.textContent = `${data.label} (${data.type})`;
+
+            let html = `
+                <div class="config-item">
+                    <div class="config-key">ID</div>
+                    <div class="config-value">${data.id}</div>
+                </div>
+                <div class="config-item">
+                    <div class="config-key">命名空间</div>
+                    <div class="config-value">${data.namespace || 'N/A'}</div>
+                </div>
+            `;
+
+            if (data.type === 'service') {
+                html += `
+                    <div class="config-item">
+                        <div class="config-key">子集</div>
+                        <div class="config-value">${data.subsets.length > 0 ? data.subsets.join(', ') : '无'}</div>
+                    </div>
+                `;
+
+                if (Object.keys(data.configs).length > 0) {
+                    html += `<h4 style="margin: 15px 0 10px 0; color: #667eea;">配置项</h4>`;
+                    for (const [key, value] of Object.entries(data.configs)) {
+                        html += `
+                            <div class="config-item">
+                                <div class="config-key">${key}</div>
+                                <div class="config-value">${JSON.stringify(value, null, 2)}</div>
+                            </div>
+                        `;
+                    }
+                }
+            }
+
+            content.innerHTML = html;
+            panel.classList.add('show');
+        }
+
+        function closeDetail() {
+            document.getElementById('detail-panel').classList.remove('show');
+        }
+
+        function updateStats() {
+            const services = graphData.nodes.filter(n => n.type === 'service').length;
+            const subsets = graphData.nodes.filter(n => n.type === 'subset').length;
+            const edges = graphData.edges.filter(e => e.type === 'routing').length;
+            const configs = graphData.nodes.reduce((sum, n) => 
+                sum + Object.keys(n.configs || {}).length, 0);
+
+            document.getElementById('total-services').textContent = services;
+            document.getElementById('total-subsets').textContent = subsets;
+            document.getElementById('total-edges').textContent = edges;
+            document.getElementById('total-configs').textContent = configs;
+        }
+
+        function populateNamespaceFilter() {
+            const namespaces = new Set(graphData.nodes.map(n => n.namespace).filter(Boolean));
+            const select = document.getElementById('namespace-filter');
+            
+            namespaces.forEach(ns => {
+                const option = document.createElement('option');
+                option.value = ns;
+                option.textContent = ns;
+                select.appendChild(option);
+            });
+
+            select.addEventListener('change', function(e) {
+                const namespace = e.target.value;
+                cy.nodes().forEach(node => {
+                    if (namespace === 'all' || node.data('namespace') === namespace) {
+                        node.style('display', 'element');
+                    } else {
+                        node.style('display', 'none');
+                    }
+                });
+            });
+        }
+
+        function changeLayout() {
+            const layoutName = document.getElementById('layout-selector').value;
+            cy.layout({
+                name: layoutName,
+                animate: true,
+                animationDuration: 1000
+            }).run();
+        }
+
+        function resetFilters() {
+            document.getElementById('namespace-filter').value = 'all';
+            document.getElementById('type-filter').value = 'all';
+            document.getElementById('search-input').value = '';
+            cy.nodes().style('opacity', 1).style('display', 'element');
+        }
+
+        function fitGraph() {
+            cy.fit();
+        }
+
+        function exportPNG() {
+            const png = cy.png({
+                full: true,
+                scale: 2
+            });
+            const link = document.createElement('a');
+            link.href = png;
+            link.download = 'istio-topology.png';
+            link.click();
+        }
+
+        // 页面加载时初始化
+        window.onload = loadData;
+    </script>
+</body>
+</html>
+
