@@ -27,9 +27,9 @@ docker build -t meshscope:latest .
 docker run -it --rm \
   -v $(pwd)/results:/app/results \
   meshscope:latest e2e \
-  --vm-host 192.168.92.131 \
+  --vm-host 192.0.2.10 \
   --vm-user root \
-  --vm-password 12345678
+  --vm-password <SSH_PASSWORD>
 
 # 静态分析
 docker run -it --rm \
@@ -58,13 +58,13 @@ docker run -it --rm \
 
 ```bash
 chmod +x docker-exec.sh
-./docker-exec.sh e2e --vm-host 192.168.92.131
+./docker-exec.sh e2e --vm-host 192.0.2.10
 ```
 
 #### Windows PowerShell
 
 ```powershell
-.\docker-exec.ps1 e2e -VmHost "192.168.92.131" -VmPassword "12345678"
+.\docker-exec.ps1 e2e -VmHost "192.0.2.10" -VmPassword "<SSH_PASSWORD>"
 ```
 
 ### 方式3：直接执行任意脚本
@@ -146,11 +146,11 @@ ssh -V
 docker run -it --rm \
   -v $(pwd)/results:/app/results \
   meshscope:latest e2e \
-  --vm-host 192.168.92.131 \
+  --vm-host 192.0.2.10 \
   --vm-user root \
-  --vm-password 12345678 \
+  --vm-password <SSH_PASSWORD> \
   --namespace default \
-  --ingress-url http://192.168.92.131:30476/productpage
+  --ingress-url http://192.0.2.10:30476/productpage
 ```
 
 ### 示例2：分步执行
@@ -175,7 +175,7 @@ docker run -it --rm \
   -v $(pwd)/results:/app/results \
   meshscope:latest dynamic \
   -i results/output_matrix.json \
-  --ssh-host 192.168.92.131
+  --ssh-host 192.0.2.10
 
 # 4. 一致性检查
 docker run -it --rm \
@@ -226,9 +226,9 @@ docker run -it --rm \
 ```bash
 docker run -it --rm \
   -v $(pwd)/results:/app/results \
-  -e VM_HOST=192.168.92.131 \
+  -e VM_HOST=192.0.2.10 \
   -e VM_USER=root \
-  -e VM_PASSWORD=12345678 \
+  -e VM_PASSWORD=<SSH_PASSWORD> \
   -e NAMESPACE=default \
   meshscope:latest e2e
 ```

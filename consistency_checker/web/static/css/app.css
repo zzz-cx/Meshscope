@@ -370,6 +370,17 @@ details.raw pre {
   }
 }
 
+.dynamic-case { border:1px solid var(--line); border-radius:4px; padding:14px; margin:12px 0; background:var(--bg); }
+.dynamic-case summary { cursor:pointer; line-height:1.8; }
+.dynamic-case summary .badge { margin-left:8px; }
+.dynamic-facts, .dynamic-packets { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin-top:12px; }
+.dynamic-facts > div { padding:12px; background:var(--panel); border:1px solid var(--line); }
+.dynamic-facts span { display:block; color:var(--muted); font-size:12px; margin-bottom:7px; }
+.dynamic-facts strong, .dynamic-facts code { display:block; overflow-wrap:anywhere; }
+.dynamic-facts p { margin:6px 0 0; line-height:1.7; }
+.dynamic-packets pre { white-space:pre-wrap; overflow-wrap:anywhere; padding:12px; background:var(--panel); border:1px solid var(--line); line-height:1.7; font-size:12px; }
+@media (max-width:800px) { .dynamic-facts, .dynamic-packets { grid-template-columns:1fr; } }
+
 .graph-frame {
   width: 100%; height: calc(100vh - 140px);
   border: 1px solid var(--line); border-radius: 0; background: var(--bg);
@@ -401,6 +412,7 @@ body.graph-page .graph-frame {
 .panel-head .row { margin-top: 0; }
 .report-three {
   display: flex;
+  flex-direction: column;
   gap: 14px;
   margin-top: 10px;
   align-items: flex-start;
@@ -408,20 +420,31 @@ body.graph-page .graph-frame {
 .report-mid {
   flex: 1;
   min-width: 0;
+  width: 100%;
+  overflow-x: auto;
 }
 .report-drawer {
-  width: 420px;
-  max-width: 42vw;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
   flex-shrink: 0;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 12px;
-  overflow: auto;
-  max-height: calc(100vh - 240px);
+  overflow-x: auto;
+  max-height: none;
 }
 .report-drawer .panel { margin-bottom: 0; }
-.report-drawer .lead { margin-bottom: 0; }
+.report-drawer .lead { margin: 8px 0 14px; line-height: 1.75; }
+.report-drawer .sugs li { margin: 8px 0; line-height: 1.75; }
+.report-drawer .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.report-drawer .cmp { width: 100%; table-layout: fixed; }
+.report-drawer .cmp th, .report-drawer .cmp td { overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+  .report-drawer .facts { grid-template-columns: 1fr; }
+  .report-drawer { padding: 8px; }
+}
 .ep-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));

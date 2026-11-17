@@ -11,7 +11,7 @@ import os
 import re
 from typing import Any, Dict, List, Optional, Tuple
 
-from istio_Dynamic_Test.internal.models.testcase import PolicyType, TestCase, TestSuite, TestType
+from istio_Dynamic_Test.internal.models.testcase import PolicyType, TestCase, TestSuite, TestType, requires_controlled_stimulus
 from istio_Dynamic_Test.pkg.k8s.ingress_shard import synth_ingress_vs_name_for_case
 from istio_Dynamic_Test.pkg.k8s.meshscope_naming import resolve_meshscope_svc
 
@@ -77,6 +77,8 @@ def _bundle_group_key(
 ) -> Optional[Tuple[str, str]]:
     """可打包行返回 (vs_name, kind)，否则 None。kind: cfg_abort | cfg_delay | cfg_fto。"""
     if tc.metadata.get("is_orthogonal_fault_bundle"):
+        return None
+    if requires_controlled_stimulus(tc):
         return None
     if tc.test_type != TestType.SINGLE_REQUEST:
         return None

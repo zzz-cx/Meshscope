@@ -46,6 +46,10 @@
             flex-shrink: 0;
         }
         .center { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg); }
+        @media (max-width: 900px) {
+            .right { display: none; }
+            .left { width: 190px; }
+        }
         .toolbar {
             background: var(--panel);
             padding: 6px 12px;
@@ -407,13 +411,13 @@
 
             for (const fetchUrl of candidates) {
                 try {
-                    const res = await fetch(fetchUrl);
+                    const res = await fetch(fetchUrl, {headers: params.get("demo") === "1" ? {"X-ConfigPilot-Demo": "1"} : {}});
                     if (!res.ok) continue;
                     const data = await res.json();
                     if (data.error || !data.nodes) continue;
                     graphData = data;
                     initGraph();
-                    $("data-source").textContent = "已加载: " + (reportId || fetchUrl);
+                    $("data-source").textContent = params.get("demo") === "1" ? "演示数据 · 模拟结果" : "已加载: " + (reportId || fetchUrl);
                     return;
                 } catch (e) {
                     console.warn("加载失败", fetchUrl, e);

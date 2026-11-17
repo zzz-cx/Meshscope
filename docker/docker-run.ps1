@@ -6,7 +6,7 @@ param(
     [switch]$Web,
     [switch]$Clean,
     [switch]$Help,
-    [string]$VmHost = $env:VM_HOST ?? "192.168.92.131",
+    [string]$VmHost = $env:VM_HOST ?? "",
     [string]$VmUser = $env:VM_USER ?? "root",
     [string]$VmPassword = $env:VM_PASSWORD ?? "",
     [string]$Namespace = $env:NAMESPACE ?? "default",
@@ -123,7 +123,7 @@ MeshScope Docker 快速启动脚本 (PowerShell)
     -Help               显示帮助信息
 
 参数:
-    -VmHost             虚拟机主机地址 (默认: 192.168.92.131)
+    -VmHost             虚拟机主机地址 (默认: 192.0.2.10)
     -VmUser             SSH 用户名 (默认: root)
     -VmPassword         SSH 密码
     -Namespace          Kubernetes 命名空间 (默认: default)
@@ -132,8 +132,8 @@ MeshScope Docker 快速启动脚本 (PowerShell)
 
 环境变量:
     也可以通过环境变量设置:
-    `$env:VM_HOST = "192.168.92.131"
-    `$env:VM_PASSWORD = "12345678"
+    `$env:VM_HOST = "192.0.2.10"
+    `$env:VM_PASSWORD = "<SSH_PASSWORD>"
     `$env:NAMESPACE = "default"
 
 示例:
@@ -141,14 +141,14 @@ MeshScope Docker 快速启动脚本 (PowerShell)
     .\docker-run.ps1 -Build
 
     # 运行端到端验证
-    .\docker-run.ps1 -Run -VmHost "192.168.92.131" -VmPassword "12345678"
+    .\docker-run.ps1 -Run -VmHost "192.0.2.10" -VmPassword "<SSH_PASSWORD>"
 
     # 启动 Web 服务
     .\docker-run.ps1 -Web
 
     # 使用环境变量
-    `$env:VM_HOST = "192.168.92.131"
-    `$env:VM_PASSWORD = "12345678"
+    `$env:VM_HOST = "192.0.2.10"
+    `$env:VM_PASSWORD = "<SSH_PASSWORD>"
     .\docker-run.ps1 -Run
 "@
 }

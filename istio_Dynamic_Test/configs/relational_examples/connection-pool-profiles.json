@@ -1,0 +1,14 @@
+[
+  {
+    "kind": "pool",
+    "rule_name": "tested",
+    "backend_contract": "configpilot.controlled-http-backend/1",
+    "samples": 400,
+    "request": {
+      "host": "complex-pool.audit.invalid",
+      "path": "/test/item?q=1",
+      "method": "GET",
+      "headers": {}
+    }
+  }
+]

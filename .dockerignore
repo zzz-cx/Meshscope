@@ -71,3 +71,28 @@ docker-compose*.yml
 *.bak
 *.backup
 
+
+# Private configuration and local research artifacts
+configpilot.json
+configpilot.local.*
+.env.*
+archive/
+submission/
+output/
+evaluation/
+experiments/
+benchmarks/
+tmp/
+*.pem
+*.key
+*.p12
+*.pfx
+kubeconfig*
+.ssh/
+.kube/
+istio_config_parser/istio_monitor/istio_control_config/
+istio_config_parser/istio_monitor/istio_sidecar_config/
+istio_config_parser/istio_monitor/istio_ingress_config/
+istio_config_parser/models_output/
+istio_Dynamic_Test/configs/output_matrix.json
+istio_Dynamic_Test/configs/istio_config.json

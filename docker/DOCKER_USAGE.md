@@ -19,14 +19,14 @@ docker build -t meshscope:latest .
 ```bash
 # 使用 docker-exec.sh
 chmod +x docker-exec.sh
-./docker-exec.sh e2e --vm-host 192.168.92.131
+./docker-exec.sh e2e --vm-host 192.0.2.10
 ```
 
 #### Windows PowerShell
 
 ```powershell
 # 使用 docker-exec.ps1
-.\docker-exec.ps1 e2e -VmHost "192.168.92.131" -VmPassword "12345678"
+.\docker-exec.ps1 e2e -VmHost "192.0.2.10" -VmPassword "<SSH_PASSWORD>"
 ```
 
 ### 方式2：直接使用 Docker 命令
@@ -36,9 +36,9 @@ chmod +x docker-exec.sh
 docker run -it --rm \
   -v $(pwd)/results:/app/results \
   meshscope:latest e2e \
-  --vm-host 192.168.92.131 \
+  --vm-host 192.0.2.10 \
   --vm-user root \
-  --vm-password 12345678
+  --vm-password <SSH_PASSWORD>
 
 # 静态分析
 docker run -it --rm \
@@ -71,11 +71,11 @@ docker run -it --rm \
 docker run -it --rm \
   -v $(pwd)/results:/app/results \
   meshscope:latest e2e \
-  --vm-host 192.168.92.131 \
+  --vm-host 192.0.2.10 \
   --vm-user root \
-  --vm-password 12345678 \
+  --vm-password <SSH_PASSWORD> \
   --namespace default \
-  --ingress-url http://192.168.92.131:30476/productpage
+  --ingress-url http://192.0.2.10:30476/productpage
 ```
 
 **参数：**
@@ -128,7 +128,7 @@ docker run -it --rm \
   -v $(pwd)/results:/app/results \
   meshscope:latest dynamic \
   -i output_matrix.json \
-  --ssh-host 192.168.92.131
+  --ssh-host 192.0.2.10
 ```
 
 ### 5. Web 服务 (`web`)
@@ -207,9 +207,9 @@ docker run -it --rm \
 ```bash
 docker run -it --rm \
   -v $(pwd)/results:/app/results \
-  -e VM_HOST=192.168.92.131 \
+  -e VM_HOST=192.0.2.10 \
   -e VM_USER=root \
-  -e VM_PASSWORD=12345678 \
+  -e VM_PASSWORD=<SSH_PASSWORD> \
   meshscope:latest e2e
 ```
 
@@ -313,7 +313,7 @@ docker run -it --rm \
   -v $(pwd)/results:/app/results \
   meshscope:latest dynamic \
   -i results/output_matrix.json \
-  --ssh-host 192.168.92.131
+  --ssh-host 192.0.2.10
 
 # 4. 一致性检查
 docker run -it --rm \
@@ -333,7 +333,7 @@ services:
     image: meshscope:latest
     volumes:
       - ./results:/app/results
-    command: e2e --vm-host 192.168.92.131
+    command: e2e --vm-host 192.0.2.10
 ```
 
 ```bash

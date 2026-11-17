@@ -110,7 +110,7 @@ def get_tracing_config(
     env_url = os.environ.get("ZIPKIN_URL") or os.environ.get("JAEGER_URL")
     if env_url:
         url = env_url.rstrip("/")
-        # TRACING_HOST 覆盖 host（用于 port-forward 在远程机器 192.168.92.131 上时）
+        # TRACING_HOST 覆盖 host（用于 port-forward 在远程机器 192.0.2.10 上时）
         host_override = os.environ.get("TRACING_HOST") or os.environ.get("K8S_CLUSTER_HOST")
         if host_override and ("localhost" in url or "127.0.0.1" in url):
             from urllib.parse import urlparse, urlunparse

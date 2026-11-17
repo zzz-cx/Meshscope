@@ -68,6 +68,7 @@ from istio_Dynamic_Test.internal.models.testcase import (
     TestCase,
     TestSuite,
     TestType,
+    requires_controlled_stimulus,
 )
 from istio_Dynamic_Test.internal.models.testcase import ValidationStatus
 from istio_Dynamic_Test.internal.testcase.generators.base import BaseGenerator
@@ -78,7 +79,11 @@ from istio_Dynamic_Test.internal.traffic.executors.connection_pool_outlier impor
 from istio_Dynamic_Test.internal.traffic.fault.injector import FaultInjector
 from istio_Dynamic_Test.internal.traffic.protocols.http.result_store import save_execution_result
 from istio_Dynamic_Test.pkg.k8s.meshscope_naming import resolve_meshscope_svc
-from istio_Dynamic_Test.internal.pipeline.scheduling.locks import LockManager, tag_case_locks
+from istio_Dynamic_Test.internal.pipeline.scheduling.locks import (
+    LockManager, tag_case_locks, plan_case_resources, mutation_trigger,
+    run_safely_in_parallel,
+)
+from istio_Dynamic_Test.internal.pipeline.scheduling.queue import ObservationWait
 from istio_Dynamic_Test.internal.pipeline.scheduling.orthogonal_fault_bundle import (
     apply_orthogonal_fault_bundling,
     flatten_cases_for_warmup,
@@ -218,7 +223,10 @@ class DynamicTester:
 
         # 预热 Collector（启用 access log）
         if self._collector and hasattr(self._collector, "warmup_for_suite"):
-            self._collector.warmup_for_suite(flatten_cases_for_warmup(suite.cases))
+            warmup = [tc for tc in flatten_cases_for_warmup(suite.cases)
+                      if not requires_controlled_stimulus(tc)]
+            if warmup:
+                self._collector.warmup_for_suite(warmup)
 
         results: List[PipelineResult] = []
         start_time = time.time()
@@ -231,149 +239,67 @@ class DynamicTester:
             max_workers = 1
         if max_workers < 1:
             max_workers = 1
-        lock_mgr = LockManager()
-        pool = None
-        futures = []  # type: List[any]
-        if max_workers > 1:
-            from concurrent.futures import ThreadPoolExecutor  # lazy import
-            pool = ThreadPoolExecutor(max_workers=max_workers)
-            print(f"  [SCHED] safe-parallel enabled: max_workers={max_workers}")
-
-        pending_cp_outlier: list[tuple[int, ConnectionPoolOutlierExecutor.PendingWait]] = []
-        externalized_wait_s_total = 0.0
-
-        def _drain_pending(now: float) -> None:
-            # 仅在到点后恢复；恢复阶段不写 meshscope-synth-ingress
-            ready = [p for p in pending_cp_outlier if now >= p[1].resume_at]
-            for idx, pending in ready:
-                pending_cp_outlier.remove((idx, pending))
-                tc = pending.test_case
-                print(f"\n[RESUME {tc.case_id}] connection_pool_outlier phase2 recovery")
-                resume_start = time.time()
-                execution = self._cp_outlier_executor.execute_phase2_recovery(pending)
-                save_execution_result(tc.case_id, execution, tc.protocol)
-                # Phase 3/4: 采集与验证（对齐 _run_single）
-                collection = None
-                validation = None
-                if self._collector:
-                    time.sleep(1)
-                    collection = self._collector.collect(tc, pre_snapshot={})
-                validation = self._validator.validate(tc, execution, collection)
-                phase2_elapsed = time.time() - resume_start
-                case_duration = round(float(getattr(pending, "phase1_elapsed_s", 0.0)) + phase2_elapsed, 2)
-                pr = PipelineResult(
-                    test_case=tc,
-                    execution=execution,
-                    collection=collection,
-                    validation=validation,
-                    case_duration_seconds=case_duration,
-                )
-                results.append(pr)
-                if pr.validation:
-                    status = pr.validation.overall_status.value.upper()
-                    print(f"  => {status}: {pr.validation.summary}")
-
-        for i, tc in enumerate(suite.cases, 1):
-            # 若有到点的 pending，先补跑恢复阶段
-            _drain_pending(time.time())
-
-            print(f"\n[{i}/{total}] {tc.case_id}: {tc.description}")
-            print(f"  策略: {[p.value for p in tc.policy_types]}")
-
-            # 特殊：connection_pool_outlier_validation 把等待阶段外提，允许等待期间继续跑其它用例
-            if tc.metadata.get("is_orthogonal_fault_bundle"):
-                subs = tc.metadata.get("bundle_subcases") or []
-                print(f"  [BUNDLE] 子用例数={len(subs)}: {[s.case_id for s in subs]}")
-                if pool is None:
-                    for pr in self._run_orthogonal_fault_bundle(subs):
-                        results.append(pr)
-                        if pr.validation:
-                            status = pr.validation.overall_status.value.upper()
-                            print(f"  => {status}: {pr.validation.summary}")
-                else:
-                    locks = tag_case_locks(tc)
-                    print(f"  [SCHED] submit locks={locks}")
-
-                    def _job(case: TestCase, case_locks: List[str]) -> List[PipelineResult]:
-                        with lock_mgr.acquire_all(case_locks):
-                            return self._run_case_results(case)
-
-                    futures.append(pool.submit(_job, tc, locks))
-                continue
-
-            if tc.trigger_condition == "connection_pool_outlier_validation":
-                try:
-                    pending = self._cp_outlier_executor.execute_phase1_clear(tc)
-                    externalized_wait_s_total += float(pending.wait_seconds or 0)
-                    print(f"  [SCHED] phase1 done in {getattr(pending, 'phase1_elapsed_s', 0.0):.1f}s, wait={pending.wait_seconds}s (externalized)")
-                    pending_cp_outlier.append((i, pending))
-                    # 该用例的 phase2 恢复稍后补跑；先继续下一个用例
-                    continue
-                except Exception as e:
-                    print(f"  [ERROR] {tc.case_id}: {e}")
-                    # 出错则回退串行执行，保证完整性
-                    result = self._run_single(tc)
-                    results.append(result)
-                    if result.validation:
-                        status = result.validation.overall_status.value.upper()
-                        print(f"  => {status}: {result.validation.summary}")
-                    continue
-
-            if pool is None:
-                for result in self._run_case_results(tc):
-                    results.append(result)
-                    if result.validation:
-                        status = result.validation.overall_status.value.upper()
-                        print(f"  => {status}: {result.validation.summary}")
-            else:
-                locks = tag_case_locks(tc)
-                print(f"  [SCHED] submit locks={locks}")
-
-                def _job(case: TestCase, case_locks: List[str]) -> List[PipelineResult]:
-                    with lock_mgr.acquire_all(case_locks):
-                        return self._run_case_results(case)
-
-                futures.append(pool.submit(_job, tc, locks))
-
-        # 跑完所有用例后，补齐 pending 的恢复阶段
-        while pending_cp_outlier:
-            _drain_pending(time.time())
-            if pending_cp_outlier:
-                # 若还没到点，短睡眠并继续
-                time.sleep(1)
-
-        # 等待并行提交的用例完成
-        if pool is not None:
-            from concurrent.futures import as_completed
-            for fut in as_completed(futures):
-                try:
-                    for pr in fut.result():
-                        results.append(pr)
-                except Exception as e:
-                    print(f"  [ERROR] parallel case failed: {e}")
-            try:
-                pool.shutdown(wait=True)
-            except Exception:
-                pass
-
+        self._prepare_resource_plans(suite.cases)
+        self.scheduler_stats = {}
+        event_wait = max_workers > 1 and os.getenv("DYNAMIC_TEST_EVENT_WAIT", "1").lower() not in ("0", "false", "off")
+        try:
+            inflight = max(max_workers, int(os.getenv("DYNAMIC_TEST_MAX_INFLIGHT", str(max_workers * 4))))
+        except ValueError:
+            inflight = max_workers * 4
+        print(f"  [SCHED] workers={max_workers}, event_wait={event_wait}, max_inflight={inflight}")
+        try:
+            batches = run_safely_in_parallel(
+                cases=suite.cases,
+                run_case=self._run_case_steps if event_wait else self._run_case_results,
+                max_workers=max_workers,
+                max_inflight=inflight,
+                lock_manager=LockManager(),
+                tagger=lambda case: tag_case_locks(case, self._namespace),
+                stats=self.scheduler_stats,
+            )
+            for batch in batches:
+                results.extend(batch)
+        finally:
+            self._clear_all_faults()
+            self._ssh.close()
+        print(f"  [SCHED] {json.dumps(self.scheduler_stats, ensure_ascii=False)}")
         elapsed = time.time() - start_time
         print(f"\n{'=' * 60}")
         print(f"  流水线完成  耗时: {elapsed:.1f}s")
-        if externalized_wait_s_total > 0:
-            print(f"  [SCHED] externalized_wait_s_total: {externalized_wait_s_total:.1f}s")
         self._print_summary(results)
         print(f"{'=' * 60}")
 
         # 生成报告
         self._reporter.generate(results)
 
-        # 故障恢复：确保所有注入的故障已清理
-        self._clear_all_faults()
-
-        # 清理
-        self._ssh.close()
-
         return results
+
+    def _prepare_resource_plans(self, cases):
+        inventory = None
+        try:
+            out, err = self._ssh.run_command(
+                "kubectl get virtualservices.networking.istio.io --all-namespaces -o json"
+            )
+            inventory = json.loads(out)["items"]
+        except Exception as exc:
+            print(f"  [SCHED] resource discovery unavailable; conservative exclusion: {exc}")
+        for case in cases:
+            plan_case_resources(case, self._namespace, inventory)
+        # Opt-in correlation only. Standard Prometheus counters do not expose
+        # this header as a label, so it must never remove observation locks.
+        if os.getenv("DYNAMIC_TEST_TRACE_HEADER", "0").lower() in ("1", "true", "on"):
+            import uuid
+            run_id = uuid.uuid4().hex
+            for index, case in enumerate(flatten_cases_for_warmup(cases)):
+                case.headers = dict(case.headers or {})
+                if not any(k.lower() == "x-configpilot-case-id" for k in case.headers):
+                    case.headers["x-configpilot-case-id"] = f"{run_id}-{index}"
+
+    def _run_case_steps(self, tc):
+        if tc.metadata.get("is_orthogonal_fault_bundle"):
+            return (yield from self._run_orthogonal_fault_bundle_steps(tc.metadata.get("bundle_subcases") or []))
+        result = yield from self._run_single_steps(tc)
+        return [result]
 
     def run_single(self, test_case: TestCase) -> PipelineResult:
         """运行单个测试用例的完整流水线。"""
@@ -387,16 +313,30 @@ class DynamicTester:
         return [self._run_single(tc)]
 
     def _run_orthogonal_fault_bundle(self, subcases: List[TestCase]) -> List[PipelineResult]:
+        return self._consume_steps(self._run_orthogonal_fault_bundle_steps(subcases))
+
+    def _run_orthogonal_fault_bundle_steps(self, subcases):
         """同一入口 VS 一次 patch 多条 match；对每个子用例分别请求、采集与校验。"""
+        if any(requires_controlled_stimulus(sc) for sc in subcases):
+            results = []
+            for sc in subcases:
+                results.append((yield from self._run_single_steps(sc)))
+            return results
         bundle_start = time.time()
         injector = None  # type: Optional[FaultInjector]
         results: List[PipelineResult] = []
         try:
             first = subcases[0]
+            if not all(sc.metadata.get("_scheduler_inventory_known") for sc in subcases):
+                self._prepare_resource_plans(subcases)
+            if not all(sc.metadata.get("_scheduler_inventory_known") for sc in subcases):
+                raise RuntimeError("Cannot safely resolve bundled fault resources")
             svc = first.host or first.source_service
             path_prefix = first.path or ""
             inferred = resolve_meshscope_svc(path_prefix, svc or "")
             ingress_vs = synth_ingress_vs_name_for_case(path_prefix, inferred or (svc or ""))
+            if any(sc.metadata["_scheduler_fault_target"]["name"] != ingress_vs for sc in subcases):
+                raise RuntimeError("Bundled injection target differs from reserved resource")
             route0 = inferred or (svc or "")
             injector = FaultInjector(
                 self._ssh, vs_name=ingress_vs, route_host=route0, namespace=self._namespace
@@ -434,7 +374,7 @@ class DynamicTester:
                     ),
                 )
             if wait_max > 0:
-                time.sleep(wait_max)
+                yield ObservationWait(wait_max)
 
             dur = round(time.time() - bundle_start, 2)
             for sc in subcases:
@@ -479,7 +419,26 @@ class DynamicTester:
     # ── 内部方法 ──────────────────────────────────────────────────────────
 
     def _run_single(self, tc: TestCase) -> PipelineResult:
+        """Synchronous compatibility entry point; suite runs can defer waits."""
+        return self._consume_steps(self._run_single_steps(tc))
+
+    @staticmethod
+    def _consume_steps(steps):
+        try:
+            while True:
+                delay = next(steps)
+                time.sleep(delay.seconds)
+        except StopIteration as completed:
+            return completed.value
+        finally:
+            steps.close()
+
+    def _run_single_steps(self, tc: TestCase):
+        if requires_controlled_stimulus(tc):
+            from istio_Dynamic_Test.internal.validation.policies.controlled import unavailable
+            return PipelineResult(test_case=tc, validation=unavailable(tc), case_duration_seconds=0.0)
         injector = None
+        pending = None
         execution = None
         collection = None
         validation = None
@@ -501,7 +460,17 @@ class DynamicTester:
 
             # Phase 2: 执行（traffic_split 用 MeshExecutor 发固定 N 次请求）
             executor = self._select_executor(tc)
-            execution = executor.execute(tc)
+            if (tc.trigger_condition == "connection_pool_outlier_validation"
+                    or isinstance(executor, ConnectionPoolOutlierExecutor)):
+                if not tc.metadata.get("_scheduler_inventory_known"):
+                    self._prepare_resource_plans([tc])
+                if not tc.metadata.get("_scheduler_inventory_known"):
+                    raise RuntimeError("Cannot safely resolve connection-pool fault resource")
+                pending = self._cp_outlier_executor.execute_phase1_clear(tc)
+                yield ObservationWait(max(0.0, pending.resume_at - time.time()))
+                execution = self._cp_outlier_executor.execute_phase2_recovery(pending)
+            else:
+                execution = executor.execute(tc)
             save_execution_result(tc.case_id, execution, tc.protocol)
 
             # Phase 3: 数据采集（traffic_split 用 Prometheus 时等待，时长可由环境变量配置）
@@ -512,7 +481,7 @@ class DynamicTester:
                     prom_url=self._prometheus_url,
                 )
                 if wait > 0:
-                    time.sleep(wait)
+                    yield ObservationWait(wait)
                 collect_kw = {"pre_snapshot": pre_log_lines}
                 if pre_prometheus is not None:
                     collect_kw["pre_prometheus"] = pre_prometheus
@@ -542,43 +511,22 @@ class DynamicTester:
         return self._executor_registry.select(tc)
 
     def _inject_fault(self, tc: TestCase) -> Optional[FaultInjector]:
-        trigger = tc.trigger_condition
-        # 单入口模型对齐：timeout 测试矩阵里常用 simulate_slow_response/response_delay 表达“需要变慢”，
-        # 但实际 workload（http-echo）不会主动 sleep。这里用入口 VS 的 delay fault 做确定性触发，
-        # 使 TimeoutValidator 能稳定观测到 504/UT。
-        params = tc.fault_params or {}
-        if not trigger:
-            if params.get("simulate_slow_response") and (params.get("response_delay") or params.get("fault_delay")):
-                trigger = "__meshscope_delay_for_timeout__"
-            else:
-                return None
-        # connection_pool_outlier_validation 由 ConnectionPoolOutlierExecutor 自管故障注入
-        if trigger == "connection_pool_outlier_validation":
+        if requires_controlled_stimulus(tc):
             return None
-
-        # 单入口模型对齐：如果存在 meshscope 合成入口 VS，则优先把故障注入打到对应分片 VS，
-        # 并用 path 前缀限定命中范围，避免“注入了但流量没走到注入点”。
-        svc = tc.host or tc.source_service
+        trigger = mutation_trigger(tc)
+        if not trigger or trigger == "connection_pool_outlier_validation":
+            return None
+        if "_scheduler_fault_target" not in tc.metadata:
+            self._prepare_resource_plans([tc])
+        if not tc.metadata.get("_scheduler_inventory_known"):
+            raise RuntimeError("Cannot safely resolve fault resource without VirtualService inventory")
+        target = tc.metadata["_scheduler_fault_target"]
+        params = tc.fault_params or {}
         path_prefix = tc.path or ""
-        inferred = resolve_meshscope_svc(path_prefix, svc or "")
-        ingress_vs = synth_ingress_vs_name_for_case(path_prefix, inferred or (svc or ""))
-        use_ingress_vs = False
-        try:
-            out, err = self._ssh.run_command(f"kubectl get virtualservice {ingress_vs} -n {self._namespace} 2>&1")
-            combined = (out or "") + (err or "")
-            if "NotFound" not in combined and "Error" not in combined:
-                use_ingress_vs = True
-        except Exception:
-            pass
-
-        if use_ingress_vs and inferred:
-            vs_name = ingress_vs
-            route_host = inferred
-            key = f"{vs_name}_{route_host}_{path_prefix or ''}"
-        else:
-            vs_name = svc
-            route_host = svc
-            key = f"{vs_name}_{route_host}"
+        vs_name = target["name"]
+        route_host = target["route_host"]
+        use_ingress_vs = target["match_ingress"]
+        key = f"{vs_name}_{route_host}_{path_prefix or ''}"
 
         if key not in self._fault_injectors:
             self._fault_injectors[key] = FaultInjector(
@@ -639,10 +587,11 @@ class DynamicTester:
         passed = sum(1 for r in results if r.validation and r.validation.overall_status == ValidationStatus.PASSED)
         failed = sum(1 for r in results if r.validation and r.validation.overall_status == ValidationStatus.FAILED)
         warning = sum(1 for r in results if r.validation and r.validation.overall_status == ValidationStatus.WARNING)
+        inconclusive = sum(1 for r in results if r.validation and r.validation.overall_status == ValidationStatus.INCONCLUSIVE)
         skipped = sum(1 for r in results if (not r.validation) or (r.validation.overall_status == ValidationStatus.SKIPPED))
         denom = passed + failed  # 用“可判定用例”的通过率，避免 SKIPPED/WARNING 拉低
         rate = passed / denom * 100 if denom else 0.0
-        print(f"  通过: {passed}  失败: {failed}  警告: {warning}  跳过: {skipped}  通过率(通过/(通过+失败)): {rate:.1f}%")
+        print(f"  通过: {passed}  失败: {failed}  未判定: {inconclusive}  警告: {warning}  跳过: {skipped}  通过率(通过/(通过+失败)): {rate:.1f}%")
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────
@@ -664,7 +613,7 @@ def main():
         action="store_true",
         help="直接从 --control-plane-config 目录生成用例（验证当前集群配置），不依赖 -i/--input 文件。",
     )
-    parser.add_argument("--prometheus-url", default="", help="Prometheus URL（流量分割验证用，如 http://192.168.92.131:31012）")
+    parser.add_argument("--prometheus-url", default="", help="Prometheus URL（流量分割验证用，如 http://192.0.2.10:31012）")
     parser.add_argument("--ssh-host", help="SSH 主机")
     parser.add_argument("--ssh-user", help="SSH 用户名")
     parser.add_argument("--ssh-password", help="SSH 密码")

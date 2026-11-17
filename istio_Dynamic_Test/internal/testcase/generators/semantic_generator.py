@@ -137,6 +137,15 @@ class SemanticGenerator(BaseGenerator):
             "source": "aligned_semantic",
         }
 
+    def generate_obligation_plan(self, *, reuse: bool = True, profiles=None, resource_ids=None) -> Dict[str, Any]:
+        """Opt-in relation-aware planning; does not alter the legacy matrix."""
+        from istio_Dynamic_Test.internal.planning.relational import plan_obligations
+        artifact = self._artifact or load_aligned_semantic(self._aligned_path)
+        model = artifact.get("relational_model")
+        if not model:
+            raise AlignedModelMissingError("关系模型缺失，请重新运行静态解析；不回退为按策略标签约简。")
+        return plan_obligations(model, reuse=reuse, namespace=artifact.get("namespace"), profiles=profiles, resource_ids=resource_ids)
+
     def _tuple_to_cases(
         self,
         tup: Dict[str, Any],
@@ -192,9 +201,7 @@ class SemanticGenerator(BaseGenerator):
         if policy == PolicyType.RETRY:
             attempts = constraint.get("attempts")
             params = dict(params)
-            params["trigger_condition"] = "simulate_config_fault"
-            params["fault_type"] = "abort"
-            params["fault_status"] = 503
+            params["trigger_condition"] = "controlled_backend_retry"
             cases.append({
                 "case_id": cid(start_id),
                 "description": f"重试 {source} attempts={attempts}",
@@ -203,6 +210,7 @@ class SemanticGenerator(BaseGenerator):
                 "expected_outcome": {"retry_attempts": attempts},
                 "source_service": source,
                 "test_strategies": ["retry"],
+                "retry_policy": dict(constraint),
             })
             return cases
 
@@ -230,7 +238,9 @@ class SemanticGenerator(BaseGenerator):
                 "type": "load_test",
                 "request_params": params,
                 "load_params": {"num_requests": 50, "concurrency": 10},
-                "expected_outcome": {"circuit_breaker_threshold": threshold},
+                "expected_outcome": {"circuit_breaker_threshold": threshold,
+                    "connection_pool": constraint.get("connection_pool"),
+                    "outlier_detection": outlier},
                 "source_service": source,
                 "test_strategies": ["circuit_breaker"],
             })

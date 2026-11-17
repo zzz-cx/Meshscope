@@ -1,9 +1,9 @@
 # Remote Kubernetes Cluster Connection Test
-# Cluster Master: 192.168.92.131:6443
+# Cluster Master: 192.0.2.10:6443
 
 param(
     [string]$KubeConfigPath = "",
-    [string]$ClusterHost = "192.168.92.131",
+    [string]$ClusterHost = $env:K8S_HOST,
     [int]$ClusterPort = 6443
 )
 

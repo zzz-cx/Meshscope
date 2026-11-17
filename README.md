@@ -1,235 +1,191 @@
-# MeshScope - Istio 配置验证与可视化系统
+# ConfigPilot：面向服务网格的配置验证
 
-> 端到端的 Istio 服务网格配置分析、动态验证与一致性检测平台
+ConfigPilot 面向服务网格的配置验证，将声明配置、已安装规则和运行证据关联起来，检查配置在各阶段是否按预期生效。方案包括分阶段验证、跨层统一语义模型、低开销验证规划，以及配置依赖分析与诊断。
 
-统一入口为 **ConfigPilot**（`python -m configpilot`）。底层三个模块职责分开，不要交叉解析：
+原工程名 MeshScope 和底层包名继续保留。统一入口为 `python -m configpilot`。验证以完整义务集合为基础，保留独立执行基线，在触发条件、执行环境与证据要求兼容时复用验证工作；未知语义和缺失证据不会计为通过。
 
-| 模块 | 目录 | 职责 |
-|------|------|------|
-| parser | `istio_config_parser/` | YAML + Envoy dump → 一套语义模型，做控制面↔数据面对齐和跨资源冲突 |
-| 动态验证 | `istio_Dynamic_Test/` | 期望只来自对齐模型，发流量并对照观测 |
-| checker | `consistency_checker/` | 消费产物，做一致性判定、三层图和 Web UI |
+## 整体架构
 
-```text
-[K8s 集群]
-    ↓ 采集 (istio_monitor)
-控制面 YAML / Sidecar dump / Ingress dump
-    ↓ 静态对齐 (parser)
-aligned_semantic.json（语义元组 + 冲突 + 静态资源图）
-    ↓ 动态验证 (istio_Dynamic_Test)
-期望仅用 matched / partial_matched 元组，不再回退解析 YAML
-    ↓ 一致性与可视化 (consistency_checker)
-三层依赖图、报告、Web（静态资源图 / 三层图）
+```mermaid
+flowchart TD
+    A[声明配置与数据面快照] --> B[解析与跨层统一语义模型]
+    B --> C[静态对齐与有限行为比较]
+    B --> D[验证义务]
+    D --> E[定向依赖闭包与候选探针]
+    E --> F[条件复用与覆盖规划]
+    F --> G[配置 状态 容量冲突调度]
+    G --> H[真实代理路径与受控后端]
+    H --> I[共享批量采集 请求级证据]
+    I --> J[逐义务 PASS FAIL INCONCLUSIVE]
+    J --> K[配置 策略 证据依赖图与诊断]
+    C --> K
 ```
 
-## 三大核心模块
+| 层次 | 主要代码 | 职责 |
+|---|---|---|
+| 采集与模型 | `istio_config_parser/` | 读取快照、保留 PAOC 与来源、构建跨层统一语义表示；不发测试流量 |
+| 公共语义 | `istio_config_parser/models/http_semantics.py` | 在已解析模型上解释受支持的 HTTP 选择与变换；不重复解析 YAML |
+| 验证规划 | `istio_Dynamic_Test/internal/planning/` | 保留义务、计算依赖、判断复用与选择探针 |
+| 执行与证据 | `internal/pipeline/scheduling/`、`internal/traffic/` | 资源预留、负载预算、受控触发、回执批量采集 |
+| 统一编排与诊断 | `configpilot/workflow.py`、`configpilot/diagnostics.py` | 冻结参照、保存证据、逐义务判定、生成报告与依赖图 |
+| CLI 与 Web API | `configpilot/cli.py`、`consistency_checker/web/relational.py` | 共同调用同一工作流；兼容入口必须显式选择 |
+| 可选计算加速 | `planning/engine.py`、`accelerators/dependency_closure/` | 索引化闭包、Python 进程与可选 Go 内核；不绕过运行资源约束 |
 
-### 模块一：静态配置分析 (`istio_config_parser/`)
+四项方法的联系和形式化定义见 [形式化说明](docs/ConfigPilot_关系模型与低开销验证规划_形式化说明.md)。详细实现与边界见 [架构说明](docs/ARCHITECTURE.md) 和 [实现核对表](docs/IMPLEMENTATION_STATUS.md)。
 
-| 项 | 说明 |
-|----|------|
-| 功能 | 将 VirtualService、DestinationRule、EnvoyFilter 等与 Envoy dump 映射到同一套语义元组，做平面对齐和跨资源冲突（缺 subset、路由优先级、Gateway 选择器等） |
-| 配置来源 | `istio_monitor/` 导出的控制面、Sidecar、Ingress Gateway 目录 |
-| 产物 | `results/consistency/aligned_semantic.json`（pairs、conflicts、expected_tuples、graph_data） |
-| 入口 | `python -m configpilot static --namespace default` |
+## 当前支持范围
 
-详见 [istio_config_parser/README.md](istio_config_parser/README.md)、[配置监控说明](istio_config_parser/istio_monitor/README.md)。
+- **模型：** 策略、规则和资源身份；有序选择、附着、引用、共享预算、潜在截断及待解析继承关系。未解释字段显式保留。
+- **通用 HTTP：** 路由目标、普通请求/响应 Header 操作、字面量 URI 改写及有限顺序交互。
+- **受控契约：** 分流批次、有限参数范围的重试恢复/总预算、固定小容量连接池溢出。
+- **执行：** 同一 VS 内满足闭合契约的独立任务可并发；实际连接池状态仍互斥。全局请求预留预算限制总负载，等待时让出线程并保留必要预留。
+- **采集：** 一个共享收集器批量查询请求 ID，保证快照不早于对应客户端完成时间。完成证据先逐探针落盘，再释放后端记录。
+- **诊断：** 关联资源、策略、义务、探针和证据；提供依赖距离候选和潜在服务影响，不将图可达性当作因果证明。
+- **有限静态比较：** 对已投影的两侧关系模型，从两侧生成见证，检查部分顺序差异、缺失和额外有效路由；不声称全域等价。
 
-### 模块二：动态测试与验证 (`istio_Dynamic_Test/`)
+完整 Envoy 关系投影、任意继承/优先级、实例摘除验证、通用原生遥测归因及自动容量发现仍有限制。运行 `python -m configpilot capabilities` 查看机器可读清单。模型之外的策略保持未规划或未判定。
 
-| 项 | 说明 |
-|----|------|
-| 功能 | 从对齐模型生成正交用例 → 发流量 → Envoy/Prometheus 观测 → 策略校验 |
-| 协议 | HTTP（curl / hey）、gRPC（grpcurl） |
-| 约束 | 没有 `aligned_semantic.json` 时直接报错，不回退 YAML / `istio_config.json` |
-| 入口 | `python -m configpilot dynamic -- --ingress-url http://HOST:PORT/productpage` |
+## 安装与最小运行
 
-详见 [istio_Dynamic_Test/README.md](istio_Dynamic_Test/README.md)。
-
-### 模块三：一致性验证与可视化 (`consistency_checker/`)
-
-| 项 | 说明 |
-|----|------|
-| 功能 | 只消费静态对齐产物和动态结果，不再自己解析 YAML |
-| 输出 | 一致性报告、三层配置依赖图、Web UI |
-| 入口 | `python -m configpilot run` / `python -m configpilot web --port 8080` |
-
-详见 [consistency_checker/README.md](consistency_checker/README.md)、[三层图](docs/THREE_LAYER_GRAPH.md)。
-
----
-
-## 快速开始
-
-### 前置条件
-
-- Python 3.8+（推荐 3.10+）
-- 可访问 Kubernetes 集群（本地 `kubectl` 或经 SSH 到节点执行）
-- 动态测试远程节点建议具备：`curl`、`hey`（可选）、**grpcurl**（gRPC 用例）、`kubectl`
+使用 Python **3.11+**。只有访问集群的采集/静态阶段需要对应快照或集群工具；规划和证据回放可完全离线运行。Go 是可选组件。
 
 ```bash
 pip install -r requirements.txt
+cp configpilot.example.json configpilot.json
+python -m configpilot --help
+python -m configpilot capabilities
 ```
 
-运行时可改项写在项目根目录 `configpilot.json`（集群地址、快照目录、Ingress、Prometheus、Web 端口）。Web 总览页改探测地址会写回同一文件。
+复制配置示例后，在本地填写集群与观测地址；也可使用 `SSH_HOST`、`K8S_HOST` 等环境变量。密码和 Token 使用环境变量或运行时输入，避免写入可发布文件。PowerShell 可用 `Copy-Item configpilot.example.json configpilot.json` 完成复制。
 
-### 方式 1：统一入口（推荐）
+首先采集并使用 parser 生成参照产物；已有快照时可直接跳过采集：
 
 ```bash
-# 完整流水线
-python -m configpilot run --namespace default
+python -m configpilot collect --namespace YOUR_NAMESPACE
+python -m configpilot static --namespace YOUR_NAMESPACE --export
+```
 
-# Web 可视化（浏览器访问 http://localhost:8080）
+只生成验证计划，不发送请求、不修改集群：
+
+```bash
+python -m configpilot plan \
+  --aligned results/consistency/aligned_semantic.json \
+  --output-dir results/relational/plan-demo
+```
+
+需要先刷新本地静态产物时，使用 `run --parse-static`；只有显式指定 `--collect` 才通过现有采集器访问集群。`run` 没有 `--execute` 时不会自动发流量。
+
+```bash
+python -m configpilot run --parse-static --namespace YOUR_NAMESPACE \
+  --output-dir results/relational/refreshed-plan
+```
+
+目录必须不存在或为空，以防不同运行的证据混用。
+
+## 受控执行
+
+受控后端是配合客户端的响应与记录服务，不替代实际代理。网关策略路径为“客户端 → 网关 Envoy → 受控后端”；网格内部路径须通过适用的工作负载代理。直接绕过全部代理访问后端不能验证网格策略。
+
+后端示例：
+
+```bash
+python -m configpilot controlled-backend -- \
+  --namespace controlled-lab \
+  --backend retry-backend:19401 --backend pool-backend:19402 \
+  --bind 0.0.0.0 --control-port 19490 \
+  --max-records 20000 --retention-seconds 300
+```
+
+一个进程可提供多个端口；不同测试请求使用独立 ID 和触发参数。该命令不安装 Service、Endpoint、VS 或 DR，必须提前准备专用目标和实际策略。回执接口只监听回环地址，执行器需在同一主机或通过显式隧道访问。
+
+```bash
+python -m configpilot dynamic \
+  --aligned aligned_semantic.json --profiles profiles.json \
+  --execute --endpoint-url http://PROXY_HOST:PORT \
+  --backend-control-url http://127.0.0.1:19490/ \
+  --activation-headers activation-headers.json \
+  --workers 4 --capacity 32 \
+  --output-dir results/relational/execution-demo
+```
+
+通用无状态 HTTP 可省略 `--profiles`；重试、分流和连接池使用显式契约。`--endpoint-url` 是实际代理入口 origin，不含业务路径，路径来自冻结探针计划。后端参数、契约范围及代次头示例见 [受控执行说明](docs/CONTROLLED_STIMULUS_VALIDATION.md)。
+
+执行阶段不写 VS/DR；环境准备和切换批次的配置操作不属于“零配置写入”。同主机同时运行的协作进程会对共同入口/后端采用运行级排他保护，避免两个独立调度器绕过状态预算；这不提供跨主机分布式锁，也不阻止集群外部变更。
+
+需要集群版本保护时，追加 `--verify-config-versions`：通过只读 kubectl 比较执行前后的 UID、resourceVersion 和 spec，变化时将受影响运行保留为未判定。未开启时需由调用者冻结部署；固定的响应代次头本身不能证明不存在未标记更新。
+
+## 离线回放与完整性检查
+
+使用保存的模型和计划，不按当前集群状态重建期望：
+
+```bash
+python -m configpilot evaluate \
+  --plan results/relational/execution-demo/probe_plan.json \
+  --evidence results/relational/execution-demo/captured_evidence.json \
+  --output-dir results/relational/replay-demo
+
+python -m configpilot check --run-dir results/relational/replay-demo
+```
+
+`check` 重新判定并核对保存结果。CLI 退出码：`0` 表示操作完成或验证通过（规划、有限比较不代表全域正确），`1` 表示基础设施/输入错误，`2` 表示发现失败义务，`3` 表示仍有未判定义务。`PLANNED` 表示完成规划，不能当作动态验证通过。
+
+每次运行保存：
+
+| 产物 | 内容 |
+|---|---|
+| `reference_model.json`、`probe_plan.json` | 冻结参照与候选/覆盖/选中探针 |
+| `validation_obligations.json`、`coverage_decisions.json` | 全部义务与覆盖依据 |
+| `evidence_journal/`、`captured_evidence.json` | 逐探针持久化及完整/部分执行证据 |
+| `obligation_results.json` | PASS / FAIL / INCONCLUSIVE、原因与证据引用 |
+| `execution_metrics.json`、`run_report.json` | 请求、采集、负载、调度与覆盖完成度 |
+| `dependency_graph.json`、`diagnostics.json` | 资源/策略/证据关联和异常候选 |
+
+## 多核计算与 Go
+
+流量 worker 和计算 worker 分开设置。索引化闭包默认串行计算；需要时使用 Python 两进程：
+
+```bash
+python -m configpilot plan --aligned aligned_semantic.json \
+  --compute-backend process --compute-workers 2 \
+  --output-dir results/relational/process-plan
+```
+
+构建可选 Go 内核后，通过 `--compute-backend go --go-binary PATH` 启用。Go 只负责闭包预计算，规划和证据断言继续由 Python 执行。实现与构建见 [Go 内核说明](accelerators/dependency_closure/README.md)。历史实验没有证明完整 Go 重写更好，索引化实现也需要单独测量，不能直接套用历史实验加速比。
+
+## Web
+
+```bash
 python -m configpilot web --port 8080
-
-# 分步
-python -m configpilot collect --vm-host 192.168.92.100 --vm-user root --vm-password <password>
-python -m configpilot static --namespace default --export
-python -m configpilot dynamic -- --from-control-plane --ingress-url http://192.168.92.100:30476/productpage
-python -m configpilot check --namespace default
 ```
 
-Web 页面：
+验证 API 与 CLI 使用同一个工作流：
 
-| 页 | 作用 |
-|----|------|
-| 总览 | 连通探测、运行时配置 |
-| 静态分析 | 对齐摘要；按命名空间看服务 / Istio 资源，点节点看声明式 YAML 和对应数据面规则 |
-| 动态验证 | 从对齐模型生成矩阵并执行 |
-| 一致性 | 消费静/动产物，生成三层图 |
-| 三层依赖图 | 控制面 / 数据面 / 配置资源；不一致边、Exp/Obs 流量权重、搜索与路径 |
+- `POST /api/validation/plan`：规划。
+- `POST /api/validation/run`：显式受控执行，需要后端和代次条件。
+- `POST /api/validation/evaluate`：离线证据判定。
+- `GET /api/validation/capabilities`：支持清单。
+- `GET /api/validation/runs`：验证报告列表。
+- `GET /api/validation/runs/<run_id>/report|graph|diagnostics|plan|results`：读取产物。
 
-### 方式 2：Docker 部署
+生成、执行及流水线 API 默认调用统一工作流；指定 `engine: "legacy"` 时使用矩阵兼容路径。三层图页面与 SQLite 报告视图保留，证据依赖图目前通过 JSON API 和产物提供，尚未完成专门的前端编辑/展示流程。
+
+## 仓库内容与本地文件
+
+仓库包含实现源码、使用文档、配置示例和自动化回归测试。`archive/`、`output/`、`evaluation/`、`submission/`、`results/`、依赖缓存和临时文件不随源码发布。
+
+本机运行配置 `configpilot.json`、集群快照和凭据由使用者在本地准备，并由 `.gitignore` 排除。矩阵兼容入口为 `legacy-dynamic`、`legacy-run` 和 `legacy-check`，须显式调用。
+
+## 开发验证与文档
 
 ```bash
-docker build -t meshscope:latest -f docker/Dockerfile .
-
-docker run -it --rm \
-  -v $(pwd)/results:/app/results \
-  meshscope:latest e2e \
-  --vm-host 192.168.92.100 \
-  --vm-user root \
-  --vm-password <password>
+python -m unittest discover -s istio_Dynamic_Test/tests -v
 ```
 
-更多命令见 [docker/DOCKER_README.md](docker/DOCKER_README.md)、[docker/DOCKER_COMPLETE_GUIDE.md](docker/DOCKER_COMPLETE_GUIDE.md)。
+设置 `CONFIGPILOT_TEST_GO_BINARY` 指向已编译程序可同时测试 Go 路径。测试涵盖闭包方向、覆盖保持、真实 HTTP 回执适配、共享采集新鲜度、容量预留、回收和 Web/CLI；测试代理不等于真实 Envoy，已有真实集群实验与回归测试需分别报告。
 
-### 方式 3：模块入口（仍可用）
-
-```bash
-python -m consistency_checker.main --mode full --namespace default
-python -m consistency_checker.main --mode web --port 8080
-python -m istio_config_parser.main_parser --namespace default --export
-python -m istio_Dynamic_Test.cmd --help
-```
-
-### 方式 4：采集与分步
-
-```bash
-# 0. 从集群拉取快照
-python -m istio_config_parser.istio_monitor.export_control_plane_config
-python -m istio_config_parser.istio_monitor.export_data_plane_config --method istioctl
-python -m istio_config_parser.istio_monitor.istio_sidecar_monitor \
-  --vm-host ${SSH_HOST} --vm-user root --vm-password ${SSH_PASSWORD} --update-now
-
-# 1. 静态对齐（写出 aligned_semantic.json）
-python -m istio_config_parser.main_parser --namespace default --export
-
-# 1b. （可选）Ingress Gateway dump
-python -m istio_config_parser.istio_monitor.export_ingress_gateway_config --method kubectl-exec
-
-# 2. 动态验证（需已有对齐模型）
-export SSH_HOST=192.168.92.100
-python -m istio_Dynamic_Test.cmd \
-  --from-control-plane \
-  --ingress-url http://${SSH_HOST}:${INGRESS_PORT:-30476}/productpage \
-  --ssh-host ${SSH_HOST} --ssh-user ${SSH_USER:-root} --ssh-password ${SSH_PASSWORD}
-
-# 3. 一致性（只消费产物）
-python -m configpilot check --namespace default
-```
-
-产物目录：
-
-- `results/consistency/aligned_semantic.json` — 静态对齐模型
-- `results/visualization/` — HTML 报告与三层图 JSON
-- `istio_Dynamic_Test/results/` — 单次动态运行产物
-
-### gRPC 动态验证（可选）
-
-矩阵或 `request_params` 中设置 `"protocol": "grpc"`。SSH 主机或 mesh 内应用 Pod 需安装 **grpcurl**。详见 [istio_Dynamic_Test/README.md](istio_Dynamic_Test/README.md#gRPC-用例示例矩阵-json)。
-
----
-
-## 项目结构
-
-```text
-istio_check/
-├── configpilot/                   # 统一 CLI：python -m configpilot
-├── configpilot.json               # 运行时配置（集群、快照目录、Web 端口）
-├── istio_config_parser/           # 静态解析与对齐
-│   ├── main_parser.py             # parse_static_semantic / aligned_semantic
-│   ├── parsers/                   # 统一解析器
-│   └── istio_monitor/             # 控制面 / 数据面 / Ingress 采集
-├── istio_Dynamic_Test/            # 动态验证流水线
-│   ├── cmd/
-│   ├── internal/                  # testcase / traffic / telemetry / validation
-│   └── pkg/                       # SSH、K8s、观测发现
-├── consistency_checker/           # 一致性判定 + 可视化 + Web
-│   ├── core/                      # 只消费产物
-│   ├── visualizer/                # 三层图生成
-│   └── web/                       # Flask + 静态资源图 / 三层图查看器
-├── evaluation/                    # 实验脚本
-├── docker/
-├── docs/
-├── results/                       # 运行产物（建议 gitignore）
-└── requirements.txt
-```
-
-工程级目录说明：[docs/DIRECTORY_STRUCTURE.md](docs/DIRECTORY_STRUCTURE.md)。
-
----
-
-## 文档索引
-
-| 文档 | 内容 |
-|------|------|
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | 系统设计与模块边界 |
-| [docs/module_architecture.md](docs/module_architecture.md) | 数据契约与数据流 |
-| [docs/THREE_LAYER_GRAPH.md](docs/THREE_LAYER_GRAPH.md) | 三层依赖图与查看器 |
-| [docs/INGRESS_GATEWAY_CONFIG.md](docs/INGRESS_GATEWAY_CONFIG.md) | Ingress dump 采集 |
-| [docs/REMOTE_CLUSTER_SETUP.md](docs/REMOTE_CLUSTER_SETUP.md) | 远程集群 kubeconfig |
-| [docs/E2E_VALIDATOR_README.md](docs/E2E_VALIDATOR_README.md) | 端到端验证框架 |
-| [istio_config_parser/README.md](istio_config_parser/README.md) | 静态解析 |
-| [istio_config_parser/istio_monitor/README.md](istio_config_parser/istio_monitor/README.md) | 配置采集 |
-| [istio_Dynamic_Test/README.md](istio_Dynamic_Test/README.md) | 动态验证 |
-| [consistency_checker/README.md](consistency_checker/README.md) | 一致性与 Web |
-| [docker/DOCKER_README.md](docker/DOCKER_README.md) | Docker 总览 |
-
----
-
-## 系统要求
-
-| 组件 | 要求 |
-|------|------|
-| Python | 3.8+ |
-| 集群 | Kubernetes + Istio（BookInfo / online-boutique 等样例） |
-| 网络 | 入口 URL（NodePort / LB）及可选 Prometheus |
-| 远程执行 | SSH 到可执行 `kubectl` 的节点（动态测试） |
-| gRPC | 远程或 Pod 内 **grpcurl** |
-| Docker | 可选 |
-
-```bash
-git clone <repository-url>
-cd istio_check
-pip install -r requirements.txt
-```
-
----
-
-## 贡献
-
-欢迎 Issue / PR。开发前请阅读 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) 与各模块 README。parser 负责解析与对齐，动态模块不要回退解析 YAML，checker 不要重新解析配置。避免使用已移除路径（如 `istio_Dynamic_Test/generator/`、`checker/`、`verifier/`）。
-
-## 许可证
-
-MIT License
+- [整体架构](docs/ARCHITECTURE.md)
+- [实现核对表与剩余缺口](docs/IMPLEMENTATION_STATUS.md)
+- [统一语义模型与验证规划形式化](docs/ConfigPilot_关系模型与低开销验证规划_形式化说明.md)
+- [验证规划契约](docs/RELATIONAL_VALIDATION.md)
+- [受控后端](docs/CONTROLLED_STIMULUS_VALIDATION.md)
+- [并行与调度](docs/PARALLEL_VALIDATION.md)

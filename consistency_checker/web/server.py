@@ -82,6 +82,10 @@ class WebServer:
         )
         
         self._setup_routes()
+        from consistency_checker.web.relational import install_relational_api
+        install_relational_api(self.app, self.config, self.namespace)
+        from consistency_checker.web.demo import install_demo
+        install_demo(self.app)
         self.store = get_store(self.config.database_path)
         imported = self.store.import_json_reports(self.config.consistency_output_dir)
         if imported:
@@ -161,6 +165,10 @@ class WebServer:
             try:
                 data = request.get_json() or {}
                 namespace = data.get('namespace', self.namespace)
+                if data.get('engine', self.config.validation_engine) != 'legacy':
+                    from consistency_checker.web.relational import run_request
+                    mode = 'run' if data.get('execute') else 'evaluate' if data.get('evidence') else 'plan'
+                    return run_request(data, self.config, self.namespace, mode=mode)
                 
                 pipeline = Pipeline(namespace=namespace)
                 report = pipeline.run_full_pipeline()
@@ -324,6 +332,10 @@ class WebServer:
                 output_path = data.get('output_path', self.config.test_matrix_file)
                 ingress_url = data.get('ingress_url', self.config.get_ingress_url() or 'http://localhost:8080')
 
+                if data.get('engine', self.config.validation_engine) != 'legacy':
+                    from consistency_checker.web.relational import run_request
+                    return run_request(data, self.config, self.namespace, mode='plan', matrix=True)
+
                 if not MODULES_AVAILABLE:
                     return jsonify({
                         "success": False,
@@ -365,6 +377,9 @@ class WebServer:
             try:
                 data = request.get_json() or {}
                 matrix_file = data.get('matrix_file', self.config.test_matrix_file)
+                if data.get('engine', self.config.validation_engine) != 'legacy':
+                    from consistency_checker.web.relational import run_request
+                    return run_request({**data, 'matrix_file': matrix_file}, self.config, self.namespace, mode='run')
                 ssh_config = data.get('ssh_config', {
                     'host': self.config.ssh_host,
                     'user': self.config.ssh_user,
@@ -419,6 +434,9 @@ class WebServer:
                 data = request.get_json() or {}
                 matrix_file = data.get('matrix_file', self.config.test_matrix_file)
                 log_dir = data.get('log_dir', self.config.envoy_logs_dir)
+                if data.get('engine', self.config.validation_engine) != 'legacy':
+                    from consistency_checker.web.relational import run_request
+                    return run_request({**data, 'matrix_file': matrix_file}, self.config, self.namespace, mode='evaluate')
                 output_dir = data.get('output_dir', self.config.verification_dir)
                 config_file = data.get('config_file')
                 
@@ -475,8 +493,20 @@ class WebServer:
             try:
                 data = request.get_json() or {}
                 namespace = data.get('namespace', self.namespace)
+                if data.get('engine', self.config.validation_engine) != 'legacy':
+                    from pathlib import Path
+                    from configpilot.workflow import load_json
+                    directory = data.get('run_dir') or data.get('output_dir')
+                    if not directory:
+                        reports = list(Path(self.config.validation_output_dir).glob('*/run_report.json'))
+                        if not reports:
+                            return jsonify({'success': False, 'error': '没有新验证报告，请先规划或执行'}), 404
+                        directory = str(max(reports, key=lambda path: path.stat().st_mtime).parent)
+                    report = load_json(Path(directory)/'run_report.json')
+                    return jsonify({'success': True, 'engine': 'relational', 'result': report,
+                                    'diagnostics': load_json(Path(directory)/'diagnostics.json')})
                 
-                dynamic_analyzer = DynamicAnalyzer(namespace=namespace)
+                dynamic_analyzer = DynamicAnalyzer()
                 result = dynamic_analyzer.analyze()
                 
                 return jsonify({
@@ -568,5 +598,4 @@ class WebServer:
             port=self.port,
             debug=False
         )
-
 

@@ -108,7 +108,7 @@ docker image prune -a
 | `VM_USER` | SSH用户 | `${SSH_USER:-root}` (环境变量，默认root) |
 | `VM_PASSWORD` | SSH密码 | `${SSH_PASSWORD}` (环境变量) |
 | `NAMESPACE` | K8s命名空间 | `default` |
-| `INGRESS_URL` | Ingress地址 | `http://192.168.92.131:30476/productpage` |
+| `INGRESS_URL` | Ingress地址 | `http://192.0.2.10:30476/productpage` |
 
 ### 挂载目录
 

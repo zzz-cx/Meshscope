@@ -1,4 +1,6 @@
 function $(id) { return document.getElementById(id); }
+const demoMode = new URLSearchParams(location.search).get("demo") === "1";
+if (demoMode) axios.defaults.headers.common["X-ConfigPilot-Demo"] = "1";
 
 function switchPage(name) {
   document.querySelectorAll(".nav-btn").forEach((b) => b.classList.toggle("active", b.dataset.page === name));
@@ -12,7 +14,7 @@ function ensureGraphFrame() {
   const frame = $("graph-frame");
   if (!frame) return;
   if (!frame.dataset.loaded) {
-    frame.src = "/three_layer_graph";
+    frame.src = "/three_layer_graph" + (demoMode ? "?demo=1" : "");
     frame.dataset.loaded = "1";
     return;
   }
@@ -26,7 +28,7 @@ function ensureGraphFrame() {
 function reloadGraphFrame() {
   const frame = $("graph-frame");
   if (!frame) return;
-  frame.src = "/three_layer_graph?t=" + Date.now();
+  frame.src = "/three_layer_graph?t=" + Date.now() + (demoMode ? "&demo=1" : "");
   frame.dataset.loaded = "1";
 }
 
@@ -185,6 +187,11 @@ function fillEndpointsFromHost() {
 }
 
 async function loadEndpoints() {
+  if (demoMode) {
+    $("endpoint-fields").innerHTML = '<p class="lead">展示环境：Bookinfo 示例服务 · default。演示操作不会访问集群或修改运行参数。</p>';
+    ["ep-save-btn", "ep-fill-btn"].forEach(id => { if ($(id)) $(id).disabled = true; });
+    return;
+  }
   try {
     const { data } = await axios.get("/api/endpoints");
     renderEndpointFields(data);
@@ -746,6 +753,52 @@ function dataPlaneBlock(rule) {
   </div>`;
 }
 
+let dynamicCases = [];
+let dynamicExecution = null;
+const strategyNames = { routing: "路由检查", traffic_split: "流量分配", traffic_shifting: "流量分配", timeout: "超时检查", retry: "重试检查", circuit_breaker: "连接限制与熔断" };
+
+function requestPresentation(c) {
+  const req = c.request_params || {};
+  const method = req.method || "GET";
+  const url = req.url || ((req.host ? "http://" + req.host : "") + (req.path || "/"));
+  const headers = req.headers || {};
+  const body = req.body == null ? "" : typeof req.body === "string" ? req.body : JSON.stringify(req.body, null, 2);
+  const quote = value => "'" + String(value).replace(/'/g, "'\\''") + "'";
+  const command = ["curl -i -X " + quote(method), quote(url), ...Object.entries(headers).map(([k,v]) => "-H " + quote(k + ": " + v)), ...(body ? ["--data-raw " + quote(body)] : []), ...(req.timeout_seconds ? ["--max-time " + Number(req.timeout_seconds)] : [])].join(" \\\n  ");
+  let path = req.path || "/";
+  try { path = new URL(url).pathname + new URL(url).search; } catch (_) {}
+  const message = method + " " + path + " HTTP/1.1\n" + Object.entries(headers).map(([k,v]) => k + ": " + v).join("\n") + "\n\n" + body;
+  return {method, url, body, command, message};
+}
+
+function renderDynamicCases() {
+  return dynamicCases.map((c, index) => {
+    const req = requestPresentation(c);
+    const load = c.load_params || {};
+    const strategies = (c.test_strategies || []).map(s => strategyNames[s] || s).join("、") || c.type || "未提供";
+    const outcome = dynamicExecution && (dynamicExecution.http_results || {})[c.case_id];
+    return `<details class="dynamic-case" ${index === 1 ? "open" : ""}>
+      <summary><strong>${esc(c.target_service || c.case_id)}</strong> · ${esc(strategies)} <span class="badge">${esc(req.method)}</span>${outcome && c.validation_passed != null ? `<span class="badge ${c.validation_passed ? "matched" : "mismatched"}">${c.validation_passed ? "符合预期" : "存在偏差"}</span>` : ""}</summary>
+      <p class="lead">${esc(c.description || c.name || "")}</p>
+      <div class="dynamic-facts">
+        <div><span>测试目标</span><strong>${esc(c.target_service || "未提供服务名称")}</strong><code>${esc(req.url || "未提供地址")}</code></div>
+        <div><span>请求方式</span><strong>${esc(req.method)} · ${esc((c.request_params || {}).protocol || "HTTP")}</strong><p>请求总数 ${esc(load.num_requests ?? "未提供")}，最大并发 ${esc(load.concurrency ?? "未提供")}</p></div>
+        <div><span>配置期望</span><p>${esc(c.expected_description || "请结合一致性报告查看策略期望。")}</p></div>
+        <div><span>观测说明</span><p>${esc(outcome ? c.observed_description || "执行统计见下方表格，策略是否生效请查看一致性报告。" : "尚未执行本次测试。")}</p></div>
+      </div>
+      <p class="lead">${esc(c.send_description || "以下为单次 HTTP 请求格式示例，实际发送方式由测试执行器决定。")}</p>
+      ${c.setup_description ? `<p class="lead">场景准备：${esc(c.setup_description)}</p>` : ""}
+      <div class="dynamic-packets"><div><h3>请求报文示例</h3><pre>${esc(req.message)}</pre><p class="lead">请求体：${req.body ? "见报文内容" : "无（本用例不携带请求体）"}</p></div><div><h3>单次发送命令示例</h3><pre>${esc(req.command)}</pre><p class="lead">命令仅供说明，不会在浏览器执行。${demoMode ? "演示地址用于展示，不代表可访问的真实服务。" : ""}</p></div></div>
+    </details>`;
+  }).join("");
+}
+
+function paintDynamicView() {
+  $("dynamic-results").innerHTML = (demoMode ? '<p class="lead">以下请求、故障场景和观测均为演示数据。请求成功率与策略是否符合预期分别展示。</p>' : "") +
+    (dynamicCases.length ? '<h2>测试用例与发送方式</h2>' + renderDynamicCases() : "") +
+    (dynamicExecution ? '<h2 style="margin-top:20px">请求执行统计</h2>' + renderHttpResultView(dynamicExecution) : "");
+}
+
 function renderMatrixView(data) {
   const cases = (data.test_matrix && data.test_matrix.test_cases) || data.test_cases || [];
   const kpis = `<div class="result-kpis">
@@ -807,7 +860,9 @@ async function generateTestMatrix() {
       ingress_url: $("ingress-url").value,
     });
     showStatus("dynamic-status", "ok", "测试矩阵已生成，共 " + data.total_cases + " 个用例");
-    $("dynamic-results").innerHTML = renderMatrixView(data);
+    dynamicCases = (data.test_matrix && data.test_matrix.test_cases) || data.test_cases || [];
+    dynamicExecution = null;
+    paintDynamicView();
   } catch (err) {
     showStatus("dynamic-status", "err", "生成失败: " + (err.response?.data?.error || err.message));
   }
@@ -818,7 +873,9 @@ async function runDynamicTests() {
   try {
     const { data } = await axios.post("/api/dynamic/run_tests", { namespace: ns("dynamic-namespace") });
     showStatus("dynamic-status", "ok", "动态测试完成");
-    $("dynamic-results").innerHTML = renderHttpResultView(data);
+    if (data.test_cases) dynamicCases = data.test_cases;
+    dynamicExecution = data;
+    paintDynamicView();
   } catch (err) {
     showStatus("dynamic-status", "err", "执行失败: " + (err.response?.data?.error || err.message));
   }
@@ -1056,6 +1113,7 @@ function renderFindingDetail(r) {
     details: r.details,
   };
   return `
+    ${r.problem_location ? `<h3>问题出现在哪里</h3><p class="lead">${esc(r.problem_location)}</p>` : ""}
     <p class="lead">${esc(r.description || typeLabel(r))}</p>
     <dl class="facts">
       <div><dt>资源</dt><dd>${esc(r.resource_kind || "—")} / ${esc(r.resource_name || "—")}</dd></div>
@@ -1064,8 +1122,11 @@ function renderFindingDetail(r) {
       <div><dt>功能 / 对齐</dt><dd>${esc(r.function_type || "—")} · ${esc(r.alignment_status || "—")}</dd></div>
     </dl>
     ${renderTupleCompare(r.Sdecl || r.s_decl, r.Sdp || r.s_dp, r.Srt || r.s_rt)}
-    <div class="cause"><strong>根因</strong> ${esc(r.root_cause || "待确认")}</div>
-    ${(r.suggestions || []).length ? `<ul class="sugs">${r.suggestions.map((s) => `<li>${esc(s)}</li>`).join("")}</ul>` : ""}
+    ${r.static_evidence || r.dynamic_evidence ? `<div class="dynamic-facts"><div><span>静态分析发现</span><p>${esc(r.static_evidence || "暂无证据")}</p></div><div><span>动态验证发现</span><p>${esc(r.dynamic_evidence || "尚未验证")}</p></div></div>` : ""}
+    ${r.possible_causes ? `<h3 style="margin-top:18px">可能原因</h3><p class="lead">以下为排查方向，尚未确认最终原因。</p><ul class="sugs">${r.possible_causes.map(s => `<li>${esc(s)}</li>`).join("")}</ul>` : `<div class="cause"><strong>原因分析</strong> ${esc(r.root_cause || "待确认")}</div>`}
+    <h3 style="margin-top:18px">解决策略</h3>
+    ${(r.resolution_steps || r.suggestions || []).length ? `<ol class="sugs">${(r.resolution_steps || r.suggestions).map((s) => `<li>${esc(s)}</li>`).join("")}</ol>` : '<p class="lead">需要结合环境进一步排查。</p>'}
+    ${r.recheck ? `<div class="cause"><strong>修复后如何确认</strong><p>${esc(r.recheck)}</p></div>` : ""}
     <details class="raw"><summary>原始数据</summary><pre>${esc(JSON.stringify(raw, null, 2))}</pre></details>
   `;
 }
@@ -1118,7 +1179,7 @@ function paintReportFindings() {
     }
   } else {
     box.innerHTML = `<table class="finding-table">
-      <thead><tr><th>级别</th><th>类型</th><th>资源</th><th>服务</th><th>层次</th></tr></thead>
+      <thead><tr><th>级别</th><th>类型 / 来源</th><th>资源</th><th>服务</th><th>层次</th></tr></thead>
       <tbody>${rows.map((r, idx) => {
         const id = findingKey(r, idx);
         const sev = (r.severity || "medium").toLowerCase();
@@ -1126,7 +1187,7 @@ function paintReportFindings() {
         const open = openFindingId === id;
         return `<tr class="finding-row${open ? " on" : ""}" data-fid="${esc(id)}">
           <td><span class="badge sev-${esc(sev)}">${esc((r.severity || "").toUpperCase())}</span></td>
-          <td>${esc(typeLabel(r))}<div class="lead" style="margin:2px 0 0">${esc(r.inconsistency_type || "")}</div></td>
+          <td>${esc(typeLabel(r))}<div class="lead" style="margin:2px 0 0">${esc((r.evidence_sources || []).join(" + ") || r.inconsistency_type || "")}</div></td>
           <td class="mono">${esc(r.resource_kind || "—")} / ${esc(r.resource_name || "—")}</td>
           <td>${esc(joinList(r.affected_services))}</td>
           <td><span class="badge ${esc(layer)}">${esc(r.layer_name || layer)}</span></td>
@@ -1158,7 +1219,7 @@ async function openReport(reportId) {
     currentReport = data;
     reportLayerFilter = "all";
     reportQuery = "";
-    openFindingId = "";
+    openFindingId = data.demo && data.records.length ? data.records[0].id : "";
     const cc = data.consistency_check || {};
     const meta = data.metadata || {};
     const layers = meta.layers || (cc.summary && cc.summary.layers) || [];
@@ -1191,6 +1252,7 @@ async function openReport(reportId) {
           <div class="card"><h3>第二层</h3><div class="num">${byLayer.layer2 || 0}</div></div>
         </div>
         <h2 style="margin-top:8px">检验了什么</h2>
+        ${data.aggregation ? `<div class="dynamic-facts"><div><span>静态分析问题</span><strong>${data.aggregation.static_issues} 项</strong><p>配置内容差异与版本引用缺失。</p></div><div><span>动态验证问题</span><strong>${data.aggregation.dynamic_issues} 项</strong><p>流量比例、超时行为和目标版本访问异常。</p></div></div><p class="lead">同一配置的静态与动态证据合并展示，共 ${data.aggregation.merged_issues} 条问题记录，避免将同一问题重复计数。检查 ${data.aggregation.checked_policies} 项策略，其中 ${data.aggregation.passed_policies} 项符合预期。</p>` : ""}
         <p class="lead">按三层图展开：全局平面对齐（Sdecl ↔ Sdp）、服务关系上的运行时偏差（Srt）、配置资源之间的引用冲突。</p>
         <div class="layer-grid">
           ${layers.map((l) => `
@@ -1290,6 +1352,30 @@ async function loadReports() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  const banner = document.createElement("div");
+  banner.className = "panel";
+  banner.style.cssText = "padding:12px 18px;margin-bottom:18px;border-left:4px solid #2b9af3";
+  banner.innerHTML = demoMode
+    ? '<strong>演示数据</strong> · 用于功能展示，数值为模拟结果。 <a href="/" style="color:#73bcf7">返回实际数据</a>'
+    : '<a href="/?demo=1" style="color:#73bcf7">进入演示模式</a> · 查看静态分析、动态测试、报告与依赖图示例';
+  document.querySelector(".main").prepend(banner);
+  if (demoMode) {
+    $("ingress-url").value = "http://bookinfo.demo/productpage";
+    $("dynamic-results").innerHTML = '<p class="lead">正在加载演示结果…</p>';
+    axios.post("/api/dynamic/run_tests").then(({data}) => {
+      dynamicCases = data.test_cases || [];
+      dynamicExecution = data;
+      paintDynamicView();
+      showStatus("dynamic-status", "ok", "已加载 6 个用例的模拟执行结果；可点击生成测试矩阵查看用例。");
+    });
+    document.addEventListener("click", event => {
+      const link = event.target.closest("a[href]");
+      if (!link || !/^\/(api\/|three_layer_graph)/.test(link.getAttribute("href"))) return;
+      const url = new URL(link.href);
+      url.searchParams.set("demo", "1");
+      link.href = url.href;
+    }, true);
+  }
   document.querySelectorAll(".nav-btn").forEach((btn) => {
     btn.addEventListener("click", () => switchPage(btn.dataset.page));
   });

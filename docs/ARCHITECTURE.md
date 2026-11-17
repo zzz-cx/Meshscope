@@ -1,78 +1,128 @@
-# MeshScope 系统设计
+# ConfigPilot 整体架构
 
-ConfigPilot（`python -m configpilot`）是统一入口。三个模块只通过落盘产物通信，不要在 checker 或动态模块里再解析 YAML。
+更新：2026-11-17。操作入口见根目录 [README](../README.md)，实现核对见 [IMPLEMENTATION_STATUS](IMPLEMENTATION_STATUS.md)。
 
-## 模块边界
+## 1. 研究方法与工程层次
 
-```text
-采集 (istio_monitor)
-        │  控制面 YAML + Envoy dump
-        ▼
-parser (istio_config_parser)
-        │  aligned_semantic.json
-        │  · pairs / expected_tuples
-        │  · conflicts
-        │  · graph_data（静态资源图）
-        ▼
-动态验证 (istio_Dynamic_Test)          checker (consistency_checker)
-  期望只取 matched /                     读对齐产物 + 动态结果
-  partial_matched 元组                    不做 YAML 解析
-  无产物则报错，不回退                    出报告 + 三层图 + Web
-```
+系统采用“跨层统一语义模型 → 验证义务 → 条件复用 → 冲突调度 → 证据判定 → 关联诊断”的主线。
 
-| 模块 | 可以做 | 不可以做 |
-|------|--------|----------|
-| parser | 读快照、对齐语义元组、跨资源冲突、写出静态图 | 发流量 |
-| 动态验证 | 用对齐元组生成期望、发流量、采观测 | 解析 YAML / 回退 `istio_config.json` |
-| checker | 读产物、判定一致性、生成三层图和页面 | 再走一遍 parser |
+| 方法 | 工程实现 | 产物 |
+|---|---|---|
+| 配置生效阶段验证 | 声明/数据面静态对齐与运行证据分别检查 | 静态对齐、有限比较及逐义务结果 |
+| 跨层统一语义模型 | PAOC 属性加策略、规则、资源身份及带条件关系 | `relational_model` |
+| 低开销验证规划 | 定向闭包、保守覆盖、采集共享、冲突调度 | 冻结计划、共享采集统计、执行足迹 |
+| 跨层证据依赖诊断 | 连接配置、策略、义务、探针和事件 | 依赖图、失败/未判定解释和候选资源 |
 
-## 数据产物
+模型关系存在不代表其执行语义已被完整求解。继承、未知字段和未知共享状态继续阻止不可靠的执行许可。
 
-主对齐文件：`results/consistency/aligned_semantic.json`
-
-| 字段 | 含义 |
-|------|------|
-| `pairs` | 按服务 × 功能的控制面 / 数据面对齐（含声明式 raw_config 与数据面规则） |
-| `expected_tuples` | `matched` / `partial_matched` 的语义元组，供动态期望使用 |
-| `conflicts` | VS 缺 subset、路由优先级、Gateway 选择器等跨资源冲突 |
-| `graph_data` | 静态资源图：服务节点带 namespace、declarative、data_plane_rules；VS/DR/EF/Gateway 为资源节点 |
-| `summary` | 服务数、功能对齐数、冲突数 |
-
-语义元组形态：`S = ⟨predicate, action, scope, constraint⟩`，控制面与数据面投影到同一套结构再比较。
-
-## Web UI
-
-启动：`python -m configpilot web --port 8080`
-
-样式对齐 Kiali / PatternFly 深色控制台（灰底、细边框、语义色表示状态），不做霓虹光晕。
-
-| 页 | 数据 | 交互 |
-|----|------|------|
-| 总览 | `configpilot.json`、连通探测 | 改集群 / 可观测地址并写回配置 |
-| 静态分析 | `POST /api/static/analyze` → parser | 按命名空间分列；点服务看声明式 YAML 与 Envoy 规则；点 VS/DR/EF 看资源及关联服务的数据面 |
-| 动态验证 | 对齐模型 → 测试矩阵 | 生成矩阵、执行用例 |
-| 一致性 | 静/动产物 | 生成三层图、刷新报告 |
-| 三层依赖图 | `/api/three_layer_graph/latest` | 搜索、邻域、路径、仅看不一致、Exp 虚线 / Obs 实线权重 |
-
-三层模型说明见 [THREE_LAYER_GRAPH.md](THREE_LAYER_GRAPH.md)。
-
-## 推荐命令
-
-```bash
-python -m configpilot collect --vm-host HOST --vm-user root --vm-password PASS
-python -m configpilot static --namespace default
-python -m configpilot dynamic -- --from-control-plane --ingress-url http://HOST:PORT/productpage
-python -m configpilot check --namespace default
-python -m configpilot web --port 8080
-python -m configpilot run --namespace default
-```
-
-底层模块入口仍然可用，见根目录 [README.md](../README.md)。
-
-## 动态验证流水线（模块内部）
+## 2. 模块边界
 
 ```text
-testcase → traffic → telemetry → validation
+集群快照采集                     已保存的证据
+      ↓                              │
+parser：配置/数据面解析与对齐          │
+      ↓                              │
+aligned_semantic.json                │
+  ├─ relational_model                │
+  └─ 原 pairs/conflicts/graph_data    │
+      ↓                              │
+planning.engine：定向闭包预计算        │
+  ├─ serial / thread / process       │
+  └─ 可选 Go 子进程                   │
+      ↓                              │
+planning.relational / profiles       │
+  → 全部义务 + 候选 + 覆盖 + 选择      │
+      ↓                              │
+执行队列：配置读写 / 状态 / 容量        │
+      ↓                              │
+真实 Envoy 路径 → 受控后端             │
+      ↓                              │
+共享回执收集 → 逐探针持久化            │
+      └──────────────────────────────┘
+                     ↓
+             逐义务三值判定
+                     ↓
+            依赖图 / 诊断 / 报告
+                     ↓
+                CLI / Web API
 ```
 
-`validation` 只消费执行 / 采集结果，不 import `traffic`。正交原则（匹配条件、功能策略、全局/局部、触发时机）仍由 `istio_Dynamic_Test` 负责压缩用例，期望值来自对齐元组而不是再读 YAML。
+- `istio_config_parser` 负责读取原始快照并输出模型；动态模块不重新解析 YAML。
+- `models/http_semantics.py` 提供模型层公共语义，parser 的有限比较和动态规划共同使用；parser 不反向依赖动态模块。
+- `internal/planning` 负责纯计算，输入完整模型。定向切片不是删除其他竞争规则的理由。
+- `internal/traffic` 负责协议适配、受控响应与回执；不写集群配置。
+- `configpilot/workflow.py` 负责冻结、规划、执行/回放、持久化和报告，不新增另一套 YAML 解释器。
+- `consistency_checker/web/relational.py` 直接调用同一 workflow；原可视化与 SQLite 兼容层不负责定义验证判定规则。
+
+## 3. 模型与不可变参照
+
+策略节点保留 `paoc`、`source_pointer`、`resource_id`、`rule_id` 和四维场景属性。模型同时保存规则顺序、资源身份、条件关系、诊断、语义版本和 `model_hash`。
+
+一次验证的参照模型固定。故障变异只改变被测环境，不重新生成正确答案。模型或计划指纹不符时拒绝运行；未支持义务保留并进入报告分母。
+
+动态期望来自整个声明参照模型，包含全部声明策略，不依赖 `matched/partial_matched` 元组筛选策略。具体义务能否执行由语义范围、完整依赖和适配契约决定。
+
+## 4. 规划、复用和计算加速
+
+`build_plan()` 先为必要来源预计算定向依赖闭包，再把缓存显式传入规划器。索引化闭包保持原固定点规则：前序传播、附着双向参与、普通引用定向传播、联合约束纳入相关参与者。缓存带模型身份，缺项报错，不静默缺省。
+
+Python 进程或 Go 只加速闭包阶段；规则匹配、候选许可、覆盖选择及证据断言仍由 Python 执行。已有 `parallel.plan_partitions()` / `evaluate_batch()` 继续提供完整模型上下文下的批处理接口。计算并行和流量并行是独立参数。
+
+默认保留独立候选，在支持规则下允许一次请求支持多项义务。覆盖关系中的未知不作为正覆盖。逻辑探针数、实际 HTTP 请求数和采集读取数分别报告。
+
+采集器按请求 ID 批量读取多个任务的回执，并复用兼容快照。快照开始时间不得早于对应任务的客户端完成时间，避免把请求到达前的空缓存当作最终观测。
+
+## 5. 冲突、容量和执行生命周期
+
+任务声明配置读取、配置写入、状态域和并发请求需求。
+
+- 读取同一配置可共享，写入与相应读写互斥。
+- 闭合的受控契约提供请求级触发和证据归因，因此 VS 级保守标签可共享。
+- 实际连接池等状态标签仍独占；不同服务名称不自动意味着实际状态隔离。
+- `load:N` 在请求容量预算内原子预留，与配置/状态预留一起成功后才提交 worker。
+- 等待回执时让出 worker，资源预留保持到上游尝试完成。
+- 传输异常或无法确认共享状态收尾时停止本次运行，避免继续启动依赖未知活跃状态的任务。
+
+独立运行之间还对入口和后端使用同主机文件租约，拒绝协作进程重叠运行。该机制不是集群分布式锁，不协调其他主机或别名入口的所有访问者。集群外部修改仍需通过代次/版本证据识别。
+
+显式开启 `--verify-config-versions` 时，workflow 用只读 kubectl 获取实际资源执行前后的 UID/RV/spec；变化或无法完成检查时，不把该执行区间判为通过。未开启时必须由调用者冻结部署，固定 Header 本身不能证明没有其他控制器进行未标记更新。
+
+## 6. 受控后端和记录生命周期
+
+`ControlledBackends` 在一个进程内提供多个目标端口和回环采集接口。每个请求拥有唯一 ID，失败序列和延迟按 ID 隔离，后端不替代理执行重试。
+
+- 数据接口：正常响应、失败后恢复、慢响应、并发保持和分流接收。
+- 控制根接口：批量只读回执查询及能力声明。
+- `/release`：仅回收指定、已结束请求，拒绝仍有未完成尝试的 ID。
+- 记录有数量上限和已完成记录保留时间；达到上限不继续无限增长，并通过代次标记使相关运行保持未判定。
+- 活跃记录不因 TTL 被删除。默认保留 300 秒，显式回收只发生在客户端和上游完成、证据持久化之后。
+
+workflow 对每项完成观察先以临时文件、fsync 和原子替换写入 `evidence_journal/`，然后才请求后端释放。最终合并为 `captured_evidence.json`。即使后续任务中断，也从已保存日志恢复完成部分并保留剩余未判定义务。
+
+后端服务不是原业务的自动替身。测试实例身份、真实代理路径及拓扑必须与验证目标相符。
+
+## 7. 结果和诊断
+
+计划与证据分别有身份及指纹，执行证据包含运行、探针、执行、请求和事件身份、时间窗口、实际目标及字段。
+
+- 完整可信证据符合断言：PASS。
+- 完整可信证据提供反例：FAIL。
+- 触发、作用范围、证据或语义不足：INCONCLUSIVE。
+
+预期规则没有正确激活不能自动消除反证。例如错误后端身份使路由义务失败，而依赖正确后端上下文的 Header 义务可能未判定。规划完成状态为 PLANNED，不表示验证通过。
+
+`dependency_graph.json` 区分资源、规则、策略、关系、义务、探针和证据节点；边分别标记归属、参与、计划支持与实际观察。`diagnostics.json` 对失败/未判定义务给出来源、证据及按依赖距离组织的资源候选。候选排序是启发式，图可达性和潜在 Service 依赖不等于已观测调用或真实因果关系。
+
+## 8. 静态比较的实际范围
+
+静态解析器生成控制面/数据面元组对齐。`compare_models()` 对已投影的两侧关系模型取见证并集，比较受支持的有效 HTTP 选择、目标、Header 和字面量改写；可发现部分实际侧额外路由及规则顺序差异。
+
+结果为 DIFFERENT、INCONCLUSIVE 或 NO_DIFFERENCE_OBSERVED，始终声明 `global_equivalence_proven=false`。它不能代替完整 Envoy 原生关系投影，也不对未知继承、所有随机/有状态行为证明等价。见证不足和未知条件显式报告。
+
+## 9. 接口与兼容
+
+统一 CLI：`plan`、`dynamic`、`run`、`evaluate`、`check`、`compare`。`dynamic/run` 只有显式 `--execute` 才发流量。模块命令 `istio_Dynamic_Test.cmd.relations` 是统一 CLI 的别名；`istio_Dynamic_Test.cmd` 默认同样调用统一工作流，`--legacy` 明确进入矩阵兼容路径。
+
+Web 验证 API 位于 `/api/validation/`。动态生成、执行、验证及流水线 API 在未指定 `engine=legacy` 时调用统一工作流。证据依赖图的专用前端，以及 SQLite 报告列表与验证报告的统一展示仍待接入；API 的支持范围与页面的支持范围分别记录。
+
+源码归档包含 Git 基线和工作区快照两种来源。工作区快照包含关系模型与实验接口，不能作为未修改的提交基线。归档不参与运行时导入。

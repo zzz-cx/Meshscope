@@ -7,6 +7,8 @@
 | 文档 | 内容 |
 |------|------|
 | [ARCHITECTURE.md](ARCHITECTURE.md) | 模块边界、产物、Web、推荐命令 |
+| [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) | 2026-11-16 实现核对、测试及剩余缺口 |
+| [统一语义模型与验证规划形式化](ConfigPilot_关系模型与低开销验证规划_形式化说明.md) | 跨层统一语义模型、验证义务及规划形式化 |
 | [module_architecture.md](module_architecture.md) | parser / 动态 / checker 的输入输出 |
 | [DIRECTORY_STRUCTURE.md](DIRECTORY_STRUCTURE.md) | 工程目录 |
 | [THREE_LAYER_GRAPH.md](THREE_LAYER_GRAPH.md) | 三层图模型与查看器 |
@@ -16,8 +18,6 @@
 | 文档 | 内容 |
 |------|------|
 | [INGRESS_GATEWAY_CONFIG.md](INGRESS_GATEWAY_CONFIG.md) | Ingress Gateway dump |
-| [REMOTE_CLUSTER_SETUP.md](REMOTE_CLUSTER_SETUP.md) | 远程 kubeconfig |
-| [E2E_VALIDATOR_README.md](E2E_VALIDATOR_README.md) | 端到端验证框架 |
 
 ## 模块 README
 

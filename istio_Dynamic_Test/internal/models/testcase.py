@@ -35,6 +35,7 @@ class PolicyType(Enum):
 class ValidationStatus(Enum):
     PASSED = "passed"
     FAILED = "failed"
+    INCONCLUSIVE = "inconclusive"
     WARNING = "warning"
     SKIPPED = "skipped"
 
@@ -194,7 +195,7 @@ class TestCase:
             expected_success_rate=None,
             expected_fault_rate=None,
             expected_fault_code=expected_fault_code,
-            expected_retry_attempts=None,
+            expected_retry_attempts=outcome.get("retry_attempts"),
             expected_circuit_breaker_threshold=outcome.get("circuit_breaker_threshold"),
             margin_of_error=float(outcome.get("margin_of_error", 0.1)),
             test_strategies=strategies,
@@ -310,3 +311,11 @@ _STRATEGY_POLICY_MAP = {
 
 def _strategy_to_policy(strategy: str) -> PolicyType:
     return _STRATEGY_POLICY_MAP.get(strategy, PolicyType.COMPOSITE)
+
+
+def requires_controlled_stimulus(test_case: TestCase) -> bool:
+    """Legacy matrices must not mutate mesh routes to simulate upstream failures."""
+    return bool(set(test_case.policy_types or ()) & {
+        PolicyType.RETRY, PolicyType.CIRCUIT_BREAKER,
+        PolicyType.CONNECTION_POOL, PolicyType.CONNECTION_POOL_OUTLIER,
+    }) or test_case.trigger_condition == "connection_pool_outlier_validation"

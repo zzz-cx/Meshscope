@@ -796,6 +796,13 @@ def parse_static_semantic(
     conflicts = analyze_cross_resource_conflicts(control_plane_configs)
     expected_tuples = _expected_tuples_from_pairs(pairs)
     graph_data = _simple_graph_from_pairs(pairs, control_plane_configs)
+    from istio_config_parser.models.relational_model import build_relational_model
+    relation_configs = control_plane_configs
+    if namespace:
+        # References and competing selectors may cross the requested namespace.
+        # Retain the snapshot context; the obligation planner scopes its targets.
+        relation_configs = _load_control_plane_configs(_resolve_config_dir(control_plane_dir), None)
+    relational_model = build_relational_model(relation_configs)
     tau = _get_tau()
     timeout_abs = _get_timeout_abs()
     summary = system_ir.get_summary()
@@ -819,6 +826,7 @@ def parse_static_semantic(
         "control_plane": control_result,
         "data_plane": data_result,
         "graph_data": graph_data,
+        "relational_model": relational_model,
     }
     artifact_path = dump_aligned_semantic(artifact, output_path)
     return {
@@ -1306,4 +1314,4 @@ if __name__ == "__main__":
             
             print("  权重:")
             for subset, weight in relations.get('weights', {}).items():
-                print(f"    - {subset}: {weight}") 
+                print(f"    - {subset}: {weight}")

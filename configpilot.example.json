@@ -1,0 +1,88 @@
+{
+  "namespace": "default",
+  "log_level": "INFO",
+  "cluster": {
+    "ssh_host": null,
+    "ssh_port": 22,
+    "ssh_user": "root",
+    "ssh_password": null,
+    "k8s_host": null,
+    "k8s_port": 6443,
+    "k8s_token": null
+  },
+  "observability": {
+    "prometheus_url": null,
+    "jaeger_url": null,
+    "zipkin_url": null,
+    "kiali_url": null,
+    "grafana_url": null,
+    "ingress_url": null,
+    "ingress_port": 30476
+  },
+  "static": {
+    "control_plane_config_dir": "istio_config_parser/istio_monitor/istio_control_config",
+    "data_plane_config_dir": "istio_config_parser/istio_monitor/istio_sidecar_config",
+    "ingress_plane_config_dir": "istio_config_parser/istio_monitor/istio_ingress_config"
+  },
+  "dynamic": {
+    "validation_engine": "relational",
+    "validation_output_dir": "results/relational",
+    "backend_control_url": null,
+    "activation_headers_file": null,
+    "behavior_profiles_file": null,
+    "compute_backend": "serial",
+    "compute_workers": 2,
+    "traffic_workers": 1,
+    "capacity_budget": 64,
+    "go_binary": null,
+    "istio_config_file": "istio_Dynamic_Test/configs/istio_config.json",
+    "service_dependencies_file": "istio_Dynamic_Test/service_dependencies.json",
+    "test_matrix_file": "istio_Dynamic_Test/configs/output_matrix.json",
+    "envoy_logs_dir": "istio_Dynamic_Test/results/envoy_logs",
+    "http_results_dir": "istio_Dynamic_Test/results/http_results",
+    "verification_dir": "istio_Dynamic_Test/results/verification",
+    "enabled_policies": {
+      "routing": true,
+      "retry": true,
+      "circuit_breaker": true,
+      "rate_limit": true,
+      "fault_injection": true,
+      "orthogonal_minimize": false
+    }
+  },
+  "monitor": {
+    "interval": 1200,
+    "config_types": "routes,clusters,listeners",
+    "data_plane_method": "istioctl",
+    "ingress_method": "kubectl-exec"
+  },
+  "consistency": {
+    "output_dir": "results/consistency",
+    "visualization_output_dir": "results/visualization",
+    "database_path": "results/meshscope.db",
+    "traffic_split_tolerance": 0.1,
+    "statistical_confidence": 0.95,
+    "alignment_tau": 0.1,
+    "timeout_tolerance_seconds": 0.5,
+    "min_split_requests": 30,
+    "min_severity": "info",
+    "check_layer1": true,
+    "check_layer2": true,
+    "check_layer3": true,
+    "report_unverified_policies": true,
+    "report_scope_gaps": true,
+    "report_partial_matched": true,
+    "check_routing": true,
+    "check_traffic_split": true,
+    "check_retry": true,
+    "check_timeout": true,
+    "check_circuit_breaker": true,
+    "check_rate_limit": true,
+    "check_fault_injection": true,
+    "check_orthogonal_minimize": false
+  },
+  "web": {
+    "port": 8080,
+    "enable_interactive_graph": true
+  }
+}

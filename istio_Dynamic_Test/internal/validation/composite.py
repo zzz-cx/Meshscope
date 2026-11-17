@@ -138,6 +138,8 @@ class CompositeValidator(BaseValidator):
             return ValidationStatus.SKIPPED
         if any(r.overall_status == ValidationStatus.FAILED for r in results):
             return ValidationStatus.FAILED
+        if any(r.overall_status in (ValidationStatus.INCONCLUSIVE, ValidationStatus.SKIPPED) for r in results):
+            return ValidationStatus.INCONCLUSIVE
         if any(r.overall_status == ValidationStatus.WARNING for r in results):
             return ValidationStatus.WARNING
         return ValidationStatus.PASSED

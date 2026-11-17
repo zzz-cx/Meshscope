@@ -22,7 +22,7 @@ ConfigPilot - Istio 配置一致性检验
 
 示例:
   # 端到端验证
-  docker run -it --rm -v \$(pwd)/results:/app/results meshscope:latest e2e --vm-host 192.168.92.131
+  docker run -it --rm -v \$(pwd)/results:/app/results meshscope:latest e2e --vm-host 192.0.2.10
 
   # 静态分析
   docker run -it --rm -v \$(pwd)/results:/app/results meshscope:latest static --namespace default

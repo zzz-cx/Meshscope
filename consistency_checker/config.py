@@ -25,6 +25,16 @@ class GlobalConfig:
     envoy_logs_dir: str = "istio_Dynamic_Test/results/envoy_logs"
     http_results_dir: str = "istio_Dynamic_Test/results/http_results"
     verification_dir: str = "istio_Dynamic_Test/results/verification"
+    validation_engine: str = 'relational'
+    validation_output_dir: str = 'results/relational'
+    backend_control_url: Optional[str] = None
+    activation_headers_file: Optional[str] = None
+    behavior_profiles_file: Optional[str] = None
+    compute_backend: str = 'serial'
+    compute_workers: int = 2
+    traffic_workers: int = 1
+    capacity_budget: int = 64
+    go_binary: Optional[str] = None
     
     # 一致性检查配置
     consistency_output_dir: str = "results/consistency"
@@ -81,7 +91,7 @@ class GlobalConfig:
     check_circuit_breaker: bool = True
     check_rate_limit: bool = True
     check_fault_injection: bool = True
-    check_orthogonal_minimize: bool = True
+    check_orthogonal_minimize: bool = False
     
     # 日志配置
     log_level: str = "INFO"
@@ -98,7 +108,7 @@ class GlobalConfig:
         "circuit_breaker": True,
         "rate_limit": True,
         "fault_injection": True,
-        "orthogonal_minimize": True,
+        "orthogonal_minimize": False,
     })
     config_file: Optional[str] = None
     
@@ -110,7 +120,7 @@ class GlobalConfig:
         if self.k8s_token is None:
             self.k8s_token = os.getenv("K8S_TOKEN")
         if self.ssh_host is None:
-            self.ssh_host = os.getenv("SSH_HOST", "192.168.92.131")
+            self.ssh_host = os.getenv("SSH_HOST") or None
         env_ssh_port = os.getenv("SSH_PORT")
         if env_ssh_port:
             try:
@@ -143,6 +153,10 @@ class GlobalConfig:
         self.database_path = self._resolve_path(self.database_path)
         self.service_dependencies_file = self._resolve_path(self.service_dependencies_file)
         self.istio_config_file = self._resolve_path(self.istio_config_file)
+        self.validation_output_dir = self._resolve_path(self.validation_output_dir)
+        for name in ('activation_headers_file', 'behavior_profiles_file', 'go_binary'):
+            if getattr(self, name):
+                setattr(self, name, self._resolve_path(getattr(self, name)))
     
     def get_ingress_url(self, host: Optional[str] = None, port: Optional[int] = None, path: str = "/productpage") -> Optional[str]:
         """获取Ingress URL"""
@@ -261,6 +275,14 @@ class GlobalConfig:
                 "http_results_dir": self._relpath(self.http_results_dir),
                 "verification_dir": self._relpath(self.verification_dir),
                 "enabled_policies": dict(self.enabled_policies or {}),
+                'validation_engine': self.validation_engine,
+                'validation_output_dir': self._relpath(self.validation_output_dir),
+                'backend_control_url': self.backend_control_url,
+                'activation_headers_file': self._relpath(self.activation_headers_file) if self.activation_headers_file else None,
+                'behavior_profiles_file': self._relpath(self.behavior_profiles_file) if self.behavior_profiles_file else None,
+                'compute_backend': self.compute_backend, 'compute_workers': self.compute_workers,
+                'traffic_workers': self.traffic_workers, 'capacity_budget': self.capacity_budget,
+                'go_binary': self._relpath(self.go_binary) if self.go_binary else None,
             },
             "monitor": {
                 "interval": self.monitor_interval,
@@ -324,6 +346,8 @@ NESTED_SECTIONS = {
     "dynamic": (
         "istio_config_file", "service_dependencies_file", "test_matrix_file",
         "envoy_logs_dir", "http_results_dir", "verification_dir", "enabled_policies",
+        'validation_engine', 'validation_output_dir', 'backend_control_url', 'activation_headers_file',
+        'behavior_profiles_file', 'compute_backend', 'compute_workers', 'traffic_workers', 'capacity_budget', 'go_binary',
     ),
 }
 
@@ -462,11 +486,11 @@ SETTINGS_GROUPS = [
         "hint": "SSH 与 Kubernetes 访问信息。保存后立即用于连通探测和采集。",
         "fields": [
             {"key": "namespace", "env": "", "label": "命名空间", "placeholder": "default"},
-            {"key": "ssh_host", "env": "SSH_HOST", "label": "SSH / 集群主机", "placeholder": "192.168.92.131"},
+            {"key": "ssh_host", "env": "SSH_HOST", "label": "SSH / 集群主机", "placeholder": "192.0.2.10"},
             {"key": "ssh_port", "env": "SSH_PORT", "label": "SSH 端口", "placeholder": "22"},
             {"key": "ssh_user", "env": "SSH_USER", "label": "SSH 用户", "placeholder": "root"},
             {"key": "ssh_password", "env": "SSH_PASSWORD", "label": "SSH 密码", "placeholder": "留空则不修改", "secret": True},
-            {"key": "k8s_host", "env": "K8S_HOST", "label": "Kubernetes 主机", "placeholder": "192.168.92.131"},
+            {"key": "k8s_host", "env": "K8S_HOST", "label": "Kubernetes 主机", "placeholder": "192.0.2.10"},
             {"key": "k8s_port", "env": "K8S_PORT", "label": "Kubernetes API 端口", "placeholder": "6443"},
             {"key": "k8s_token", "env": "K8S_TOKEN", "label": "Kubernetes Token", "placeholder": "留空则不修改", "secret": True},
         ],

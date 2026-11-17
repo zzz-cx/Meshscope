@@ -39,11 +39,11 @@ docker run -it --rm \
   -v $(pwd)/istio_config_parser/istio_monitor/istio_sidecar_config:/app/istio_config_parser/istio_monitor/istio_sidecar_config:ro \
   meshscope:latest \
   python e2e_validator.py \
-    --vm-host 192.168.92.131 \
+    --vm-host 192.0.2.10 \
     --vm-user root \
-    --vm-password 12345678 \
+    --vm-password <SSH_PASSWORD> \
     --namespace default \
-    --ingress-url http://192.168.92.131:30476/productpage
+    --ingress-url http://192.0.2.10:30476/productpage
 ```
 
 ## 🔨 构建镜像
@@ -84,7 +84,7 @@ docker run -it --rm meshscope:latest
 docker run -it --rm \
   -v $(pwd)/results:/app/results \
   meshscope:latest \
-  python e2e_validator.py --vm-host 192.168.92.131
+  python e2e_validator.py --vm-host 192.0.2.10
 ```
 
 ### 访问 Kubernetes 集群
@@ -107,9 +107,9 @@ docker run -it --rm \
 
 ```bash
 docker run -it --rm \
-  -e VM_HOST=192.168.92.131 \
+  -e VM_HOST=192.0.2.10 \
   -e VM_USER=root \
-  -e VM_PASSWORD=12345678 \
+  -e VM_PASSWORD=<SSH_PASSWORD> \
   -e NAMESPACE=default \
   meshscope:latest \
   python e2e_validator.py
@@ -135,11 +135,11 @@ docker-compose down
 创建 `.env` 文件：
 
 ```env
-VM_HOST=192.168.92.131
+VM_HOST=192.0.2.10
 VM_USER=root
-VM_PASSWORD=12345678
+VM_PASSWORD=<SSH_PASSWORD>
 NAMESPACE=default
-INGRESS_URL=http://192.168.92.131:30476/productpage
+INGRESS_URL=http://192.0.2.10:30476/productpage
 OUTPUT_DIR=results/e2e_validation
 ```
 
@@ -173,7 +173,7 @@ docker-compose --profile web up -d meshscope-web
 
 | 变量名 | 说明 | 默认值 |
 |--------|------|--------|
-| `VM_HOST` | 虚拟机主机地址 | `192.168.92.131` |
+| `VM_HOST` | 虚拟机主机地址 | `192.0.2.10` |
 | `VM_USER` | SSH 用户名 | `root` |
 | `VM_PASSWORD` | SSH 密码 | - |
 | `NAMESPACE` | Kubernetes 命名空间 | `default` |
@@ -201,11 +201,11 @@ docker run -it --rm \
   -v $(pwd)/results:/app/results \
   meshscope:latest \
   python e2e_validator.py \
-    --vm-host 192.168.92.131 \
+    --vm-host 192.0.2.10 \
     --vm-user root \
-    --vm-password 12345678 \
+    --vm-password <SSH_PASSWORD> \
     --namespace default \
-    --ingress-url http://192.168.92.131:30476/productpage
+    --ingress-url http://192.0.2.10:30476/productpage
 ```
 
 ### 示例2：运行静态分析

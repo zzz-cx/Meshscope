@@ -10,7 +10,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # 默认配置
-VM_HOST="${VM_HOST:-192.168.92.131}"
+VM_HOST="${VM_HOST:-}"
 VM_USER="${VM_USER:-root}"
 VM_PASSWORD="${VM_PASSWORD:-}"
 NAMESPACE="${NAMESPACE:-default}"
@@ -107,7 +107,7 @@ MeshScope Docker 快速启动脚本
     -c, --clean             清理 Docker 资源
 
 环境变量:
-    VM_HOST                 虚拟机主机地址 (默认: 192.168.92.131)
+    VM_HOST                 虚拟机主机地址 (默认: 192.0.2.10)
     VM_USER                 SSH 用户名 (默认: root)
     VM_PASSWORD             SSH 密码
     NAMESPACE               Kubernetes 命名空间 (默认: default)
@@ -119,7 +119,7 @@ MeshScope Docker 快速启动脚本
     $0 --build
 
     # 运行端到端验证
-    VM_HOST=192.168.92.131 VM_PASSWORD=12345678 $0 --run
+    VM_HOST=192.0.2.10 VM_PASSWORD=<SSH_PASSWORD> $0 --run
 
     # 启动 Web 服务
     $0 --web

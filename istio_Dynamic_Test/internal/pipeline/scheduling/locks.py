@@ -1,154 +1,191 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+"""Resource reservations. ``read:`` keys share access; other keys are exclusive.
+
+Reservations cover a complete case, including observation waits and recovery.
+The ready queue reserves all keys atomically before submitting work.
 """
-安全并行调度（最小可用版）
-
-目标：
-- 对 TestCase 打标签（locks），描述其执行期间需要独占写的共享资源
-- 通过 LockManager 确保锁集合有交集的用例不会并发执行
-
-说明：
-- “正交用例生成”不等于“执行时互不干扰”。本调度器的并行性以资源互斥为准。
-- 入口 VS 写锁：单资源 `meshscope-synth-ingress` 或按 `MESHSCOPE_INGRESS_SHARDS` 分片为
-  `meshscope-synth-shard-XX`（与 generate_scale_stack / FaultInjector 一致）。
-"""
-
-import re
 import threading
 from contextlib import contextmanager
-from typing import Callable, Dict, Iterable, List, Optional, Sequence, Set, Tuple, TypeVar
 
-from istio_Dynamic_Test.internal.models.testcase import PolicyType, TestCase
-from istio_Dynamic_Test.pkg.k8s.ingress_shard import synth_ingress_lock_key_for_path_and_host
-from istio_Dynamic_Test.pkg.k8s.meshscope_naming import meshscope_svc_short_name
-
-T = TypeVar("T")
+from istio_Dynamic_Test.pkg.k8s.ingress_shard import synth_ingress_vs_name_for_case
+from istio_Dynamic_Test.pkg.k8s.meshscope_naming import resolve_meshscope_svc
+from istio_Dynamic_Test.internal.models.testcase import PolicyType, requires_controlled_stimulus
 
 
-def _ingress_vs_lock_key(tc: TestCase) -> str:
-    path = getattr(tc, "path", None) or ""
-    host = (getattr(tc, "host", None) or "").strip()
-    src = (getattr(tc, "source_service", None) or "").strip()
-    route_hint = host if host and host != "*" else src
-    return synth_ingress_lock_key_for_path_and_host(path, route_hint)
+def service_identity(host, namespace):
+    """Unify service, service.ns and service.ns.svc.cluster.local."""
+    parts = (host or '').strip().lower().split('.')
+    name = parts[0] if parts and parts[0] not in ('', '*') else 'unknown'
+    ns = parts[1] if len(parts) > 1 and parts[1] not in ('svc', 'cluster', 'local') else namespace
+    return ns + ':' + name
+
+
+def mutation_trigger(tc):
+    if requires_controlled_stimulus(tc):
+        return ''
+    trigger = tc.trigger_condition or ''
+    if PolicyType.CONNECTION_POOL_OUTLIER in tc.policy_types:
+        return 'connection_pool_outlier_validation'
+    params = tc.fault_params or {}
+    if not trigger and params.get('simulate_slow_response') and (params.get('response_delay') or params.get('fault_delay')):
+        return '__meshscope_delay_for_timeout__'
+    return trigger if trigger in {
+        'simulate_503_error', 'simulate_config_fault',
+        'simulate_config_fault_with_timeout', 'simulate_high_load_with_errors',
+        '__meshscope_delay_for_timeout__', 'connection_pool_outlier_validation',
+    } else ''
+
+
+def plan_case_resources(tc, namespace, virtual_services=None):
+    """Resolve actual writer targets and VS readers from a read-only inventory.
+
+    Missing inventory adds a conservative shared/exclusive inventory gate.
+    Plans are refreshed at the start of every run.
+    """
+    if tc.metadata.get('is_orthogonal_fault_bundle'):
+        for sub in tc.metadata.get('bundle_subcases') or []:
+            plan_case_resources(sub, namespace, virtual_services)
+        return
+    svc = tc.host if tc.host and tc.host != '*' else tc.source_service
+    identity = service_identity(svc, namespace)
+    dependencies = tc.metadata.get('observation_services') or []
+    if not isinstance(dependencies, list) or any(not isinstance(s, str) for s in dependencies):
+        raise ValueError('observation_services must be a list of service names/FQDNs')
+    identities = {identity} | {service_identity(s, namespace) for s in dependencies}
+    tc.metadata['_scheduler_observation_services'] = sorted(identities)
+    inferred = resolve_meshscope_svc(tc.path or '', svc or '')
+    candidate = synth_ingress_vs_name_for_case(tc.path or '', inferred or svc or '')
+    inventory = virtual_services
+    existing = {(v.get('metadata', {}).get('namespace', 'default'), v.get('metadata', {}).get('name'))
+                for v in inventory or []}
+    target = candidate if inferred and (namespace, candidate) in existing else svc
+    if mutation_trigger(tc) == 'connection_pool_outlier_validation' and inferred and inventory is None:
+        target = 'meshscope-synth-ingress'
+    tc.metadata['_scheduler_fault_target'] = {
+        'name': target, 'namespace': namespace,
+        'route_host': inferred if target == candidate and inferred else svc,
+        'match_ingress': bool(target == candidate and inferred),
+    }
+    reads = set()
+    for v in inventory or []:
+        meta, spec = v.get('metadata', {}), v.get('spec', {})
+        ns, name = meta.get('namespace', 'default'), meta.get('name', '')
+        hosts = [service_identity(h, ns) for h in spec.get('hosts', []) if h != '*']
+        destinations = []
+        for block in spec.get('http', []) + spec.get('tcp', []) + spec.get('tls', []):
+            destinations.extend(service_identity(r.get('destination', {}).get('host'), ns)
+                                for r in block.get('route', []))
+        if identities.intersection(hosts + destinations) or (ns == namespace and name == target):
+            reads.add('resource:VirtualService:' + ns + ':' + name)
+    # A case can create a VS that is absent from the inventory.
+    if target:
+        reads.add('resource:VirtualService:' + namespace + ':' + target)
+    tc.metadata['_scheduler_reads'] = sorted(reads)
+    tc.metadata['_scheduler_inventory_known'] = inventory is not None
+
+
+def tag_case_locks(tc, namespace='default'):
+    if tc.metadata.get('is_orthogonal_fault_bundle'):
+        return sorted({key for sub in tc.metadata.get('bundle_subcases') or []
+                       for key in tag_case_locks(sub, namespace)})
+    if '_scheduler_reads' not in tc.metadata:
+        plan_case_resources(tc, namespace)
+    svc = tc.host if tc.host and tc.host != '*' else tc.source_service
+    # Standard Istio counters have no case ID. Request headers alone do not
+    # isolate observations: retain same-service exclusion for every policy.
+    keys = ['observation:' + identity for identity in tc.metadata['_scheduler_observation_services']]
+    keys.extend('read:' + r for r in tc.metadata['_scheduler_reads'])
+    if not tc.metadata['_scheduler_inventory_known']:
+        keys.append(('' if mutation_trigger(tc) else 'read:') + 'resource:VirtualService:inventory-unknown')
+    if mutation_trigger(tc):
+        target = tc.metadata['_scheduler_fault_target']
+        if target['name']:
+            keys.append('resource:VirtualService:' + target['namespace'] + ':' + target['name'])
+    return sorted(set(keys))
+
+
+def _requests(keys):
+    requests = {}
+    for key in keys:
+        if key.startswith('load:'):
+            continue
+        shared = key.startswith('read:')
+        name = key[5:] if shared else key
+        requests[name] = requests.get(name, True) and shared
+    return requests
+
+
+def requests_conflict(left, right):
+    a, b = _requests(left), _requests(right)
+    return any(not (a[key] and b[key]) for key in a.keys() & b.keys())
+
+
+class Reservation:
+    def __init__(self, manager, requests, load=0):
+        self.manager, self.requests, self.released = manager, requests, False
+        self.load = load
+
+    def release(self):
+        with self.manager._condition:
+            if self.released:
+                return
+            self.released = True
+            self.manager._used_load -= self.load
+            for key, shared in self.requests.items():
+                state = self.manager._held[key]
+                state[0 if shared else 1] -= 1
+                if state == [0, 0]:
+                    del self.manager._held[key]
+            self.manager._condition.notify_all()
 
 
 class LockManager:
-    """基于字符串 key 的多锁管理器（固定顺序获取，避免死锁）。"""
+    def __init__(self, capacity=None):
+        if capacity is not None and (not isinstance(capacity, int) or capacity < 1):
+            raise ValueError('capacity must be a positive integer')
+        self._condition = threading.Condition()
+        self._held = {}
+        self.capacity, self._used_load, self.peak_load = capacity, 0, 0
 
-    def __init__(self) -> None:
-        self._mu = threading.Lock()
-        self._locks = {}  # type: Dict[str, threading.Lock]
-
-    def _get_lock(self, key: str) -> threading.Lock:
-        with self._mu:
-            lk = self._locks.get(key)
-            if lk is None:
-                lk = threading.Lock()
-                self._locks[key] = lk
-            return lk
+    def try_reserve(self, keys):
+        keys = tuple(keys)
+        requests = _requests(keys)
+        loads = [int(key.split(':', 1)[1]) for key in keys if key.startswith('load:')]
+        if any(value < 1 for value in loads):
+            raise ValueError('task load reservations must be positive')
+        load = sum(loads)
+        if load < 0 or load and self.capacity is None:
+            raise ValueError('load reservations require a capacity budget')
+        if self.capacity is not None and load > self.capacity:
+            raise ValueError('task load exceeds total capacity budget')
+        with self._condition:
+            if self.capacity is not None and self._used_load+load > self.capacity:
+                return None
+            for key, shared in requests.items():
+                readers, writers = self._held.get(key, [0, 0])
+                if writers or (readers and not shared):
+                    return None
+            for key, shared in requests.items():
+                self._held.setdefault(key, [0, 0])[0 if shared else 1] += 1
+            self._used_load += load
+            self.peak_load = max(self.peak_load, self._used_load)
+            return Reservation(self, requests, load)
 
     @contextmanager
-    def acquire_all(self, keys: Sequence[str]) -> Iterable[None]:
-        ordered = sorted({k for k in keys if k})
-        acquired = []  # type: List[threading.Lock]
+    def acquire_all(self, keys):
+        with self._condition:
+            reservation = self.try_reserve(keys)
+            while reservation is None:
+                self._condition.wait()
+                reservation = self.try_reserve(keys)
         try:
-            for k in ordered:
-                lk = self._get_lock(k)
-                lk.acquire()
-                acquired.append(lk)
             yield
         finally:
-            for lk in reversed(acquired):
-                try:
-                    lk.release()
-                except Exception:
-                    pass
+            reservation.release()
 
 
-def tag_case_locks(tc: TestCase) -> List[str]:
-    """
-    给用例打“资源锁标签”。
-
-    设计原则（保守优先）：
-    - 只要可能写入口 VS，就锁对应分片（或单入口时的 meshscope-synth-ingress）
-    - connection_pool_outlier_validation 会写入口 VS（注入/恢复），phase1/phase2 都需串行化入口写
-      （我们已在 FaultInjector 内部做了入口写锁，但这里仍做调度级锁，避免其它写操作穿插造成混乱）
-    """
-    if tc.metadata.get("is_orthogonal_fault_bundle"):
-        subs = tc.metadata.get("bundle_subcases") or []
-        acc: List[str] = []
-        for s in subs:
-            acc.extend(tag_case_locks(s))
-        return sorted(set(acc))
-
-    locks = []  # type: List[str]
-
-    trigger = (tc.trigger_condition or "").strip()
-    strategies = set(tc.test_strategies or [])
-    policies = set(tc.policy_types or [])
-
-    # 1) 强制入口 VS 写锁：任何明确的故障/注入/熔断/连接池/超时触发都可能写入口 VS
-    if trigger in (
-        "simulate_503_error",
-        "simulate_config_fault",
-        "simulate_config_fault_with_timeout",
-        "__meshscope_delay_for_timeout__",
-        "connection_pool_outlier_validation",
-    ):
-        locks.append(_ingress_vs_lock_key(tc))
-
-    if (
-        PolicyType.FAULT_INJECTION in policies
-        or PolicyType.CIRCUIT_BREAKER in policies
-        or PolicyType.CONNECTION_POOL in policies
-        or PolicyType.CONNECTION_POOL_OUTLIER in policies
-        or PolicyType.TIMEOUT in policies
-        or PolicyType.RETRY in policies
-    ):
-        # 这类验证常通过 FaultInjector 落到入口 VS（单入口模型）
-        locks.append(_ingress_vs_lock_key(tc))
-
-    if any(s in strategies for s in ("fault_injection", "circuit_breaker", "connection_pool", "connection_pool_outlier", "timeout", "retry")):
-        locks.append(_ingress_vs_lock_key(tc))
-
-    # 2) 可选：deployment 写锁（目前 warmup 在 suite 开始时统一做，这里先不强制）
-    # 若未来把 accesslog patch/rollout 也并行化，可在此添加：
-    #   locks.append(f"deploy:{svc}-v1")
-    svc = meshscope_svc_short_name(tc.host or tc.source_service)
-    if svc:
-        locks.append("svc:" + svc)
-
-    # 去重
-    return sorted(set(locks))
-
-
-def run_safely_in_parallel(
-    *,
-    cases: Sequence[TestCase],
-    run_case: Callable[[TestCase], T],
-    max_workers: int,
-    lock_manager: LockManager,
-    tagger: Callable[[TestCase], List[str]] = tag_case_locks,
-) -> List[T]:
-    """
-    以线程池并行执行用例，但对每个用例按 locks 做互斥保护。
-    返回结果顺序按完成顺序（非输入顺序）。
-    """
-    if max_workers <= 1:
-        return [run_case(tc) for tc in cases]
-
-    from concurrent.futures import ThreadPoolExecutor, as_completed
-
-    def _wrapped(tc: TestCase) -> T:
-        locks = tagger(tc)
-        with lock_manager.acquire_all(locks):
-            return run_case(tc)
-
-    out = []  # type: List[T]
-    with ThreadPoolExecutor(max_workers=max_workers) as pool:
-        futs = [pool.submit(_wrapped, tc) for tc in cases]
-        for fut in as_completed(futs):
-            out.append(fut.result())
-    return out
-
+def run_safely_in_parallel(*, cases, run_case, max_workers, lock_manager,
+                           tagger=tag_case_locks, stats=None, max_inflight=None):
+    from .queue import run_ready_cases
+    return run_ready_cases(cases=cases, run_case=run_case, max_workers=max_workers,
+                           lock_manager=lock_manager, tagger=tagger,
+                           stats=stats, max_inflight=max_inflight)

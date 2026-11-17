@@ -76,6 +76,7 @@ class ReportGenerator:
                         for d in r.validation.details
                     ],
                 }
+                entry["validation"]["metrics"] = r.validation.metrics
             cases.append(entry)
 
         passed = sum(
@@ -83,22 +84,29 @@ class ReportGenerator:
             if r.validation and r.validation.overall_status == ValidationStatus.PASSED
         )
         total = len(results)
+        counts = {s.value: sum(1 for r in results if r.validation and r.validation.overall_status == s)
+                  for s in ValidationStatus}
+        counts["skipped"] += sum(1 for r in results if not r.validation)
         return {
             "generated_at": datetime.now().isoformat(),
             "total_cases": total,
+            "evaluated": passed + counts["failed"],
             "passed": passed,
-            "failed": total - passed,
-            "pass_rate": f"{passed / total * 100:.1f}%" if total else "N/A",
+            "failed": counts["failed"],
+            "inconclusive": counts["inconclusive"],
+            "warning": counts["warning"],
+            "skipped": counts["skipped"],
+            "pass_rate": f"{passed / (passed + counts['failed']) * 100:.1f}%" if passed + counts['failed'] else "N/A",
             "cases": cases,
         }
 
     @staticmethod
     def _build_text(results: List[PipelineResult]) -> str:
         lines = ["=" * 60, "Istio 动态验证报告", "=" * 60, ""]
-        passed = failed = warning = 0
+        passed = failed = warning = inconclusive = skipped = 0
         for r in results:
             status = r.validation.overall_status.value if r.validation else "skipped"
-            icon = {"passed": "PASS", "failed": "FAIL", "warning": "WARN"}.get(status, "SKIP")
+            icon = {"passed": "PASS", "failed": "FAIL", "warning": "WARN", "inconclusive": "INCONCLUSIVE"}.get(status, "SKIP")
             dur = f" ({r.case_duration_seconds:.1f}s)" if r.case_duration_seconds is not None else ""
             lines.append(f"[{icon}] {r.test_case.case_id}: {r.test_case.description}{dur}")
             if r.validation:
@@ -108,12 +116,18 @@ class ReportGenerator:
                     passed += 1
                 elif status == "failed":
                     failed += 1
-                else:
+                elif status == "inconclusive":
+                    inconclusive += 1
+                elif status == "warning":
                     warning += 1
+                else:
+                    skipped += 1
+            else:
+                skipped += 1
             lines.append("")
 
         lines.append("-" * 60)
-        lines.append(f"总计: {len(results)}  通过: {passed}  失败: {failed}  警告: {warning}")
-        rate = passed / len(results) * 100 if results else 0
-        lines.append(f"通过率: {rate:.1f}%")
+        lines.append(f"总计: {len(results)}  通过: {passed}  失败: {failed}  未判定: {inconclusive}  警告: {warning}  跳过: {skipped}")
+        rate = f"{passed / (passed + failed) * 100:.1f}%" if passed + failed else "N/A"
+        lines.append(f"可判定用例通过率: {rate}")
         return "\n".join(lines)

@@ -1,0 +1,38 @@
+# Controlled backend experiment template; see README.md.
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  namespace: configpilot-lab
+  name: traffic-split
+spec:
+  hosts:
+  - complex-split.audit.invalid
+  gateways:
+  - default/bookinfo-gateway
+  http:
+  - name: tested
+    match:
+    - uri:
+        prefix: /test/
+    route:
+    - destination:
+        host: backend-0
+        port:
+          number: 80
+      weight: 70
+    - destination:
+        host: backend-1
+        port:
+          number: 80
+      weight: 30
+    rewrite:
+      uri: /received/tested/
+    headers:
+      request:
+        set:
+          x-source: tested
+        remove:
+        - x-secret
+      response:
+        set:
+          x-policy: tested

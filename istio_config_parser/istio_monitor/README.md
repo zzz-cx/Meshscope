@@ -129,7 +129,7 @@ from istio_config_parser.istio_monitor.istio_api import IstioAPI
 
 api = IstioAPI(
     use_vm=True,
-    vm_host="192.168.92.131",
+    vm_host="192.0.2.10",
     vm_user="root",
     vm_password="<密码>",
 )

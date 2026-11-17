@@ -26,7 +26,7 @@ MeshScope Docker 执行脚本
 
 示例:
   # 端到端验证
-  $0 e2e --vm-host 192.168.92.131 --vm-user root --vm-password 12345678
+  $0 e2e --vm-host 192.0.2.10 --vm-user root --vm-password <SSH_PASSWORD>
 
   # 静态分析
   $0 static --namespace default
