@@ -17,6 +17,7 @@ from istio_Dynamic_Test.internal.traffic.executors.grpc import (
 from istio_Dynamic_Test.internal.traffic.executors.http import HttpExecutor
 from istio_Dynamic_Test.internal.traffic.executors.load import LoadExecutor
 from istio_Dynamic_Test.internal.traffic.executors.mesh import MeshExecutor
+from istio_Dynamic_Test.internal.traffic.executors.split import SplitExecutor
 
 
 class ExecutorRegistry:
@@ -27,11 +28,13 @@ class ExecutorRegistry:
         ssh_client: SSHClient,
         namespace: str = "default",
         custom: Optional[BaseExecutor] = None,
+        ingress_url: Optional[str] = None,
     ):
         self._custom = custom
         self._http = HttpExecutor(ssh_client)
         self._load = LoadExecutor(ssh_client)
         self._mesh = MeshExecutor(ssh_client, namespace=namespace)
+        self._split = SplitExecutor(ingress_url=ingress_url)
         self._grpc = GrpcExecutor(ssh_client)
         self._grpc_load = GrpcLoadExecutor(ssh_client)
         self._grpc_mesh = GrpcMeshExecutor(ssh_client, namespace=namespace)
@@ -57,7 +60,7 @@ class ExecutorRegistry:
         ):
             return self._cp_outlier
         if PolicyType.TRAFFIC_SPLIT in (test_case.policy_types or []):
-            return self._mesh
+            return self._split
         if test_case.test_type == TestType.LOAD_TEST:
             return self._load
         return self._http

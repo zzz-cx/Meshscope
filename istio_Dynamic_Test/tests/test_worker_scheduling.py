@@ -195,6 +195,26 @@ class PipelineStageTests(unittest.TestCase):
             self.assertGreater(tester.scheduler_stats['max_inflight'],2)
             report.return_value.generate.assert_called_once()
 
+    def test_guarded_load_is_not_dispatched_by_either_scheduler_mode(self):
+        from istio_Dynamic_Test.internal.models.testcase import TestType
+        from istio_Dynamic_Test.internal.pipeline.guards import DynamicSafetyOptions
+        from unittest.mock import Mock
+        for event_wait in ('0', '1'):
+            with self.subTest(event_wait=event_wait), \
+                 patch.object(self.cli, 'SSHClient', return_value=self.ssh), \
+                 patch.object(self.cli, 'ReportGenerator'), \
+                 patch.dict(os.environ, {'DYNAMIC_TEST_MAX_WORKERS': '2', 'DYNAMIC_TEST_EVENT_WAIT': event_wait}):
+                executor = Mock()
+                tester = self.cli.DynamicTester(executor=executor, collector=self.collector,
+                    safety=DynamicSafetyOptions(allow_load_test=False), namespace='demo')
+                tc = case('blocked-load', policy_types=[PolicyType.RATE_LIMIT],
+                    test_type=TestType.LOAD_TEST, request_count=100, concurrency=8,
+                    rate_limit_expect={'mode': 'should_see_limits'})
+                results = tester.run(TestSuite(cases=[tc]))
+                self.assertEqual(len(results), 1)
+                self.assertEqual(results[0].validation.overall_status, ValidationStatus.SKIPPED)
+                executor.execute.assert_not_called()
+
     def test_cancelling_observation_restores_fault(self):
         restored=[]
         with patch.object(self.cli,'SSHClient',return_value=self.ssh), \

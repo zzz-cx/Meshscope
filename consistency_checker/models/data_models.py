@@ -81,6 +81,7 @@ class DynamicBehavior:
     
     # 验证结果
     is_verified: bool = False
+    skipped: bool = False
     verification_details: Dict[str, Any] = field(default_factory=dict)
     
     # 时间信息

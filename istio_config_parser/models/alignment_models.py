@@ -23,6 +23,34 @@ class AlignmentStatus(Enum):
     MISMATCHED = "mismatched"  # 不匹配
 
 
+def _destination_port_score(model: AnyFunctionModel) -> int:
+    """同服务多 vhost 时，优先保留应用端口（9080）而不是 kube Service 端口 80。"""
+    dests: List[Any] = []
+    if getattr(model, "destinations", None):
+        dests.extend(model.destinations or [])
+    for route in getattr(model, "routes", None) or []:
+        if isinstance(route, dict):
+            dests.extend(route.get("destinations") or [])
+    ports = []
+    for dest in dests:
+        if hasattr(dest, "port"):
+            ports.append(dest.port)
+        elif isinstance(dest, dict):
+            ports.append(dest.get("port"))
+    numeric = []
+    for port in ports:
+        try:
+            if port is not None:
+                numeric.append(int(port))
+        except (TypeError, ValueError):
+            continue
+    if any(p != 80 for p in numeric):
+        return 2
+    if numeric:
+        return 1
+    return 0
+
+
 @dataclass
 class AlignedFunctionPair:
     """对齐的功能对"""
@@ -155,8 +183,10 @@ class ModelAligner:
         index = {}
         for model in models:
             key = f"{model.namespace}.{model.service_name}"
-            # 如果有多个模型，保留第一个（可以根据需要调整策略）
             if key not in index:
+                index[key] = model
+            elif _destination_port_score(model) > _destination_port_score(index[key]):
+                # 同服务多 vhost（:80 Service 端口 vs :9080 应用端口）时保留应用端口投影
                 index[key] = model
         return index
     

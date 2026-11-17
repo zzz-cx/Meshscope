@@ -8,13 +8,18 @@ function switchPage(name) {
   document.body.classList.toggle("graph-page", name === "graph");
   if (name === "graph") ensureGraphFrame();
   if (name === "static") loadClusterSnapshot();
+  if (name === "dynamic") loadLatestDynamicResults();
 }
 
 function ensureGraphFrame() {
   const frame = $("graph-frame");
   if (!frame) return;
   if (!frame.dataset.loaded) {
-    frame.src = "/three_layer_graph" + (demoMode ? "?demo=1" : "");
+    const query = new URLSearchParams();
+    const namespace = ns("consistency-namespace") || ns("static-namespace") || "";
+    if (namespace) query.set("namespace", namespace);
+    if (demoMode) query.set("demo", "1");
+    frame.src = "/three_layer_graph" + (query.size ? "?" + query.toString() : "");
     frame.dataset.loaded = "1";
     return;
   }
@@ -28,7 +33,11 @@ function ensureGraphFrame() {
 function reloadGraphFrame() {
   const frame = $("graph-frame");
   if (!frame) return;
-  frame.src = "/three_layer_graph?t=" + Date.now() + (demoMode ? "&demo=1" : "");
+  const query = new URLSearchParams({t: String(Date.now())});
+  const namespace = ns("consistency-namespace") || ns("static-namespace") || "";
+  if (namespace) query.set("namespace", namespace);
+  if (demoMode) query.set("demo", "1");
+  frame.src = "/three_layer_graph?" + query.toString();
   frame.dataset.loaded = "1";
 }
 
@@ -40,6 +49,83 @@ function showStatus(id, kind, text) {
 
 function ns(id) {
   return ($(id) && $(id).value) || "default";
+}
+
+function ensureSelectOption(el, value) {
+  if (!el || !value) return;
+  const exists = Array.from(el.options).some((opt) => opt.value === value);
+  if (!exists) {
+    const opt = document.createElement("option");
+    opt.value = value;
+    opt.textContent = value;
+    el.insertBefore(opt, el.firstChild);
+  }
+}
+
+let clusterNamespaces = [];
+
+function fillNamespaceSelect(el, names, preferred) {
+  if (!el) return;
+  const current = el.value || preferred || el.dataset.current || "default";
+  const list = [];
+  (names || []).forEach((n) => {
+    if (n && list.indexOf(n) < 0) list.push(n);
+  });
+  el.innerHTML = list.map((n) => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join("");
+  el.value = list.indexOf(current) >= 0 ? current : (list[0] || "default");
+}
+
+async function loadClusterNamespaces(force) {
+  const ids = ["static-namespace", "dynamic-namespace", "consistency-namespace"];
+  try {
+    const url = force ? "/api/namespaces?refresh=1" : "/api/namespaces";
+    const { data } = await axios.get(url, { timeout: 12000 });
+    const names = data.namespaces || [];
+    clusterNamespaces = names.slice();
+    const preferred = data.current || "default";
+    ids.forEach((id) => {
+      const el = $(id);
+      fillNamespaceSelect(el, names, (el && el.dataset.current) || preferred);
+      if (el && data.error) el.title = data.error;
+      else if (el) el.title = names.length ? "当前分析命名空间（只测这一份）" : "";
+    });
+    bindNamespaceSelects();
+    fillStaticFilters();
+    if (staticGraph && (staticGraph.nodes || []).length) paintStaticGraph();
+    if (!data.ok && data.error) {
+      ids.forEach((id) => {
+        const el = $(id);
+        if (el && !el.options.length) ensureSelectOption(el, preferred);
+      });
+    }
+  } catch (err) {
+    ids.forEach((id) => {
+      const el = $(id);
+      if (el) el.title = "无法加载集群命名空间：" + (err.message || "未知错误");
+    });
+  }
+}
+
+function bindNamespaceSelects() {
+  ["static-namespace", "dynamic-namespace", "consistency-namespace"].forEach((id) => {
+    const el = $(id);
+    if (!el || el.dataset.nsBound) return;
+    el.dataset.nsBound = "1";
+    el.addEventListener("change", () => {
+      const val = el.value;
+      el.dataset.current = val;
+      ["static-namespace", "dynamic-namespace", "consistency-namespace"].forEach((other) => {
+        if (other === id) return;
+        const oel = $(other);
+        if (!oel) return;
+        if (oel.tagName === "SELECT") ensureSelectOption(oel, val);
+        oel.value = val;
+        if (oel.dataset) oel.dataset.current = val;
+      });
+      fillStaticFilters();
+      if (staticGraph && (staticGraph.nodes || []).length) paintStaticGraph();
+    });
+  });
 }
 
 const CONN_LABEL = { up: "已连接", down: "未连接", unknown: "未配置" };
@@ -114,6 +200,59 @@ function isTruthy(value) {
   return value === true || value === "true" || value === 1 || value === "1";
 }
 
+function readGuard(idDyn, idPipe, fallback) {
+  const a = $(idDyn);
+  const b = $(idPipe);
+  if (a) return a.checked;
+  if (b) return b.checked;
+  return fallback;
+}
+
+function dynamicGuardPayload() {
+  return {
+    allow_load_test: readGuard("dyn-allow-load-test", "pipe-allow-load-test", true),
+    allow_fault_injection: readGuard("dyn-allow-fault", "pipe-allow-fault", false),
+    allow_rollout: readGuard("dyn-allow-rollout", "pipe-allow-rollout", false),
+  };
+}
+
+function applyGuardDefaults(values) {
+  const pairs = [
+    ["dyn-allow-load-test", "pipe-allow-load-test", "allow_load_test", true],
+    ["dyn-allow-fault", "pipe-allow-fault", "allow_fault_injection", false],
+    ["dyn-allow-rollout", "pipe-allow-rollout", "allow_rollout", false],
+  ];
+  pairs.forEach(([a, b, key, fallback]) => {
+    const on = values && values[key] != null ? isTruthy(values[key]) : fallback;
+    if ($(a)) $(a).checked = on;
+    if ($(b)) $(b).checked = on;
+  });
+  updateGuardHints();
+}
+
+function updateGuardHints() {
+  const guards = dynamicGuardPayload();
+  const bits = [];
+  if (!guards.allow_load_test) bits.push("未开高压：限流高压、连接池打满可能无法验证。");
+  if (!guards.allow_fault_injection) bits.push("未开故障注入：熔断（outlier）、超时、重试无法诱发异常，将跳过这些用例。");
+  if (!guards.allow_rollout) bits.push("未允许 rollout：不会 patch sidecar 开 access log。");
+  const text = bits.length
+    ? bits.join("\n")
+    : "高压、故障注入、rollout 均已打开：熔断、超时、重试、限流高压将尝试动态验证。";
+  ["dyn-guard-hint", "pipe-guard-hint"].forEach((id) => {
+    const el = $(id);
+    if (!el) return;
+    el.textContent = text;
+    el.classList.toggle("has-warn", bits.length > 0);
+  });
+}
+
+function formatGuardWarnings(data) {
+  const warns = data && data.warnings;
+  if (Array.isArray(warns) && warns.length) return warns.join(" ");
+  return "";
+}
+
 function renderField(field, values, secrets) {
   if (field.type === "heading") {
     return `<div class="ep-heading">${escapeHtml(field.label || "")}</div>`;
@@ -182,7 +321,7 @@ function fillEndpointsFromHost() {
   if ($("ep-zipkin_url")) $("ep-zipkin_url").value = "";
   if ($("ep-kiali_url")) $("ep-kiali_url").value = "http://" + host + ":20001";
   if ($("ep-grafana_url")) $("ep-grafana_url").value = "http://" + host + ":3000";
-  if ($("ep-ingress_url")) $("ep-ingress_url").value = "http://" + host + ":" + ingressPort + "/productpage";
+  if ($("ep-ingress_url")) $("ep-ingress_url").value = "http://" + host + ":" + ingressPort;
   showStatus("endpoint-status", "info", "已按主机填入默认 URL，点击「保存并检测」后生效");
 }
 
@@ -195,6 +334,7 @@ async function loadEndpoints() {
   try {
     const { data } = await axios.get("/api/endpoints");
     renderEndpointFields(data);
+    applyGuardDefaults(data.values || {});
   } catch (err) {
     showStatus("endpoint-status", "err", "加载地址配置失败：" + (err.message || "未知错误"));
   }
@@ -205,6 +345,7 @@ async function saveEndpoints() {
   try {
     const { data } = await axios.put("/api/endpoints", collectEndpointValues(), { timeout: 25000 });
     renderEndpointFields(data);
+    applyGuardDefaults(data.values || {});
     if (data.connectivity) renderConnectivity(data.connectivity);
     if (data.values && data.values.ingress_url && $("ingress-url")) {
       $("ingress-url").value = data.values.ingress_url;
@@ -214,8 +355,13 @@ async function saveEndpoints() {
       ["stat-ns", "static-namespace", "dynamic-namespace", "consistency-namespace"].forEach((id) => {
         const el = $(id);
         if (!el) return;
-        if (el.tagName === "INPUT") el.value = nsVal;
-        else el.textContent = nsVal;
+        if (el.tagName === "INPUT" || el.tagName === "SELECT") {
+          if (el.tagName === "SELECT") ensureSelectOption(el, nsVal);
+          el.value = nsVal;
+          if (el.dataset) el.dataset.current = nsVal;
+        } else {
+          el.textContent = nsVal;
+        }
       });
     }
     showStatus("endpoint-status", "ok", "已写入 configpilot.json。集群、可观测与一致性容差立即生效，不必重启。");
@@ -285,15 +431,24 @@ async function loadClusterSnapshot(force) {
     if (!data.success) throw new Error(data.error || "快照不可用");
     clusterSnapshotLoaded = true;
     const meta = (data.graph_data && data.graph_data.metadata) || {};
-    const nsList = data.namespaces || meta.namespaces || [];
+    const nsList = data.namespace ? [data.namespace] : (data.namespaces || meta.namespaces || []);
+    if (data.namespace) {
+      const el = $("static-namespace");
+      if (el) {
+        ensureSelectOption(el, data.namespace);
+        el.value = data.namespace;
+        el.dataset.current = data.namespace;
+      }
+    }
     if (status) {
       showStatus(
         "static-status",
         "ok",
-        "已加载集群快照" + (data.generated_at ? "（" + data.generated_at + "）" : "") +
-          "：命名空间 " + (nsList.join(", ") || "-") +
+        "已加载上次对齐结果" + (data.generated_at ? "（" + data.generated_at + "）" : "") +
+          "，不是 kubectl 实时列表。命名空间 " + (nsList.join(", ") || "-") +
           "，服务 " + (meta.service_count || 0) +
-          "，资源 " + (meta.resource_count || 0)
+          "，资源 " + (meta.resource_count || 0) +
+          "。要点「执行静态分析」才会用监控重新采集。"
       );
     }
     renderStaticSummary(data);
@@ -304,7 +459,7 @@ async function loadClusterSnapshot(force) {
 }
 
 async function runStaticAnalysis() {
-  showStatus("static-status", "info", "正在执行静态分析...");
+  showStatus("static-status", "info", "正在从集群采集配置并做静态对齐...");
   try {
     const { data } = await axios.post("/api/static/analyze", {
       namespace: ns("static-namespace"),
@@ -314,7 +469,8 @@ async function runStaticAnalysis() {
     showStatus(
       "static-status",
       "ok",
-      "静态对齐完成：服务 " + (meta.service_count || (data.services || []).length) +
+      (data.collect_note ? data.collect_note + "。 " : "") +
+        "静态对齐完成：服务 " + (meta.service_count || (data.services || []).length) +
         "，资源 " + (meta.resource_count || 0) +
         "，跨资源冲突 " + conflictN + " 项"
     );
@@ -329,7 +485,7 @@ function renderStaticSummary(data) {
   const box = $("static-results");
   const s = data.summary || {};
   const conflicts = data.conflicts || [];
-  const nsList = ((data.graph_data || {}).metadata || {}).namespaces || [];
+  const nsList = (((data.graph_data || {}).metadata || {}).namespaces || []).filter(isLiveNamespace);
   box.innerHTML =
     `<div class="static-stat-row">
       <span>命名空间 <strong>${escapeHtml(nsList.join(", ") || "-")}</strong></span>
@@ -373,11 +529,22 @@ function nodeFill(d) {
   return KIND_COLOR[d.kind] || "#8a8d90";
 }
 
+function liveNamespaceSet() {
+  return new Set(clusterNamespaces || []);
+}
+
+function isLiveNamespace(ns) {
+  const live = liveNamespaceSet();
+  if (!live.size) return true;
+  return !ns || live.has(ns);
+}
+
 function visibleStaticNodes() {
   const ns = ($("static-ns-filter") && $("static-ns-filter").value) || "all";
   const typ = ($("static-type-filter") && $("static-type-filter").value) || "all";
   const q = (($("static-search") && $("static-search").value) || "").trim().toLowerCase();
   return (staticGraph.nodes || []).filter((n) => {
+    if (!isLiveNamespace(n.namespace)) return false;
     if (ns !== "all" && n.namespace !== ns) return false;
     if (typ === "service" && n.type !== "service") return false;
     if (typ !== "all" && typ !== "service" && n.kind !== typ) return false;
@@ -413,11 +580,15 @@ function fillStaticFilters() {
   const sel = $("static-ns-filter");
   if (!sel) return;
   const current = sel.value || "all";
-  const nss = ((staticGraph.metadata || {}).namespaces || []).slice().sort();
+  const live = liveNamespaceSet();
+  let nss = ((staticGraph.metadata || {}).namespaces || []).slice().sort();
+  if (live.size) nss = nss.filter((n) => live.has(n));
+  const preferred = ns("static-namespace");
   sel.innerHTML = '<option value="all">全部</option>' + nss.map((n) =>
     `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`
   ).join("");
-  sel.value = nss.indexOf(current) >= 0 || current === "all" ? current : "all";
+  if (preferred && (preferred === "all" || nss.indexOf(preferred) >= 0)) sel.value = preferred;
+  else sel.value = nss.indexOf(current) >= 0 || current === "all" ? current : "all";
 }
 
 function bindStaticFilters() {
@@ -771,7 +942,7 @@ function requestPresentation(c) {
   return {method, url, body, command, message};
 }
 
-function renderDynamicCases() {
+function renderDemoDynamicCases() {
   return dynamicCases.map((c, index) => {
     const req = requestPresentation(c);
     const load = c.load_params || {};
@@ -795,11 +966,88 @@ function renderDynamicCases() {
 
 function paintDynamicView() {
   $("dynamic-results").innerHTML = (demoMode ? '<p class="lead">以下请求、故障场景和观测均为演示数据。请求成功率与策略是否符合预期分别展示。</p>' : "") +
-    (dynamicCases.length ? '<h2>测试用例与发送方式</h2>' + renderDynamicCases() : "") +
+    (dynamicCases.length ? '<h2>测试用例与发送方式</h2>' + renderDemoDynamicCases() : "") +
     (dynamicExecution ? '<h2 style="margin-top:20px">请求执行统计</h2>' + renderHttpResultView(dynamicExecution) : "");
 }
 
+function renderDynamicCases(data) {
+  const cases = data.cases || [];
+  const passed = cases.filter((c) => c.status === "passed").length;
+  const failed = cases.filter((c) => c.status === "failed").length;
+  const skipped = cases.filter((c) => c.status === "skipped").length;
+  const pending = cases.filter((c) => c.status === "pending").length;
+  const kpis = `<div class="result-kpis">
+    <div class="card"><h3>用例</h3><div class="num">${cases.length || data.total_cases || 0}</div></div>
+    <div class="card"><h3>动态一致</h3><div class="num">${passed}</div></div>
+    <div class="card"><h3>动态不一致</h3><div class="num">${failed}</div></div>
+    <div class="card"><h3>跳过 / 未打</h3><div class="num">${skipped + pending}</div></div>
+  </div>`;
+  if (!cases.length) {
+    if (data.http_results && Object.keys(data.http_results).length) return kpis + renderHttpResultView(data);
+    return kpis + "<p class='lead'>还没有动态用例。请先生成测试矩阵或执行动态测试。</p>";
+  }
+  return kpis + cases.map(renderCaseCard).join("");
+}
+
+function caseStatusClass(status) {
+  return ({ passed: "consistent", failed: "inconsistent", warning: "partial", skipped: "unknown", pending: "unknown" })[status] || "unknown";
+}
+
+function renderCaseRows(rows) {
+  if (!rows || !rows.length) return "<p class='lead' style='margin:0'>—</p>";
+  return `<dl class="case-kv">${rows.map((row) =>
+    `<dt>${esc(row.label)}</dt><dd>${esc(row.value)}</dd>`
+  ).join("")}</dl>`;
+}
+
+function renderCaseCard(c) {
+  const req = c.request || {};
+  const target = [req.host, req.path].filter(Boolean).join(" ") || req.url || "";
+  const details = (c.details || []).map((d) => `<div class="case-dim">
+    <span class="badge ${caseStatusClass(d.status)}">${esc(d.status || "")}</span>
+    <span>${esc(d.dimension || "")}</span>
+    <div class="field-hint">${esc(d.message || "")}</div>
+  </div>`).join("");
+  return `<article class="case-card">
+    <header>
+      <div>
+        <span class="mono">${esc(c.case_id)}</span>
+        <strong>${esc(c.description || "—")}</strong>
+      </div>
+      <span class="badge ${caseStatusClass(c.status)}">${esc(c.consistency || c.status || "")}</span>
+    </header>
+    <p class="case-hint">${esc(c.hint || "")}${target ? " · " + esc(target) : ""}</p>
+    <div class="case-compare">
+      <div class="tuple">
+        <div class="who"><b>预期行为</b></div>
+        ${renderCaseRows(c.expected_rows)}
+      </div>
+      <div class="tuple">
+        <div class="who"><b>实际行为</b></div>
+        ${renderCaseRows(c.actual_rows)}
+      </div>
+      <div class="tuple">
+        <div class="who"><b>一致性判定</b></div>
+        <p class="sum">${esc(c.summary || "")}</p>
+        ${details}
+      </div>
+    </div>
+  </article>`;
+}
+
+async function loadLatestDynamicResults() {
+  const box = $("dynamic-results");
+  if (!box || box.innerHTML.trim()) return;
+  try {
+    const { data } = await axios.get("/api/dynamic/results");
+    if (data && (data.cases || []).length) box.innerHTML = renderDynamicCases(data);
+  } catch (err) {
+    /* 没有历史结果时保持空白 */
+  }
+}
+
 function renderMatrixView(data) {
+  if (data.cases && data.cases.length) return renderDynamicCases(data);
   const cases = (data.test_matrix && data.test_matrix.test_cases) || data.test_cases || [];
   const kpis = `<div class="result-kpis">
     <div class="card"><h3>用例数</h3><div class="num">${cases.length || data.total_cases || 0}</div></div>
@@ -823,6 +1071,7 @@ function renderMatrixView(data) {
 }
 
 function renderHttpResultView(data) {
+  if (data.cases && data.cases.length) return renderDynamicCases(data);
   const results = data.http_results || {};
   const ids = Object.keys(results);
   const kpis = `<div class="result-kpis">
@@ -832,6 +1081,15 @@ function renderHttpResultView(data) {
   if (!ids.length) return kpis + "<p class='lead'>没有 HTTP 执行结果</p>";
   const rows = ids.map((id) => {
     const r = results[id] || {};
+    if (r.skipped) {
+      return `<tr>
+        <td class="mono">${esc(id)}</td>
+        <td>—</td>
+        <td>跳过</td>
+        <td>—</td>
+        <td colspan="2">${esc(r.message || "安全开关未打开")}</td>
+      </tr>`;
+    }
     const codes = r.status_codes
       ? (Array.isArray(r.status_codes) ? r.status_codes.join(", ") : fmtCompact(r.status_codes))
       : "—";
@@ -858,11 +1116,17 @@ async function generateTestMatrix() {
     const { data } = await axios.post("/api/dynamic/generate", {
       namespace: ns("dynamic-namespace"),
       ingress_url: $("ingress-url").value,
+      ...dynamicGuardPayload(),
     });
-    showStatus("dynamic-status", "ok", "测试矩阵已生成，共 " + data.total_cases + " 个用例");
-    dynamicCases = (data.test_matrix && data.test_matrix.test_cases) || data.test_cases || [];
-    dynamicExecution = null;
-    paintDynamicView();
+    const extra = formatGuardWarnings(data);
+    showStatus("dynamic-status", "ok", "测试矩阵已生成，共 " + data.total_cases + " 个用例" + (extra ? "；" + extra : ""));
+    if (demoMode) {
+      dynamicCases = (data.test_matrix && data.test_matrix.test_cases) || data.test_cases || [];
+      dynamicExecution = null;
+      paintDynamicView();
+    } else {
+      $("dynamic-results").innerHTML = renderDynamicCases(data);
+    }
   } catch (err) {
     showStatus("dynamic-status", "err", "生成失败: " + (err.response?.data?.error || err.message));
   }
@@ -871,11 +1135,20 @@ async function generateTestMatrix() {
 async function runDynamicTests() {
   showStatus("dynamic-status", "info", "正在执行动态测试...");
   try {
-    const { data } = await axios.post("/api/dynamic/run_tests", { namespace: ns("dynamic-namespace") });
-    showStatus("dynamic-status", "ok", "动态测试完成");
-    if (data.test_cases) dynamicCases = data.test_cases;
-    dynamicExecution = data;
-    paintDynamicView();
+    const { data } = await axios.post("/api/dynamic/run_tests", {
+      namespace: ns("dynamic-namespace"),
+      ...dynamicGuardPayload(),
+    });
+    const extra = formatGuardWarnings(data);
+    const skipped = (data.skipped || []).length;
+    showStatus("dynamic-status", "ok", "动态测试完成" + (skipped ? "；跳过 " + skipped + " 项" : "") + (extra ? "；" + extra : ""));
+    if (demoMode) {
+      if (data.test_cases) dynamicCases = data.test_cases;
+      dynamicExecution = data;
+      paintDynamicView();
+    } else {
+      $("dynamic-results").innerHTML = renderDynamicCases(data);
+    }
   } catch (err) {
     showStatus("dynamic-status", "err", "执行失败: " + (err.response?.data?.error || err.message));
   }
@@ -907,8 +1180,12 @@ async function buildConsistencyGraph() {
 async function runPipeline() {
   showStatus("consistency-status", "info", "正在执行完整流水线...");
   try {
-    const { data } = await axios.post("/api/run_pipeline", { namespace: ns("consistency-namespace") });
-    showStatus("consistency-status", "ok", "流水线完成，已写出 JSON 与 HTML 报告 " + data.report_id);
+    const { data } = await axios.post("/api/run_pipeline", {
+      namespace: ns("consistency-namespace"),
+      ...dynamicGuardPayload(),
+    });
+    const extra = formatGuardWarnings(data);
+    showStatus("consistency-status", "ok", "流水线完成，已写出 JSON 与 HTML 报告 " + data.report_id + (extra ? "。" + extra : ""));
     await loadReports();
     await loadSummary();
     if (data.report_id) await openReport(data.report_id);
@@ -942,6 +1219,9 @@ function fmtCompact(val) {
 }
 
 const TYPE_NAMES = {
+  matched: "静态对齐一致",
+  dynamic_passed: "动态验证通过",
+  dynamic_skipped: "动态未观测",
   control_only: "仅控制面",
   data_only: "仅数据面",
   mismatched: "平面语义不匹配",
@@ -1034,7 +1314,8 @@ function tupleFields(tup) {
     else fields["实测"] = fmtCompact(tup.actual);
   }
   if (tup.test_case_id) fields["用例"] = tup.test_case_id;
-  if (tup.verified === false) fields["结果"] = "未通过";
+  if (tup.skipped) fields["结果"] = "未观测";
+  else if (tup.verified === false) fields["结果"] = "未通过";
   if (tup.verified === true) fields["结果"] = "通过";
   if (tup.function_type) fields["功能"] = tup.function_type;
   return fields;
@@ -1153,31 +1434,35 @@ function paintReportFindings() {
     if (!reportQuery) return true;
     const text = [
       r.inconsistency_type, r.type, TYPE_NAMES[r.inconsistency_type], r.description,
-      r.resource_kind, r.resource_name,
+      r.function_type, r.resource_kind, r.resource_name,
       (r.affected_services || []).join(" "), (r.affected_subsets || []).join(" "),
     ].join(" ").toLowerCase();
     return text.includes(reportQuery);
   });
 
-  // 根据当前筛选结果，找到被选中的那条 record
   const selected = openFindingId
     ? rows.find((r, idx) => findingKey(r, idx) === openFindingId)
     : null;
 
   if (drawer) {
     if (!selected) {
-      drawer.innerHTML = `<div class="panel"><p class="lead">点击左侧记录查看详情</p></div>`;
+      drawer.innerHTML = `<div class="panel"><p class="lead">点击左侧一条记录，对照 Sdecl / Sdp / Srt 字段差异</p></div>`;
     } else {
       drawer.innerHTML = `<div class="panel">${renderFindingDetail(selected)}</div>`;
     }
   }
 
-  if (!rows.length) {
+  const stamp = [reportLayerFilter, reportQuery, rows.length, records.length].join("|");
+  const table = box.querySelector("table.finding-table");
+  if (table && box.dataset.stamp === stamp) {
+    box.querySelectorAll(".finding-row").forEach((row) => {
+      row.classList.toggle("on", row.dataset.fid === openFindingId);
+    });
+  } else if (!rows.length) {
+    box.dataset.stamp = stamp;
     box.innerHTML = "<p class='lead'>当前筛选下没有记录</p>";
-    if (drawer) {
-      drawer.innerHTML = `<div class="panel"><p class="lead">当前筛选下没有可查看的详情</p></div>`;
-    }
   } else {
+    box.dataset.stamp = stamp;
     box.innerHTML = `<table class="finding-table">
       <thead><tr><th>级别</th><th>类型 / 来源</th><th>资源</th><th>服务</th><th>层次</th></tr></thead>
       <tbody>${rows.map((r, idx) => {
@@ -1230,7 +1515,14 @@ async function openReport(reportId) {
       records.forEach((r) => { if (r.layer) byLayer[r.layer] = (byLayer[r.layer] || 0) + 1; });
     }
     const status = (cc.overall_status || "unknown").toLowerCase();
-    const rate = typeof cc.consistency_rate === "number" ? (cc.consistency_rate * 100).toFixed(1) + "%" : "—";
+    const summary = cc.summary || {};
+    const metrics = data.metrics || {};
+    const fmtRate = (val) => (typeof val === "number" && Number.isFinite(val) ? (val * 100).toFixed(1) + "%" : "—");
+    const staticRate = fmtRate(summary.static_match_rate != null ? summary.static_match_rate : cc.consistency_rate);
+    const dynRate = fmtRate(summary.dynamic_verify_rate);
+    const splitRate = fmtRate(summary.split_consistency_rate);
+    const matchedN = summary.matched_functions != null ? summary.matched_functions : (metrics.matched_functions || "—");
+    const declaredN = summary.declared_functions != null ? summary.declared_functions : (metrics.declared_functions || records.length);
     box.innerHTML = `
       <div class="panel">
         <div class="panel-head">
@@ -1243,13 +1535,14 @@ async function openReport(reportId) {
             <a class="btn secondary" style="text-decoration:none" href="/api/report/${encodeURIComponent(reportId)}" target="_blank">JSON</a>
             <a class="btn secondary" style="text-decoration:none" href="/api/report/${encodeURIComponent(reportId)}/html" target="_blank">HTML</a>
             <a class="btn secondary" style="text-decoration:none" href="/three_layer_graph?report_id=${encodeURIComponent(reportId)}" target="_blank">三层图</a>
+            <button class="btn danger" type="button" data-delete="${esc(reportId)}">删除</button>
           </div>
         </div>
         <div class="cards" style="margin-top:14px">
-          <div class="card"><h3>一致性率</h3><div class="num">${esc(rate)}</div></div>
-          <div class="card"><h3>检验记录</h3><div class="num">${records.length}</div></div>
-          <div class="card"><h3>第一层</h3><div class="num">${byLayer.layer1 || 0}</div></div>
-          <div class="card"><h3>第二层</h3><div class="num">${byLayer.layer2 || 0}</div></div>
+          <div class="card"><h3>静态对齐率</h3><div class="num">${esc(staticRate)}</div><p class="lead">${esc(String(matchedN))} / ${esc(String(declaredN))} 声明功能 Sdecl↔Sdp</p></div>
+          <div class="card"><h3>动态通过率</h3><div class="num">${esc(dynRate)}</div><p class="lead">通过 ${esc(String(summary.dynamic_passed ?? metrics.dynamic_passed ?? "—"))} · 失败 ${esc(String(summary.dynamic_failed ?? "—"))} · 未观测 ${esc(String(summary.dynamic_skipped ?? "—"))}</p></div>
+          <div class="card"><h3>分流一致</h3><div class="num">${esc(splitRate)}</div><p class="lead">权重与落到的服务对照模型</p></div>
+          <div class="card"><h3>检验记录</h3><div class="num">${records.length}</div><p class="lead">点一条看四元组字段差</p></div>
         </div>
         <h2 style="margin-top:8px">检验了什么</h2>
         ${data.aggregation ? `<div class="dynamic-facts"><div><span>静态分析问题</span><strong>${data.aggregation.static_issues} 项</strong><p>配置内容差异与版本引用缺失。</p></div><div><span>动态验证问题</span><strong>${data.aggregation.dynamic_issues} 项</strong><p>流量比例、超时行为和目标版本访问异常。</p></div></div><p class="lead">同一配置的静态与动态证据合并展示，共 ${data.aggregation.merged_issues} 条问题记录，避免将同一问题重复计数。检查 ${data.aggregation.checked_policies} 项策略，其中 ${data.aggregation.passed_policies} 项符合预期。</p>` : ""}
@@ -1259,11 +1552,10 @@ async function openReport(reportId) {
             <div class="layer-card" data-layer="${esc(l.id)}">
               <h3>${esc(l.name)} <span class="count">${byLayer[l.id] || 0}</span></h3>
               <p>${esc(l.what)}</p>
-              <ul>${(l.checks || []).map((c) => `<li><code>${esc(c.type)}</code> ${esc(c.name)}</li>`).join("")}</ul>
             </div>`).join("") || "<p class='lead'>此报告尚未包含层次说明（请重新跑流水线）。</p>"}
         </div>
         ${checks.length ? `
-        <details class="raw" open>
+        <details class="raw">
           <summary>检验项目（${checks.length}）</summary>
           <table class="check-table">
             <thead><tr><th>层次</th><th>类型</th><th>说明</th></tr></thead>
@@ -1306,6 +1598,8 @@ async function openReport(reportId) {
       paintReportFindings();
     });
     paintReportFindings();
+    const delBtn = box.querySelector("[data-delete]");
+    if (delBtn) delBtn.addEventListener("click", (ev) => deleteReport(delBtn.dataset.delete, ev));
     document.querySelectorAll(".report-item").forEach((el) => {
       el.classList.toggle("active", el.dataset.id === reportId);
     });
@@ -1314,8 +1608,33 @@ async function openReport(reportId) {
   }
 }
 
-async function loadReports() {
+function reportKey(report) {
+  return (report && (report.report_id || report.id)) || "";
+}
+
+async function deleteReport(reportId, ev) {
+  if (ev) ev.preventDefault();
+  if (ev) ev.stopPropagation();
+  if (!reportId) return;
+  if (!window.confirm("确定删除报告 " + reportId + "？对应的 JSON / HTML / 图文件也会删除，且不可恢复。")) return;
+  try {
+    await axios.delete("/api/report/" + encodeURIComponent(reportId));
+    if (reportKey(currentReport) === reportId) {
+      currentReport = null;
+      const detail = $("report-detail");
+      if (detail) detail.innerHTML = "";
+    }
+    showStatus("consistency-status", "ok", "已删除报告 " + reportId);
+    await loadReports({ skipAutoOpen: true });
+    await loadSummary();
+  } catch (err) {
+    showStatus("consistency-status", "err", "删除失败: " + ((err.response && err.response.data && err.response.data.error) || err.message));
+  }
+}
+
+async function loadReports(opts) {
   const box = $("reports-container");
+  const skipAutoOpen = opts && opts.skipAutoOpen;
   box.innerHTML = "<p class='lead'>加载中...</p>";
   try {
     const { data } = await axios.get("/api/reports");
@@ -1332,20 +1651,24 @@ async function loadReports() {
           <strong>${esc(r.title || r.id)}</strong>
           <div class="lead" style="margin:4px 0 0">${esc(r.id)} · ${esc(r.timestamp || "")}${r.record_count != null ? " · " + r.record_count + " 条记录" : ""}</div>
         </div>
-        <div>
+        <div class="report-actions">
           <span class="badge ${cls}">${esc((r.status || "unknown").toUpperCase())}${rate ? " · " + rate : ""}</span>
-          <button class="btn secondary" type="button" style="margin-left:8px" data-open="${esc(r.id)}">详情</button>
-          <a class="btn secondary" style="margin-left:8px;text-decoration:none" href="/api/report/${encodeURIComponent(r.id)}" target="_blank">JSON</a>
-          <a class="btn secondary" style="margin-left:8px;text-decoration:none" href="/api/report/${encodeURIComponent(r.id)}/html" target="_blank">HTML</a>
-          <a class="btn secondary" style="margin-left:8px;text-decoration:none" href="/three_layer_graph?report_id=${encodeURIComponent(r.id)}" target="_blank">三层图</a>
+          <button class="btn secondary" type="button" data-open="${esc(r.id)}">详情</button>
+          <a class="btn secondary" style="text-decoration:none" href="/api/report/${encodeURIComponent(r.id)}" target="_blank">JSON</a>
+          <a class="btn secondary" style="text-decoration:none" href="/api/report/${encodeURIComponent(r.id)}/html" target="_blank">HTML</a>
+          <a class="btn secondary" style="text-decoration:none" href="/three_layer_graph?report_id=${encodeURIComponent(r.id)}" target="_blank">三层图</a>
+          <button class="btn danger" type="button" data-delete="${esc(r.id)}">删除</button>
         </div>
       </div>`;
     }).join("");
     box.querySelectorAll("[data-open]").forEach((btn) => {
       btn.addEventListener("click", () => openReport(btn.dataset.open));
     });
+    box.querySelectorAll("[data-delete]").forEach((btn) => {
+      btn.addEventListener("click", (ev) => deleteReport(btn.dataset.delete, ev));
+    });
     const preferred = reports.find((r) => r.id === "report_cluster_live") || reports.find((r) => r.id !== "report_demo_bookinfo");
-    if (preferred && !currentReport) openReport(preferred.id);
+    if (preferred && !currentReport && !skipAutoOpen) openReport(preferred.id);
   } catch (err) {
     box.innerHTML = "<p class='lead'>加载失败: " + err.message + "</p>";
   }
@@ -1388,5 +1711,25 @@ document.addEventListener("DOMContentLoaded", () => {
   loadReports();
   loadEndpoints();
   loadConnectivity(false);
+  loadClusterNamespaces(false);
+  bindNamespaceSelects();
+  document.querySelectorAll("[data-ns-refresh]").forEach((btn) => {
+    btn.addEventListener("click", () => loadClusterNamespaces(true));
+  });
+  [
+    ["dyn-allow-load-test", "pipe-allow-load-test"],
+    ["dyn-allow-fault", "pipe-allow-fault"],
+    ["dyn-allow-rollout", "pipe-allow-rollout"],
+  ].forEach(([a, b]) => {
+    if ($(a)) $(a).addEventListener("change", () => {
+      if ($(b)) $(b).checked = $(a).checked;
+      updateGuardHints();
+    });
+    if ($(b)) $(b).addEventListener("change", () => {
+      if ($(a)) $(a).checked = $(b).checked;
+      updateGuardHints();
+    });
+  });
+  updateGuardHints();
   connTimer = setInterval(() => loadConnectivity(false), 30000);
 });

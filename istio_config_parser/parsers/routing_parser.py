@@ -13,6 +13,126 @@ from istio_config_parser.models.function_models import (
 logger = logging.getLogger(__name__)
 
 
+def _vs_ref_from_route(route: Dict[str, Any]) -> Optional[tuple]:
+    """从 Envoy route metadata 抽出 (namespace, virtual_service_name)。"""
+    cfg_path = (route.get('metadata') or {}).get('filter_metadata') or {}
+    cfg_path = (cfg_path.get('istio') or {}).get('config') or ''
+    if '/virtual-service/' not in cfg_path:
+        return None
+    parts = cfg_path.split('/virtual-service/')
+    if len(parts) != 2:
+        return None
+    vs_name = (parts[1].split('/')[0] or parts[1]).strip()
+    ns_part = 'default'
+    if '/namespaces/' in parts[0]:
+        ns_part = parts[0].split('/namespaces/')[-1].split('/')[0] or 'default'
+    if not vs_name:
+        return None
+    return ns_part, vs_name
+
+
+def _envoy_headers_to_istio(headers: Any) -> Dict[str, Any]:
+    """Envoy headers 列表 → Istio {name: {exact|prefix|regex: value}}。"""
+    if isinstance(headers, dict):
+        return headers
+    if not isinstance(headers, list):
+        return {}
+    out: Dict[str, Any] = {}
+    for item in headers:
+        if not isinstance(item, dict):
+            continue
+        name = item.get('name')
+        if not name:
+            continue
+        sm = item.get('string_match') or item.get('stringMatch') or {}
+        if not isinstance(sm, dict):
+            sm = {}
+        if 'exact' in sm:
+            out[name] = {'exact': sm['exact']}
+        elif 'prefix' in sm:
+            out[name] = {'prefix': sm['prefix']}
+        elif sm.get('regex') or sm.get('safe_regex') or sm.get('safeRegex'):
+            rg = sm.get('regex') or (sm.get('safe_regex') or sm.get('safeRegex') or {}).get('regex')
+            out[name] = {'regex': rg}
+        elif item.get('exact_match') or item.get('exactMatch'):
+            out[name] = {'exact': item.get('exact_match') or item.get('exactMatch')}
+        elif item.get('prefix_match') or item.get('prefixMatch'):
+            out[name] = {'prefix': item.get('prefix_match') or item.get('prefixMatch')}
+    return out
+
+
+def _envoy_uri(match: Dict[str, Any]) -> Optional[Dict[str, str]]:
+    if not isinstance(match, dict):
+        return None
+    if 'prefix' in match:
+        # Envoy 未写 match 时默认 prefix=/，与 Istio 缺 match（全匹配）等价
+        if match['prefix'] in ('/', ''):
+            return None
+        return {'prefix': match['prefix']}
+    if 'path' in match:
+        return {'exact': match['path']}
+    if 'safe_regex' in match or 'safeRegex' in match:
+        rg = match.get('safe_regex') or match.get('safeRegex') or {}
+        return {'regex': rg.get('regex') if isinstance(rg, dict) else rg}
+    return None
+
+
+def _destinations_from_route_action(route_info: Dict[str, Any]) -> List[RouteDestination]:
+    destinations: List[RouteDestination] = []
+    wc = route_info.get('weightedClusters') or route_info.get('weighted_clusters') or {}
+    clusters = wc.get('clusters', []) if isinstance(wc, dict) else []
+    if clusters:
+        for cluster in clusters:
+            cluster_name = cluster.get('name', '')
+            weight = cluster.get('weight', 0)
+            dest = _destination_from_cluster_name(cluster_name, weight)
+            if dest:
+                destinations.append(dest)
+        return destinations
+    cluster_name = route_info.get('cluster')
+    if cluster_name:
+        dest = _destination_from_cluster_name(cluster_name, 100)
+        if dest:
+            destinations.append(dest)
+    return destinations
+
+
+def _destination_from_cluster_name(cluster_name: str, weight: int) -> Optional[RouteDestination]:
+    if not cluster_name or '|' not in cluster_name:
+        return None
+    parts = cluster_name.split('|')
+    if len(parts) < 4:
+        return None
+    port = parts[1]
+    subset = parts[2] if parts[2] else None
+    host = parts[3]
+    return RouteDestination(
+        host=host,
+        subset=subset,
+        port=int(port) if str(port).isdigit() else None,
+        weight=weight,
+    )
+
+
+def _fill_routes(model: RoutingFunctionModel, routes: List[Dict[str, Any]]) -> None:
+    for idx, route in enumerate(routes):
+        if 'route' not in route:
+            continue
+        route_info = route['route']
+        match_condition = None
+        if 'match' in route:
+            match = route['match'] or {}
+            headers = _envoy_headers_to_istio(match.get('headers', {}))
+            match_condition = MatchCondition(
+                headers=headers,
+                uri=_envoy_uri(match),
+                method=match.get('method'),
+            )
+        destinations = _destinations_from_route_action(route_info)
+        if destinations:
+            model.add_route(match=match_condition, destinations=destinations, priority=idx)
+
+
 class RoutingParser(FunctionParser):
     """路由解析器"""
     
@@ -123,10 +243,11 @@ class RoutingParser(FunctionParser):
             config = [config]
         
         for route_config in config:
-            if 'virtualHosts' not in route_config:
+            vhosts = route_config.get('virtualHosts') or route_config.get('virtual_hosts')
+            if not vhosts:
                 continue
             
-            for vhost in route_config['virtualHosts']:
+            for vhost in vhosts:
                 domains = vhost.get('domains', [])
                 
                 # 从域名提取服务名和命名空间
@@ -142,21 +263,27 @@ class RoutingParser(FunctionParser):
                             namespace = parts[1]
                         break
                 
-                # Gateway 场景：domain 为 '*' 时，从 route metadata 提取 VirtualService 名
-                # 格式: /apis/networking.istio.io/v1/namespaces/{ns}/virtual-service/{name}
-                if service_name == 'unknown' and domains and domains[0] == '*':
+                # Gateway 入口 vhost domains=["*"] 会混入多个 VirtualService。
+                # 按 route metadata 拆开，才能对上 Sdecl 里 host=* 时用 VS 名做的 service 键。
+                if domains and domains[0] == '*':
+                    grouped: Dict[tuple, List[Dict[str, Any]]] = {}
                     for route in vhost.get('routes', []):
-                        cfg_path = (route.get('metadata') or {}).get('filter_metadata') or {}
-                        cfg_path = (cfg_path.get('istio') or {}).get('config') or ''
-                        if '/virtual-service/' in cfg_path:
-                            parts = cfg_path.split('/virtual-service/')
-                            if len(parts) == 2:
-                                ns_part = parts[0].split('/namespaces/')[-1].split('/')[0]
-                                service_name = parts[1].split('/')[0] or parts[1].strip()
-                                if ns_part:
-                                    namespace = ns_part
-                                break
-                
+                        ref = _vs_ref_from_route(route)
+                        key = ref or ('default', 'unknown')
+                        grouped.setdefault(key, []).append(route)
+                    for (ns, vs_name), routes in grouped.items():
+                        model = RoutingFunctionModel(
+                            function_type=FunctionType.ROUTING,
+                            service_name=vs_name,
+                            namespace=ns,
+                            plane_type=PlaneType.DATA_PLANE,
+                            hosts=domains,
+                            raw_config={'virtual_service': vs_name, 'namespace': ns, 'vhost': vhost.get('name')},
+                        )
+                        _fill_routes(model, routes)
+                        models.append(model)
+                    continue
+
                 model = RoutingFunctionModel(
                     function_type=FunctionType.ROUTING,
                     service_name=service_name,
@@ -165,76 +292,7 @@ class RoutingParser(FunctionParser):
                     hosts=domains,
                     raw_config=vhost
                 )
-                
-                # 解析路由规则
-                for idx, route in enumerate(vhost.get('routes', [])):
-                    if 'route' not in route:
-                        continue
-                    
-                    route_info = route['route']
-                    
-                    # 解析匹配条件
-                    match_condition = None
-                    if 'match' in route:
-                        match = route['match']
-                        match_condition = MatchCondition(
-                            headers=match.get('headers', {}),
-                            uri={'prefix': match.get('prefix')} if 'prefix' in match else None,
-                            method=match.get('method'),
-                        )
-                    
-                    # 解析目标
-                    destinations = []
-                    
-                    # 处理加权集群
-                    if 'weightedClusters' in route_info:
-                        clusters = route_info['weightedClusters'].get('clusters', [])
-                        for cluster in clusters:
-                            cluster_name = cluster.get('name', '')
-                            weight = cluster.get('weight', 0)
-                            
-                            # 从集群名称解析: outbound|port|subset|host
-                            if '|' in cluster_name:
-                                parts = cluster_name.split('|')
-                                if len(parts) >= 4:
-                                    port = parts[1]
-                                    subset = parts[2] if parts[2] else None
-                                    host = parts[3]
-                                    
-                                    destination = RouteDestination(
-                                        host=host,
-                                        subset=subset,
-                                        port=int(port) if port.isdigit() else None,
-                                        weight=weight
-                                    )
-                                    destinations.append(destination)
-                    
-                    # 处理单一集群
-                    elif 'cluster' in route_info:
-                        cluster_name = route_info['cluster']
-                        
-                        if '|' in cluster_name:
-                            parts = cluster_name.split('|')
-                            if len(parts) >= 4:
-                                port = parts[1]
-                                subset = parts[2] if parts[2] else None
-                                host = parts[3]
-                                
-                                destination = RouteDestination(
-                                    host=host,
-                                    subset=subset,
-                                    port=int(port) if port.isdigit() else None,
-                                    weight=100
-                                )
-                                destinations.append(destination)
-                    
-                    if destinations:
-                        model.add_route(
-                            match=match_condition,
-                            destinations=destinations,
-                            priority=idx
-                        )
-                
+                _fill_routes(model, vhost.get('routes', []))
                 models.append(model)
         
         return models

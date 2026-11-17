@@ -102,7 +102,8 @@ def _load_control_plane_configs(cp_dir: str, namespace: Optional[str] = None) ->
         "virtual_services": _load_config_files(cp_dir, "virtualservices", namespace),
         "destination_rules": _load_config_files(cp_dir, "destinationrules", namespace),
         "envoy_filters": _load_config_files(cp_dir, "envoyfilters", namespace),
-        "gateways": _load_config_files(cp_dir, "gateways", namespace),
+        # Gateway 可被其他命名空间的 VS 引用（如 default/bookinfo-gateway）
+        "gateways": _load_config_files(cp_dir, "gateways", None),
     }
 
 
@@ -406,14 +407,24 @@ def _iter_manifests(raw: Any) -> List[Dict[str, Any]]:
 
 
 def _host_parts(host: Any, default_ns: str) -> Tuple[str, str]:
+    """拆 K8s 服务主机名。外部 DNS / 通配符不生成服务节点。"""
     text = str(host or "").split(":")[0].strip()
-    if not text:
+    if not text or text == "*" or text.startswith("*."):
         return default_ns, ""
-    text = text.replace(".svc.cluster.local", "")
+    if ".svc.cluster.local" in text:
+        text = text.replace(".svc.cluster.local", "")
+        parts = [p for p in text.split(".") if p]
+        name = parts[0] if parts else ""
+        ns = parts[1] if len(parts) > 1 else default_ns
+        return ns or "default", name
     parts = [p for p in text.split(".") if p]
-    name = parts[0] if parts else ""
-    ns = parts[1] if len(parts) > 1 else default_ns
-    return ns or "default", name
+    if len(parts) >= 3:
+        return default_ns, ""
+    if len(parts) == 2:
+        if len(parts[1]) <= 3 and parts[1].isalpha():
+            return default_ns, ""
+        return parts[1], parts[0]
+    return default_ns, parts[0] if parts else ""
 
 
 def _svc_id(ns: str, name: str) -> str:
@@ -479,12 +490,74 @@ def _summarize_data_plane(dp: Optional[Dict[str, Any]]) -> Optional[Dict[str, An
     return out or None
 
 
+_GRAPH_SKIP_NS = {
+    "kube-system", "kube-public", "kube-node-lease", "kube-flannel",
+    "metallb-system", "openebs",
+}
+_FAKE_DNS_NS = {"google", "googleapis", "com", "net", "org", "io"}
+
+
+_SKIP_GRAPH_SERVICES = {("default", "kubernetes")}
+
+
+def _workload_index() -> Dict[str, Any]:
+    try:
+        from istio_config_parser.istio_monitor.export_control_plane_config import live_workload_index
+        return live_workload_index() or {}
+    except Exception as exc:
+        logger.warning("无法读取现网 Service/Pod: %s", exc)
+        return {}
+
+
+def _allowed_services(
+    control_plane_configs: Optional[Dict[str, Any]],
+    inventory: Optional[Dict[str, Any]] = None,
+    namespace: Optional[str] = None,
+) -> Optional[set]:
+    """只画现网仍存在的 Service。kubectl 失败时退回已采集的 Service 清单。"""
+    inv = inventory if inventory is not None else _workload_index()
+    live_ns = set(inv.get("namespaces") or [])
+    allowed = set(inv.get("services") or [])
+    if not allowed and not inv.get("ok"):
+        bucket = (control_plane_configs or {}).get("services") or {}
+        items = bucket.get("items") if isinstance(bucket, dict) else bucket
+        if not isinstance(items, list):
+            items = list(bucket.values()) if isinstance(bucket, dict) else []
+        for raw in items:
+            if not isinstance(raw, dict):
+                continue
+            meta = raw.get("metadata") or {}
+            ns = meta.get("namespace") or "default"
+            name = meta.get("name")
+            if not name:
+                continue
+            if live_ns and ns not in live_ns:
+                continue
+            allowed.add((ns, name))
+    if live_ns:
+        allowed = {(ns, name) for ns, name in allowed if ns in live_ns}
+    allowed -= _SKIP_GRAPH_SERVICES
+    allowed = {(ns, name) for ns, name in allowed if ns not in _GRAPH_SKIP_NS}
+    if namespace:
+        allowed = {(ns, name) for ns, name in allowed if ns == namespace}
+    if inv.get("ok") or namespace:
+        return allowed
+    return allowed or None
+
+
 def _ensure_service(
     nodes: Dict[str, Dict[str, Any]],
     ns: str,
     name: str,
+    allowed: Optional[set] = None,
 ) -> Optional[Dict[str, Any]]:
-    if not name:
+    if not name or name in ("*", "unknown"):
+        return None
+    if ns in _FAKE_DNS_NS or ns in _GRAPH_SKIP_NS:
+        return None
+    if (ns, name) in _SKIP_GRAPH_SERVICES:
+        return None
+    if allowed is not None and (ns, name) not in allowed:
         return None
     sid = _svc_id(ns, name)
     node = nodes.get(sid)
@@ -538,11 +611,16 @@ def _service_alignment(functions: List[Dict[str, Any]]) -> str:
 
 def _add_manifest(nodes: Dict[str, Dict[str, Any]], edges: List[Dict[str, Any]], edge_id: List[int],
                   seen_edges: set, manifest: Dict[str, Any], default_ns: str,
-                  owner_svc: Optional[str] = None) -> None:
+                  owner_svc: Optional[str] = None, allowed: Optional[set] = None,
+                  scope_ns: Optional[str] = None) -> None:
     kind = manifest.get("kind") or "Resource"
     meta = manifest.get("metadata") or {}
     name = meta.get("name") or kind.lower()
     ns = meta.get("namespace") or default_ns or "default"
+    if scope_ns and ns != scope_ns:
+        return
+    if kind == "Service" and ((ns, name) in _SKIP_GRAPH_SERVICES or ns in _GRAPH_SKIP_NS):
+        return
     rid = _res_id(kind, ns, name)
     if rid not in nodes:
         nodes[rid] = {
@@ -566,31 +644,31 @@ def _add_manifest(nodes: Dict[str, Dict[str, Any]], edges: List[Dict[str, Any]],
     if kind == "VirtualService":
         for host in spec.get("hosts") or []:
             hns, hname = _host_parts(host, ns)
-            node = _ensure_service(nodes, hns, hname)
+            node = _ensure_service(nodes, hns, hname, allowed)
             if node:
                 targets.append(node["id"])
         for http in spec.get("http") or []:
             for dest in (http.get("route") or []):
                 destination = (dest or {}).get("destination") or {}
                 hns, hname = _host_parts(destination.get("host"), ns)
-                node = _ensure_service(nodes, hns, hname)
+                node = _ensure_service(nodes, hns, hname, allowed)
                 if node:
                     targets.append(node["id"])
     elif kind == "DestinationRule":
         hns, hname = _host_parts(spec.get("host"), ns)
-        node = _ensure_service(nodes, hns, hname)
+        node = _ensure_service(nodes, hns, hname, allowed)
         if node:
             targets.append(node["id"])
     elif kind == "EnvoyFilter":
         labels = ((spec.get("workloadSelector") or {}).get("labels") or {})
         app = labels.get("app") or labels.get("istio")
         if app:
-            node = _ensure_service(nodes, ns, app)
+            node = _ensure_service(nodes, ns, app, allowed)
             if node:
                 targets.append(node["id"])
 
     elif kind == "Service":
-        node = _ensure_service(nodes, ns, name)
+        node = _ensure_service(nodes, ns, name, allowed)
         if node:
             targets.append(node["id"])
 
@@ -623,6 +701,7 @@ def _add_manifest(nodes: Dict[str, Dict[str, Any]], edges: List[Dict[str, Any]],
 def _simple_graph_from_pairs(
     pairs: List[Dict[str, Any]],
     control_plane_configs: Optional[Dict[str, Any]] = None,
+    namespace: Optional[str] = None,
 ) -> Dict[str, Any]:
     """服务 + Istio 资源图：命名空间、声明式配置、对应数据面规则。"""
     nodes: Dict[str, Dict[str, Any]] = {}
@@ -630,62 +709,67 @@ def _simple_graph_from_pairs(
     edge_id = [1]
     seen_route = set()
     seen_edges: set = set()
+    allowed = _allowed_services(control_plane_configs, namespace=namespace)
 
     for pair in pairs:
         svc = pair.get("service_name") or ""
         ns = pair.get("namespace") or "default"
-        node = _ensure_service(nodes, ns, svc)
-        if not node:
+        if namespace and ns != namespace:
             continue
+        node = _ensure_service(nodes, ns, svc, allowed)
         status = pair.get("alignment_status") or "unknown"
         ftype = pair.get("function_type") or "unknown"
-        _add_function(node, ftype, status)
+        if node:
+            _add_function(node, ftype, status)
 
-        for tup in (pair.get("control_tuples") or []) + (pair.get("data_tuples") or []):
-            subsets = ((tup.get("scope") or {}).get("subsets") or [])
-            node["subsets"] = list(dict.fromkeys((node.get("subsets") or []) + subsets))
-            dests = ((tup.get("constraint") or {}).get("destinations") or [])
-            weights = ((tup.get("constraint") or {}).get("weights") or {})
-            for dest in dests:
-                host = dest.get("host") or dest.get("subset") or ""
-                tns, target = _host_parts(host, ns)
-                if not target and dest.get("subset"):
-                    target = svc
-                    tns = ns
-                if not target:
-                    continue
-                other = _ensure_service(nodes, tns, target)
-                if not other:
-                    continue
-                if dest.get("subset"):
-                    other["subsets"] = list(dict.fromkeys((other.get("subsets") or []) + [dest["subset"]]))
-                weight = dest.get("weight")
-                if weight is None and dest.get("subset") in weights:
-                    weight = weights.get(dest.get("subset"))
-                key = (node["id"], other["id"], weight, ftype)
-                if key in seen_route:
-                    continue
-                seen_route.add(key)
-                edges.append({
-                    "id": f"edge_{edge_id[0]:04d}",
-                    "source": node["id"],
-                    "target": other["id"],
-                    "type": "route",
-                    "weight": weight,
-                    "function_type": ftype,
-                    "label": f"{weight}%" if weight is not None else ftype,
-                })
-                edge_id[0] += 1
+            for tup in (pair.get("control_tuples") or []) + (pair.get("data_tuples") or []):
+                subsets = ((tup.get("scope") or {}).get("subsets") or [])
+                node["subsets"] = list(dict.fromkeys((node.get("subsets") or []) + subsets))
+                dests = ((tup.get("constraint") or {}).get("destinations") or [])
+                weights = ((tup.get("constraint") or {}).get("weights") or {})
+                for dest in dests:
+                    host = dest.get("host") or dest.get("subset") or ""
+                    tns, target = _host_parts(host, ns)
+                    if not target and dest.get("subset"):
+                        target = svc
+                        tns = ns
+                    if not target:
+                        continue
+                    other = _ensure_service(nodes, tns, target, allowed)
+                    if not other:
+                        continue
+                    if dest.get("subset"):
+                        other["subsets"] = list(dict.fromkeys((other.get("subsets") or []) + [dest["subset"]]))
+                    weight = dest.get("weight")
+                    if weight is None and dest.get("subset") in weights:
+                        weight = weights.get(dest.get("subset"))
+                    key = (node["id"], other["id"], weight, ftype)
+                    if key in seen_route:
+                        continue
+                    seen_route.add(key)
+                    edges.append({
+                        "id": f"edge_{edge_id[0]:04d}",
+                        "source": node["id"],
+                        "target": other["id"],
+                        "type": "route",
+                        "weight": weight,
+                        "function_type": ftype,
+                        "label": f"{weight}%" if weight is not None else ftype,
+                    })
+                    edge_id[0] += 1
+
+            dp = _summarize_data_plane(pair.get("data_plane"))
+            if dp:
+                dp["alignment_status"] = status
+                node["data_plane_rules"].append(dp)
 
         cp = pair.get("control_plane")
         if isinstance(cp, dict):
             for manifest in _iter_manifests(cp.get("raw_config")):
-                    _add_manifest(nodes, edges, edge_id, seen_edges, manifest, ns, node["id"])
-
-        dp = _summarize_data_plane(pair.get("data_plane"))
-        if dp:
-            dp["alignment_status"] = status
-            node["data_plane_rules"].append(dp)
+                    _add_manifest(
+                        nodes, edges, edge_id, seen_edges, manifest, ns,
+                        node["id"] if node else None, allowed, namespace,
+                    )
 
     kind_map = {
         "virtual_services": "VirtualService",
@@ -709,9 +793,12 @@ def _simple_graph_from_pairs(
             payload = dict(raw)
             payload.setdefault("kind", kind)
             for manifest in _iter_manifests(payload):
+                mns = (manifest.get("metadata") or {}).get("namespace") or "default"
+                if kind == "Service" and mns in _GRAPH_SKIP_NS:
+                    continue
                 _add_manifest(
-                    nodes, edges, edge_id, seen_edges, manifest,
-                    manifest.get("metadata", {}).get("namespace") or "default",
+                    nodes, edges, edge_id, seen_edges, manifest, mns,
+                    allowed=allowed, scope_ns=namespace,
                 )
 
     for node in nodes.values():
@@ -719,6 +806,8 @@ def _simple_graph_from_pairs(
             node["alignment"] = _service_alignment(node.get("functions") or [])
 
     namespaces = sorted({n.get("namespace") or "default" for n in nodes.values()})
+    if namespace:
+        namespaces = [namespace]
     return {
         "nodes": list(nodes.values()),
         "edges": edges,
@@ -730,6 +819,59 @@ def _simple_graph_from_pairs(
     }
 
 
+def _tuple_is_probeable(tup: Dict[str, Any]) -> bool:
+    """动态用例只针对声明式里真正可探测的功能（分流权重、熔断阈值等）。"""
+    ftype = str(tup.get("function_type") or (tup.get("action") or {}).get("type") or "")
+    cons = tup.get("constraint") or {}
+    if ftype == "circuit_breaker":
+        return bool(cons.get("connection_pool") or cons.get("outlier_detection"))
+    if ftype in {"traffic_shifting", "traffic_split", "routing"}:
+        weights = cons.get("weights") or {}
+        dests = cons.get("destinations") or []
+        return bool(weights) or bool(dests)
+    return True
+
+
+def _summary_from_pairs(pairs: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """按当前命名空间的对齐 pair 重算摘要，避免把其它 sidecar dump 算进去。"""
+    services = sorted({
+        (p.get("namespace") or "default", p.get("service_name") or "")
+        for p in pairs if p.get("service_name")
+    })
+    declared = [p for p in pairs if p.get("control_tuples")]
+    matched = [p for p in declared if p.get("alignment_status") == "matched"]
+    inconsistent = [
+        p for p in declared
+        if p.get("alignment_status") in {"control_only", "mismatched", "partial_matched"}
+    ]
+    by_service: Dict[str, List[str]] = {}
+    for pair in declared:
+        key = f"{pair.get('namespace') or 'default'}.{pair.get('service_name')}"
+        by_service.setdefault(key, []).append(str(pair.get("alignment_status") or ""))
+    consistent_services = sum(1 for statuses in by_service.values() if statuses and all(s == "matched" for s in statuses))
+    inconsistent_services = sum(
+        1 for statuses in by_service.values()
+        if any(s in {"control_only", "mismatched", "partial_matched"} for s in statuses)
+    )
+    total = len(declared)
+    return {
+        "total_services": len(services),
+        "consistent_services": consistent_services,
+        "inconsistent_services": inconsistent_services,
+        "consistency_rate": (len(matched) / total) if total else 1.0,
+        "total_functions": total,
+        "consistent_functions": len(matched),
+        "inconsistent_functions": len(inconsistent),
+        "gateway_bound_functions": 0,
+        "total_issues": sum(len(p.get("differences") or []) for p in declared),
+        "total_errors": 0,
+        "total_warnings": 0,
+        "declared_functions": total,
+        "matched_functions": len(matched),
+        "static_match_rate": (len(matched) / total) if total else 1.0,
+    }
+
+
 def _expected_tuples_from_pairs(pairs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     expected = []
     for pair in pairs:
@@ -738,6 +880,8 @@ def _expected_tuples_from_pairs(pairs: List[Dict[str, Any]]) -> List[Dict[str, A
             continue
         tuples = pair.get("control_tuples") or pair.get("data_tuples") or []
         for tup in tuples:
+            if not _tuple_is_probeable(tup):
+                continue
             item = dict(tup)
             item["alignment_status"] = status
             item["service_name"] = pair.get("service_name")
@@ -745,6 +889,25 @@ def _expected_tuples_from_pairs(pairs: List[Dict[str, Any]]) -> List[Dict[str, A
             item["differences"] = pair.get("differences") or []
             expected.append(item)
     return expected
+
+
+def _drop_duplicate_split_routing(pairs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """同一 VS 既抽出 routing 又抽出 traffic_shifting 时，分流已匹配就不再把 routing 标成仅控制面。"""
+    split_keys = {
+        ((p.get("namespace") or "default"), p.get("service_name"))
+        for p in pairs
+        if p.get("function_type") in {"traffic_shifting", "traffic_split"}
+        and p.get("alignment_status") == "matched"
+        and p.get("service_name")
+    }
+    out = []
+    for pair in pairs:
+        if pair.get("function_type") == "routing":
+            key = ((pair.get("namespace") or "default"), pair.get("service_name"))
+            if key in split_keys:
+                continue
+        out.append(pair)
+    return out
 
 
 def parse_static_semantic(
@@ -794,8 +957,12 @@ def parse_static_semantic(
                 })
 
     conflicts = analyze_cross_resource_conflicts(control_plane_configs)
+    if namespace:
+        pairs = [p for p in pairs if (p.get("namespace") or "default") == namespace]
+        conflicts = [c for c in conflicts if (c.get("namespace") or "default") == namespace]
+    pairs = _drop_duplicate_split_routing(pairs)
     expected_tuples = _expected_tuples_from_pairs(pairs)
-    graph_data = _simple_graph_from_pairs(pairs, control_plane_configs)
+    graph_data = _simple_graph_from_pairs(pairs, control_plane_configs, namespace=namespace)
     from istio_config_parser.models.relational_model import build_relational_model
     relation_configs = control_plane_configs
     if namespace:
@@ -805,7 +972,7 @@ def parse_static_semantic(
     relational_model = build_relational_model(relation_configs)
     tau = _get_tau()
     timeout_abs = _get_timeout_abs()
-    summary = system_ir.get_summary()
+    summary = _summary_from_pairs(pairs)
     summary["tau"] = tau
     summary["timeout_tolerance_seconds"] = timeout_abs
     summary["conflict_count"] = len(conflicts)
@@ -1040,6 +1207,8 @@ if __name__ == "__main__":
         })
     except Exception:
         pass
+    if getattr(args, "namespace", None) in ("",):
+        args.namespace = None
     if not args.control_plane_dir:
         args.control_plane_dir = 'istio_config_parser/istio_monitor/istio_control_config'
     if not args.data_plane_dir:

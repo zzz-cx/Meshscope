@@ -142,4 +142,6 @@ class CompositeValidator(BaseValidator):
             return ValidationStatus.INCONCLUSIVE
         if any(r.overall_status == ValidationStatus.WARNING for r in results):
             return ValidationStatus.WARNING
-        return ValidationStatus.PASSED
+        if any(r.overall_status == ValidationStatus.PASSED for r in results):
+            return ValidationStatus.PASSED
+        return ValidationStatus.SKIPPED

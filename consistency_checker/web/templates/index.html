@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ConfigPilot</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v=dyn-case1">
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <script src="https://d3js.org/d3.v7.min.js"></script>
 </head>
@@ -64,10 +64,15 @@
 
       <section id="page-static" class="page">
         <h1>静态分析</h1>
-        <p class="lead">将控制面 YAML 与数据面 Envoy dump 映射到同一套语义元组。图上按命名空间查看服务与 Istio 资源，点节点看声明式配置和对应数据面规则。</p>
+        <p class="lead">针对所选命名空间，将控制面 YAML 与数据面 Envoy dump 映射到同一套语义元组。图上只显示该命名空间的服务与 Istio 资源。</p>
         <div class="panel">
           <label>命名空间</label>
-          <input id="static-namespace" value="{{ namespace }}">
+          <div class="ns-pick">
+            <select id="static-namespace" data-current="{{ namespace }}">
+              <option value="{{ namespace }}" selected>{{ namespace }}</option>
+            </select>
+            <button class="btn secondary" type="button" data-ns-refresh>刷新</button>
+          </div>
           <div class="row">
             <button class="btn" onclick="runStaticAnalysis()">执行静态分析</button>
           </div>
@@ -102,12 +107,39 @@
 
       <section id="page-dynamic" class="page">
         <h1>动态验证</h1>
-        <p class="lead">请先完成静态对齐。期望行为只从 aligned_semantic.json 生成，不再回退解析 YAML。</p>
+        <p class="lead">把静态对齐得到的期望行为打成探测流量，再对照运行时观测做一致性判定。每条用例都会给出预期行为、实际行为和判定结果。</p>
+        <div class="dyn-note">
+          <div><b>预期行为</b> 来自 aligned_semantic：路由目标、分流权重、限流、熔断阈值、超时、重试。</div>
+          <div><b>实际行为</b> 本次打流观测：状态码、落到的服务/版本、时延、是否出现 429/503/超时。</div>
+          <div><b>一致性</b> 实际是否落在预期容差内。跳过的用例（未开高压/故障注入/rollout）不算通过也不算失败。</div>
+        </div>
         <div class="panel">
           <label>命名空间</label>
-          <input id="dynamic-namespace" value="{{ namespace }}">
+          <div class="ns-pick">
+            <select id="dynamic-namespace" data-current="{{ namespace }}">
+              <option value="{{ namespace }}" selected>{{ namespace }}</option>
+            </select>
+            <button class="btn secondary" type="button" data-ns-refresh>刷新</button>
+          </div>
           <label>Ingress URL</label>
-          <input id="ingress-url" value="{{ ingress_url }}" placeholder="http://host:port/productpage">
+          <input id="ingress-url" value="{{ ingress_url }}" placeholder="http://host:port">
+          <div class="guard-box">
+            <div class="guard-title">动态验证开关</div>
+            <p class="guard-lead">路由、分流、限流基线会尽量打入。下面三项关闭时，对应用例会跳过并提示原因。</p>
+            <label class="ep-check">
+              <span class="ep-check-row"><input id="dyn-allow-load-test" type="checkbox" checked>高压测试</span>
+              <div class="field-hint">关闭后跳过限流高压、连接池打满。限流基线仍会发少量请求。</div>
+            </label>
+            <label class="ep-check">
+              <span class="ep-check-row"><input id="dyn-allow-fault" type="checkbox">故障注入</span>
+              <div class="field-hint">关闭后不会改 VirtualService 注入 abort/delay。熔断、超时、重试无法诱发异常，将跳过动态验证。</div>
+            </label>
+            <label class="ep-check">
+              <span class="ep-check-row"><input id="dyn-allow-rollout" type="checkbox">允许 rollout</span>
+              <div class="field-hint">关闭后不会 patch Deployment 打开 Envoy access log。etcd 不稳时请保持关闭。</div>
+            </label>
+            <div id="dyn-guard-hint" class="guard-warn"></div>
+          </div>
           <div class="row">
             <button class="btn" onclick="generateTestMatrix()">生成测试矩阵</button>
             <button class="btn secondary" onclick="runDynamicTests()">执行动态测试</button>
@@ -119,10 +151,32 @@
 
       <section id="page-consistency" class="page">
         <h1>一致性验证</h1>
-        <p class="lead">按三层对照声明、数据面和运行时。点开一条记录可看 Sdecl / Sdp / Srt 的字段差异；JSON 与独立 HTML 仍可导出。</p>
+        <p class="lead">按所选命名空间对照声明、数据面和运行时。点开一条记录可看 Sdecl / Sdp / Srt 的字段差异；JSON 与独立 HTML 仍可导出。</p>
         <div class="panel">
           <label>命名空间</label>
-          <input id="consistency-namespace" value="{{ namespace }}">
+          <div class="ns-pick">
+            <select id="consistency-namespace" data-current="{{ namespace }}">
+              <option value="{{ namespace }}" selected>{{ namespace }}</option>
+            </select>
+            <button class="btn secondary" type="button" data-ns-refresh>刷新</button>
+          </div>
+          <div class="guard-box">
+            <div class="guard-title">完整流水线 · 动态验证开关</div>
+            <p class="guard-lead">第二阶段会真正打流。关闭高压/故障注入/rollout 时，熔断、超时、重试、限流高压会跳过。</p>
+            <label class="ep-check">
+              <span class="ep-check-row"><input id="pipe-allow-load-test" type="checkbox" checked>高压测试</span>
+              <div class="field-hint">关闭后跳过限流高压、连接池打满。限流基线仍会发少量请求。</div>
+            </label>
+            <label class="ep-check">
+              <span class="ep-check-row"><input id="pipe-allow-fault" type="checkbox">故障注入</span>
+              <div class="field-hint">关闭后不会改 VirtualService 注入 abort/delay。熔断、超时、重试无法诱发异常，将跳过动态验证。</div>
+            </label>
+            <label class="ep-check">
+              <span class="ep-check-row"><input id="pipe-allow-rollout" type="checkbox">允许 rollout</span>
+              <div class="field-hint">关闭后不会 patch Deployment 打开 Envoy access log。etcd 不稳时请保持关闭。</div>
+            </label>
+            <div id="pipe-guard-hint" class="guard-warn"></div>
+          </div>
           <div class="row">
             <button class="btn" onclick="buildConsistencyGraph()">生成三层图</button>
             <button class="btn secondary" onclick="runPipeline()">执行完整流水线</button>
@@ -142,6 +196,6 @@
       </section>
     </main>
   </div>
-  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}?v=dyn-case1"></script>
 </body>
 </html>

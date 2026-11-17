@@ -33,12 +33,12 @@ def setup_logging(level: str = "INFO", log_file: Optional[str] = None):
     )
 
 
-def run_full_pipeline(namespace: str):
+def run_full_pipeline(namespace: str, safety=None):
     """运行完整的一致性验证流水线"""
     logger = logging.getLogger(__name__)
     logger.info("启动完整流水线")
     
-    pipeline = Pipeline(namespace=namespace)
+    pipeline = Pipeline(namespace=namespace, safety=safety, execute_dynamic=True)
     report = pipeline.run_full_pipeline()
     
     logger.info(f"\n{'='*80}")

@@ -25,6 +25,8 @@ from consistency_checker.core.finding_records import (
     collect_conflict_findings,
     index_pairs,
     lookup_pair,
+    matching_behaviors,
+    _dynamic_status,
 )
 
 logger = logging.getLogger(__name__)
@@ -126,46 +128,34 @@ class ConsistencyChecker:
     def _build_policy_behavior_mapping(self):
         """建立策略和动态行为的映射关系"""
         for policy in self.static_policies:
-            matching_behaviors = []
-            
+            matching = []
+            target = str(policy.target_service or "").split(".")[0]
             for behavior in self.dynamic_behaviors:
-                # 匹配策略类型和目标服务
-                if (behavior.policy_type == policy.policy_type and
-                    behavior.target_service == policy.target_service):
-                    matching_behaviors.append(behavior.test_case_id)
-            
-            if matching_behaviors:
-                self.policy_behavior_mapping[policy.policy_id] = matching_behaviors
+                if behavior.policy_type != policy.policy_type:
+                    continue
+                names = {
+                    str(behavior.target_service or "").split(".")[0],
+                    str(behavior.source_service or "").split(".")[0],
+                    str((behavior.test_params or {}).get("host") or "").split(".")[0],
+                }
+                if target and target in names:
+                    matching.append(behavior.test_case_id)
+            if matching:
+                self.policy_behavior_mapping[policy.policy_id] = matching
     
     def _check_policy_effectiveness(self) -> List[str]:
-        """检查策略是否有效（是否有对应的动态测试验证）"""
+        """统计尚未动态验证的声明式策略；不再单独写成不一致记录。
+
+        静态是否一致看 Sdecl↔Sdp；动态是否一致看对应功能的 Srt。
+        未打流量只在对齐记录里显示「尚未打入对应流量」。
+        """
         unverified_policies = []
-        
         for policy in self.static_policies:
-            if policy.policy_id not in self.policy_behavior_mapping:
+            if policy.policy_id in self.policy_behavior_mapping:
+                continue
+            alignment = (policy.rules or {}).get("alignment_status")
+            if alignment == "matched":
                 unverified_policies.append(policy.policy_id)
-                
-                # 创建不一致性标注
-                pair = lookup_pair(self._pairs, policy.target_service, policy_type=policy.policy_type)
-                inconsistency = InconsistencyAnnotation(
-                    inconsistency_id=f"inc_policy_unverified_{policy.policy_id}",
-                    inconsistency_type="policy_not_verified",
-                    severity=SeverityLevel.MEDIUM,
-                    description=f"策略 {policy.config_name} 未被动态测试验证",
-                    affected_policies=[policy.policy_id],
-                    affected_services=[policy.target_service],
-                    affected_subsets=list(policy.applies_to or []),
-                    layer="layer2",
-                    static_expectation={"policy": policy.config_name, "type": policy.policy_type.value},
-                    dynamic_observation={"tests": 0, "status": "no_test_coverage"},
-                    root_cause="缺少对应的测试用例",
-                    suggestions=[
-                        f"为 {policy.config_name} 添加动态测试用例",
-                        "确认策略是否真正生效"
-                    ]
-                )
-                self.inconsistencies.append(attach_tuples(inconsistency, pair=pair, policy=policy))
-        
         return unverified_policies
     
     def _check_scope_consistency(self) -> List[Dict[str, Any]]:
@@ -179,7 +169,13 @@ class ConsistencyChecker:
             case_ids = self.policy_behavior_mapping[policy.policy_id]
             behaviors = [b for b in self.dynamic_behaviors if b.test_case_id in case_ids]
             
-            # 检查是否所有相关子集都被测试覆盖
+            # 流量分配用例用 distribution 覆盖全部 subset，不要求按 subset 拆用例
+            if any(
+                isinstance(b.expected_behavior, dict) and b.expected_behavior.get("distribution")
+                for b in behaviors
+            ):
+                continue
+
             if policy.applies_to:
                 tested_subsets = set()
                 for behavior in behaviors:
@@ -225,83 +221,61 @@ class ConsistencyChecker:
         return scope_issues
     
     def _check_behavior_deviation(self) -> List[Dict[str, Any]]:
-        """检查动态行为与静态策略的偏差"""
+        """检查动态行为与静态策略的偏差。
+
+        已对齐到声明式功能的用例会写在同一条 Sdecl/Sdp/Srt 记录里，这里只补
+        没有对应 pair 的失败用例。
+        """
         deviations = []
-        
         for behavior in self.dynamic_behaviors:
-            if not behavior.is_verified:
-                # 找到相关的静态策略
-                related_policies = [
-                    p for p in self.static_policies
-                    if p.policy_type == behavior.policy_type and
-                       p.target_service == behavior.target_service
-                ]
-                
-                if related_policies:
-                    policy = related_policies[0]
-                    
-                    deviation = {
-                        "test_case_id": behavior.test_case_id,
-                        "policy_id": policy.policy_id,
-                        "policy_type": policy.policy_type.value,
-                        "service": behavior.target_service,
-                        "expected": behavior.expected_behavior,
-                        "actual": behavior.actual_behavior,
-                        "verification_details": behavior.verification_details
-                    }
-                    deviations.append(deviation)
-                    
-                    # 确定严重程度
-                    severity = self._determine_deviation_severity(behavior, policy)
-                    pair = lookup_pair(self._pairs, behavior.target_service, policy_type=behavior.policy_type)
-                    itype = "behavior_deviation"
-                    if behavior.policy_type == PolicyType.TRAFFIC_SPLIT:
-                        itype = "traffic_split_drift"
-                    
-                    inconsistency = InconsistencyAnnotation(
-                        inconsistency_id=f"inc_deviation_{behavior.test_case_id}",
-                        inconsistency_type=itype,
-                        severity=severity,
-                        description=f"测试 {behavior.test_case_id} 的实际行为与策略 {policy.config_name} 定义不一致",
-                        affected_policies=[policy.policy_id],
-                        affected_services=[behavior.target_service],
-                        layer="layer2",
-                        static_expectation=behavior.expected_behavior,
-                        dynamic_observation=behavior.actual_behavior,
-                        root_cause=self._analyze_deviation_root_cause(behavior),
-                        suggestions=self._generate_deviation_suggestions(behavior, policy),
-                        impact_scope=[behavior.target_service]
-                    )
-                    self.inconsistencies.append(attach_tuples(
-                        inconsistency, pair=pair, policy=policy, behavior=behavior
-                    ))
-                else:
-                    pair = lookup_pair(self._pairs, behavior.target_service, policy_type=behavior.policy_type)
-                    itype = "traffic_split_drift" if behavior.policy_type == PolicyType.TRAFFIC_SPLIT else "behavior_deviation"
-                    inconsistency = InconsistencyAnnotation(
-                        inconsistency_id=f"inc_deviation_{behavior.test_case_id}",
-                        inconsistency_type=itype,
-                        severity=self._determine_deviation_severity(behavior, None),
-                        description=f"测试 {behavior.test_case_id} 的运行时行为与期望不一致",
-                        affected_policies=[],
-                        affected_services=[behavior.target_service],
-                        layer="layer2",
-                        static_expectation=behavior.expected_behavior,
-                        dynamic_observation=behavior.actual_behavior,
-                        root_cause=self._analyze_deviation_root_cause(behavior),
-                        suggestions=["对照 Sdecl / Sdp 与本次 Srt 观测", f"查看用例 {behavior.test_case_id}"],
-                        impact_scope=[behavior.target_service],
-                    )
-                    self.inconsistencies.append(attach_tuples(inconsistency, pair=pair, behavior=behavior))
-                    deviations.append({
-                        "test_case_id": behavior.test_case_id,
-                        "policy_id": None,
-                        "policy_type": behavior.policy_type.value,
-                        "service": behavior.target_service,
-                        "expected": behavior.expected_behavior,
-                        "actual": behavior.actual_behavior,
-                    })
-        
+            if getattr(behavior, "skipped", False) or behavior.is_verified:
+                continue
+            pair = lookup_pair(self._pairs, behavior.target_service, policy_type=behavior.policy_type)
+            if pair is None:
+                pair = lookup_pair(self._pairs, behavior.source_service, policy_type=behavior.policy_type)
+            related_policies = [
+                p for p in self.static_policies
+                if p.policy_type == behavior.policy_type and p.target_service == behavior.target_service
+            ]
+            if pair is not None:
+                continue
+            if not related_policies:
+                continue
+            policy = related_policies[0] if related_policies else None
+            itype = "traffic_split_drift" if behavior.policy_type == PolicyType.TRAFFIC_SPLIT else "behavior_deviation"
+            inconsistency = InconsistencyAnnotation(
+                inconsistency_id=f"inc_deviation_{behavior.test_case_id}",
+                inconsistency_type=itype,
+                severity=self._determine_deviation_severity(behavior, policy),
+                description=(
+                    f"测试 {behavior.test_case_id} 的实际行为与策略 {policy.config_name} 定义不一致"
+                    if policy else
+                    f"测试 {behavior.test_case_id} 的运行时行为与期望不一致"
+                ),
+                affected_policies=[policy.policy_id] if policy else [],
+                affected_services=[behavior.target_service],
+                layer="layer2",
+                static_expectation=behavior.expected_behavior,
+                dynamic_observation=behavior.actual_behavior,
+                root_cause=self._analyze_deviation_root_cause(behavior),
+                suggestions=(
+                    self._generate_deviation_suggestions(behavior, policy)
+                    if policy else
+                    ["对照 Sdecl / Sdp 与本次 Srt 观测", f"查看用例 {behavior.test_case_id}"]
+                ),
+                impact_scope=[behavior.target_service],
+            )
+            self.inconsistencies.append(attach_tuples(
+                inconsistency, pair=pair, policy=policy, behavior=behavior
+            ))
+            deviations.append({
+                "test_case_id": behavior.test_case_id,
+                "policy_id": policy.policy_id if policy else None,
+                "policy_type": behavior.policy_type.value,
+                "service": behavior.target_service,
+                "expected": behavior.expected_behavior,
+                "actual": behavior.actual_behavior,
+            })
         return deviations
     
     def _check_policy_conflicts(self) -> List[Dict[str, Any]]:
@@ -431,30 +405,78 @@ class ConsistencyChecker:
         else:
             overall_status = ConsistencyStatus.CONSISTENT
         
-        # 分类策略
+        declared_pairs = [
+            p for p in (self.artifact.get("pairs") or [])
+            if isinstance(p, dict) and p.get("control_tuples")
+        ]
+        static_matched = [p for p in declared_pairs if p.get("alignment_status") == "matched"]
+        static_bad = [
+            p for p in declared_pairs
+            if p.get("alignment_status") in {"control_only", "mismatched", "partial_matched"}
+        ]
+        static_match_rate = (len(static_matched) / len(declared_pairs)) if declared_pairs else 1.0
+
+        judged = [
+            b for b in self.dynamic_behaviors
+            if (not getattr(b, "skipped", False)) and b.verification_details
+        ]
+        passed_dyn = [b for b in judged if b.is_verified]
+        failed_dyn = [b for b in judged if not b.is_verified]
+        dynamic_verify_rate = (len(passed_dyn) / len(judged)) if judged else 0.0
+
+        split_ok = 0
+        split_judged = 0
+        scores = []
+        for pair in declared_pairs:
+            svc = pair.get("service_name") or ""
+            ftype = pair.get("function_type") or ""
+            runtime = matching_behaviors(self.dynamic_behaviors, svc, function_type=ftype)
+            dyn = _dynamic_status(runtime)
+            static_ok = pair.get("alignment_status") == "matched"
+            if ftype in {"traffic_shifting", "traffic_split"} and dyn in {"passed", "failed"}:
+                split_judged += 1
+                if static_ok and dyn == "passed":
+                    split_ok += 1
+            if not static_ok:
+                scores.append(0.0)
+            elif dyn == "failed":
+                scores.append(0.0)
+            else:
+                scores.append(1.0)
+        consistency_rate = (sum(scores) / len(scores)) if scores else 1.0
+        split_rate = (split_ok / split_judged) if split_judged else None
+
+        issue_findings = [
+            inc for inc in self.inconsistencies
+            if inc.inconsistency_type not in {"matched", "dynamic_skipped", "dynamic_passed"}
+            and inc.severity in {SeverityLevel.CRITICAL, SeverityLevel.HIGH, SeverityLevel.MEDIUM}
+        ]
+        if any(inc.severity == SeverityLevel.CRITICAL for inc in issue_findings):
+            overall_status = ConsistencyStatus.INCONSISTENT
+        elif static_bad or failed_dyn:
+            overall_status = ConsistencyStatus.PARTIAL if static_matched else ConsistencyStatus.INCONSISTENT
+        elif issue_findings:
+            overall_status = ConsistencyStatus.PARTIAL
+        else:
+            overall_status = ConsistencyStatus.CONSISTENT
+
         verified_policies = []
         inconsistent_policies = []
-        
         for policy in self.static_policies:
-            if policy.policy_id in unverified_policies:
-                continue
-            
-            # 检查该策略是否有相关的偏差
-            has_deviation = any(
-                inc.inconsistency_type == "behavior_deviation" and policy.policy_id in inc.affected_policies
+            alignment = (policy.rules or {}).get("alignment_status")
+            has_fail = any(
+                inc.inconsistency_type in {"behavior_deviation", "traffic_split_drift"}
+                and policy.policy_id in (inc.affected_policies or [])
                 for inc in self.inconsistencies
             )
-            
-            if has_deviation:
-                inconsistent_policies.append(policy.policy_id)
-            else:
+            if alignment == "matched" and not has_fail:
                 verified_policies.append(policy.policy_id)
-        
-        # 计算一致性率
-        total_policies = len(self.static_policies)
-        verified_count = len(verified_policies)
-        consistency_rate = verified_count / total_policies if total_policies > 0 else 0.0
-        
+            elif alignment and alignment != "matched":
+                inconsistent_policies.append(policy.policy_id)
+
+        total_policies = len(declared_pairs) or len(self.static_policies)
+        verified_count = len(static_matched)
+
         result = ConsistencyResult(
             result_id=f"consistency_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
             overall_status=overall_status,
@@ -469,13 +491,22 @@ class ConsistencyChecker:
             verified_policies=verified_count,
             consistency_rate=consistency_rate,
             summary={
-                "total_inconsistencies": total_issues,
+                "total_inconsistencies": len(issue_findings),
                 "critical_issues": critical_issues,
                 "high_issues": high_issues,
                 "scope_issues": len(scope_issues),
                 "behavior_deviations": len(behavior_deviations),
                 "policy_conflicts": len(conflicts),
                 "unverified_policies": len(unverified_policies),
+                "static_match_rate": static_match_rate,
+                "dynamic_verify_rate": dynamic_verify_rate,
+                "split_consistency_rate": split_rate,
+                "declared_functions": len(declared_pairs),
+                "matched_functions": len(static_matched),
+                "dynamic_passed": len(passed_dyn),
+                "dynamic_failed": len(failed_dyn),
+                "dynamic_skipped": sum(1 for b in self.dynamic_behaviors if getattr(b, "skipped", False)),
+                "dynamic_total": len(self.dynamic_behaviors),
                 "by_layer": {
                     layer: sum(1 for inc in self.inconsistencies if inc.layer == layer)
                     for layer in ("layer1", "layer2", "layer3")

@@ -26,7 +26,8 @@ import argparse
 import datetime
 import logging
 import hashlib
-from typing import Dict, Any, Optional
+import subprocess
+from typing import Dict, Any, Optional, List
 
 # 添加项目路径
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
@@ -80,6 +81,165 @@ def _reset_directory(path: str) -> None:
     if os.path.exists(path):
         shutil.rmtree(path)
     os.makedirs(path, exist_ok=True)
+
+
+_KUBECTL_KINDS = [
+    ("virtualservices", "virtualservice"),
+    ("destinationrules", "destinationrule"),
+    ("gateways", "gateway"),
+    ("authorizationpolicies", "authorizationpolicy"),
+    ("serviceentries", "serviceentry"),
+    ("sidecars", "sidecar"),
+    ("workloadentries", "workloadentry"),
+    ("workloadgroups", "workloadgroup"),
+    ("envoyfilters", "envoyfilter"),
+    ("services", "svc"),
+]
+
+
+def _kubectl_json(args: List[str], timeout: int = 30) -> Optional[Dict[str, Any]]:
+    try:
+        result = subprocess.run(
+            ["kubectl", *args, "-o", "json"],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+        if result.returncode != 0:
+            err = (result.stderr or result.stdout or "").strip().splitlines()[:1]
+            logger.warning("kubectl %s 失败: %s", " ".join(args), err[0] if err else "unknown")
+            return None
+        return json.loads(result.stdout)
+    except FileNotFoundError:
+        logger.error("未找到 kubectl，无法导出控制面")
+        return None
+    except (subprocess.TimeoutExpired, json.JSONDecodeError) as exc:
+        logger.error("kubectl 导出失败: %s", exc)
+        return None
+
+
+def _live_namespaces() -> set:
+    """kubectl get ns 能列到的命名空间。已删 ns 里残留的对象不算现网。"""
+    data = _kubectl_json(["get", "ns"])
+    names = set()
+    for item in (data or {}).get("items") or []:
+        name = (item.get("metadata") or {}).get("name")
+        if name:
+            names.add(name)
+    return names
+
+
+_SKIP_GRAPH_SERVICES = {("default", "kubernetes")}
+
+
+def live_workload_index() -> Dict[str, Any]:
+    """现网工作负载：仅统计 kubectl get ns 仍存在的命名空间里的 Service / Pod。
+
+    已删除 Namespace 上残留的对象、以及 default/kubernetes 都不进入图。
+    """
+    live_ns = _live_namespaces()
+    services = set()
+    svc_data = _kubectl_json(["get", "svc", "-A"])
+    svc_ok = svc_data is not None
+    for item in ((svc_data or {}).get("items") or []):
+        meta = item.get("metadata") or {}
+        ns = meta.get("namespace") or "default"
+        name = meta.get("name")
+        if not name or ns not in live_ns:
+            continue
+        if (ns, name) in _SKIP_GRAPH_SERVICES:
+            continue
+        services.add((ns, name))
+
+    pods_by_service: Dict[tuple, List[Dict[str, Any]]] = {}
+    pod_data = _kubectl_json(["get", "pods", "-A"]) or {}
+    for item in (pod_data.get("items") or []):
+        meta = item.get("metadata") or {}
+        ns = meta.get("namespace") or "default"
+        if ns not in live_ns:
+            continue
+        if meta.get("deletionTimestamp"):
+            continue
+        phase = ((item.get("status") or {}).get("phase") or "")
+        if phase in ("Succeeded", "Failed"):
+            continue
+        labels = meta.get("labels") or {}
+        app = labels.get("app") or labels.get("k8s-app") or ""
+        if not app or (ns, app) not in services:
+            continue
+        pods_by_service.setdefault((ns, app), []).append({
+            "name": meta.get("name") or "",
+            "version": labels.get("version") or "",
+            "app": app,
+        })
+
+    return {
+        "ok": bool(live_ns) and svc_ok,
+        "namespaces": live_ns,
+        "services": services,
+        "pods_by_service": pods_by_service,
+    }
+
+
+def _write_items_by_namespace(
+    output_dir: str,
+    dirname: str,
+    items: List[Dict[str, Any]],
+    live_ns: Optional[set] = None,
+) -> int:
+    resource_dir = os.path.join(output_dir, dirname)
+    _reset_directory(resource_dir)
+    skipped = 0
+    for item in items:
+        metadata = item.get("metadata") or {}
+        name = metadata.get("name") or "unknown"
+        namespace = metadata.get("namespace") or "default"
+        if live_ns is not None and namespace not in live_ns:
+            skipped += 1
+            continue
+        ns_dir = os.path.join(resource_dir, namespace)
+        os.makedirs(ns_dir, exist_ok=True)
+        file_path = os.path.join(ns_dir, f"{name}.yaml")
+        with open(file_path, "w", encoding="utf-8") as f:
+            yaml.dump(item, f, default_flow_style=False, allow_unicode=True)
+        logger.info("已保存: %s", file_path)
+    if skipped:
+        logger.warning(
+            "跳过 %s 项不在现存命名空间中的 %s（Namespace 对象已删除，kubectl get ns 看不到）",
+            skipped,
+            dirname,
+        )
+    return skipped
+
+
+def _export_control_plane_via_kubectl(output_dir: str) -> Dict[str, Any]:
+    """本机有 kubectl 时导出控制面，不依赖 python kubernetes 库。"""
+    changes: Dict[str, Any] = {}
+    os.makedirs(output_dir, exist_ok=True)
+    logger.info("使用 kubectl 从集群导出控制面配置")
+    live_ns = _live_namespaces()
+    if live_ns:
+        logger.info("现存命名空间 %s 个: %s", len(live_ns), ", ".join(sorted(live_ns)))
+    for dirname, kind in _KUBECTL_KINDS:
+        data = _kubectl_json(["get", kind, "-A"])
+        if not data:
+            continue
+        items = data.get("items") or []
+        if live_ns:
+            items = [
+                it for it in items
+                if ((it.get("metadata") or {}).get("namespace") or "default") in live_ns
+            ]
+            data = dict(data)
+            data["items"] = items
+        _write_items_by_namespace(output_dir, dirname, items)
+        list_file = os.path.join(output_dir, dirname, "list.json")
+        os.makedirs(os.path.dirname(list_file), exist_ok=True)
+        with open(list_file, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        changes[f"control_plane_{dirname}"] = data
+        logger.info("kubectl 导出 %s: %s 项", dirname, len(items))
+    return changes
 
 
 def _init_k8s_client(
@@ -172,8 +332,15 @@ def export_control_plane_config(
     changes = {}
     os.makedirs(output_dir, exist_ok=True)
 
+    if client is None:
+        return _export_control_plane_via_kubectl(output_dir)
+
     if k8s_client is None or core_v1_api is None:
-        k8s_client, core_v1_api, _ = _init_k8s_client(k8s_host, k8s_token)
+        try:
+            k8s_client, core_v1_api, _ = _init_k8s_client(k8s_host, k8s_token)
+        except Exception as exc:
+            logger.warning("K8s Python 客户端不可用（%s），改用 kubectl 导出控制面", exc)
+            return _export_control_plane_via_kubectl(output_dir)
 
     # 1. 导出 Istio 自定义资源
     for group, version, plural in ISTIO_RESOURCES:

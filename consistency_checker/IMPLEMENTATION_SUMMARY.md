@@ -420,7 +420,7 @@ python -m consistency_checker.main --mode web --port 8080
 
 ## 📄 相关文档
 
-- [完整使用指南](../SYSTEM_GUIDE.md)
+- [完整使用指南](../README.md)
 - [模块架构设计](../docs/module_architecture.md)
 - [模块README](README.md)
 

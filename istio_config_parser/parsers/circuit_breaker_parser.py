@@ -7,20 +7,90 @@ Istio→Envoy 语义映射（控制平面与数据平面实际匹配）:
     → clusters[].cluster.circuit_breakers.thresholds[0].max_connections
   DestinationRule.trafficPolicy.connectionPool.http.http1MaxPendingRequests
     → clusters[].cluster.circuit_breakers.thresholds[0].max_pending_requests
-  DestinationRule.trafficPolicy.connectionPool.http.maxRequestsPerConnection
+  DestinationRule.trafficPolicy.connectionPool.http.http2MaxRequests
     → clusters[].cluster.circuit_breakers.thresholds[0].max_requests
+  DestinationRule.trafficPolicy.connectionPool.http.maxRequestsPerConnection
+    → typed_extension_protocol_options[HttpProtocolOptions]
+       .common_http_protocol_options.max_requests_per_connection
   DestinationRule.trafficPolicy.outlierDetection
     → clusters[].cluster.outlier_detection
+  Envoy uint32 默认 4294967295 视为未声明，不参与对齐
 """
 import logging
 from typing import Dict, List, Any, Optional
 from istio_config_parser.parsers.base_parser import FunctionParser
 from istio_config_parser.models.function_models import (
     CircuitBreakerFunctionModel, FunctionType, PlaneType,
-    ConnectionPoolSettings, OutlierDetection
+    ConnectionPoolSettings, OutlierDetection,
+    _connection_pool_is_declared,
+    _is_unlimited_threshold,
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _finite_threshold(val: Any) -> Optional[int]:
+    """Envoy uint32 无限阈值不当作声明值。"""
+    if val is None or _is_unlimited_threshold(val):
+        return None
+    try:
+        return int(val)
+    except (TypeError, ValueError):
+        return None
+
+
+def _extract_max_requests_per_connection(cluster: Dict[str, Any]) -> Optional[int]:
+    """Istio 把 maxRequestsPerConnection 编到 HttpProtocolOptions，不在 circuit_breakers 里。"""
+    opts = (
+        cluster.get("typed_extension_protocol_options")
+        or cluster.get("typedExtensionProtocolOptions")
+        or {}
+    )
+    if not isinstance(opts, dict):
+        return None
+    http_opts = opts.get("envoy.extensions.upstreams.http.v3.HttpProtocolOptions") or {}
+    if not isinstance(http_opts, dict):
+        return None
+    common = (
+        http_opts.get("common_http_protocol_options")
+        or http_opts.get("commonHttpProtocolOptions")
+        or {}
+    )
+    if not isinstance(common, dict):
+        value = http_opts.get("value")
+        if isinstance(value, dict):
+            common = (
+                value.get("common_http_protocol_options")
+                or value.get("commonHttpProtocolOptions")
+                or {}
+            )
+    if not isinstance(common, dict):
+        return None
+    return _finite_threshold(
+        common.get("max_requests_per_connection") or common.get("maxRequestsPerConnection")
+    )
+
+
+def _pool_from_dict(pool: Any) -> Optional[ConnectionPoolSettings]:
+    if isinstance(pool, ConnectionPoolSettings):
+        return pool
+    if not isinstance(pool, dict):
+        return None
+    tcp = pool.get("tcp") if isinstance(pool.get("tcp"), dict) else {}
+    http = pool.get("http") if isinstance(pool.get("http"), dict) else {}
+    return ConnectionPoolSettings(
+        max_connections=_finite_threshold(tcp.get("max_connections") or pool.get("max_connections")),
+        http1_max_pending_requests=_finite_threshold(
+            http.get("http1_max_pending_requests") or pool.get("http1_max_pending_requests")
+        ),
+        http2_max_requests=_finite_threshold(
+            http.get("http2_max_requests") or pool.get("http2_max_requests")
+        ),
+        max_requests_per_connection=_finite_threshold(
+            http.get("max_requests_per_connection") or pool.get("max_requests_per_connection")
+        ),
+        max_retries=_finite_threshold(http.get("max_retries") or pool.get("max_retries")),
+    )
 
 
 class CircuitBreakerParser(FunctionParser):
@@ -132,11 +202,10 @@ class CircuitBreakerParser(FunctionParser):
                     
                     if policy_dict:
                         model.subset_policies[subset_name] = policy_dict
-                else:
-                    # 子集没有特定配置，标记为None
-                    model.subset_policies[subset_name] = None
             
-            models.append(model)
+            # 只有 DR 真正写了连接池/异常检测才算熔断；仅 subsets 的 DR 不是熔断
+            if model.has_declared_policy():
+                models.append(model)
         
         return models
     
@@ -161,7 +230,7 @@ class CircuitBreakerParser(FunctionParser):
         else:
             clusters = []
         
-        # 按服务聚合cluster配置
+        # 按 namespace.service 聚合，避免 default 与演示网格同名服务混在一起
         service_clusters: Dict[str, List[Dict]] = {}
         
         for cluster_item in clusters:
@@ -176,51 +245,55 @@ class CircuitBreakerParser(FunctionParser):
                     service_name = host.split('.')[0]
                     namespace = host.split('.')[1] if '.' in host else 'default'
                     subset = parts[2] if parts[2] else None
+                    svc_key = f"{namespace}.{service_name}"
                     
-                    if service_name not in service_clusters:
-                        service_clusters[service_name] = []
+                    if svc_key not in service_clusters:
+                        service_clusters[svc_key] = []
                     
-                    service_clusters[service_name].append({
+                    service_clusters[svc_key].append({
                         'cluster': cluster,
                         'subset': subset,
-                        'namespace': namespace
+                        'namespace': namespace,
+                        'service_name': service_name,
                     })
         
         # 为每个服务创建熔断模型
-        for service_name, clusters in service_clusters.items():
-            namespace = clusters[0]['namespace'] if clusters else 'default'
+        for svc_key, clustered in service_clusters.items():
+            namespace = clustered[0]['namespace'] if clustered else 'default'
+            service_name = clustered[0].get('service_name') or svc_key.split('.', 1)[-1]
             
             model = CircuitBreakerFunctionModel(
                 function_type=FunctionType.CIRCUIT_BREAKER,
                 service_name=service_name,
                 namespace=namespace,
                 plane_type=PlaneType.DATA_PLANE,
-                raw_config={'clusters': clusters}
+                raw_config={'clusters': clustered}
             )
             
             # 解析每个cluster的熔断配置（clusters.json 中 circuit_breakers 在 cluster 内）
-            for cluster_info in clusters:
+            for cluster_info in clustered:
                 cluster = cluster_info['cluster']
                 subset = cluster_info['subset']
                 
-                # 解析连接池配置（兼容 camelCase 与 snake_case，Envoy 导出为 snake_case）
                 circuit_breakers_config = cluster.get('circuitBreakers') or cluster.get('circuit_breakers') or {}
                 thresholds = circuit_breakers_config.get('thresholds', [])
-                
-                if thresholds:
-                    threshold = thresholds[0]
-                    max_conn = threshold.get('maxConnections') or threshold.get('max_connections')
-                    max_pending = threshold.get('maxPendingRequests') or threshold.get('max_pending_requests')
-                    max_req = threshold.get('maxRequests') or threshold.get('max_requests')
-                    max_ret = threshold.get('maxRetries') or threshold.get('max_retries')
-                    conn_pool = ConnectionPoolSettings(
-                        max_connections=max_conn,
-                        http1_max_pending_requests=max_pending,
-                        http2_max_requests=max_req,
-                        max_retries=max_ret
-                    )
-                    
-                    # 如果是全局配置（没有subset）
+                threshold = thresholds[0] if thresholds else {}
+                conn_pool = ConnectionPoolSettings(
+                    max_connections=_finite_threshold(
+                        threshold.get('maxConnections') or threshold.get('max_connections')
+                    ),
+                    http1_max_pending_requests=_finite_threshold(
+                        threshold.get('maxPendingRequests') or threshold.get('max_pending_requests')
+                    ),
+                    http2_max_requests=_finite_threshold(
+                        threshold.get('maxRequests') or threshold.get('max_requests')
+                    ),
+                    max_requests_per_connection=_extract_max_requests_per_connection(cluster),
+                    max_retries=_finite_threshold(
+                        threshold.get('maxRetries') or threshold.get('max_retries')
+                    ),
+                )
+                if _connection_pool_is_declared(conn_pool):
                     if not subset:
                         model.connection_pool = conn_pool
                     else:
@@ -228,7 +301,6 @@ class CircuitBreakerParser(FunctionParser):
                             model.subset_policies[subset] = {}
                         model.subset_policies[subset]['connection_pool'] = conn_pool.to_dict()
                 
-                # 解析异常检测配置（兼容 camelCase 与 snake_case）
                 outlier_detection_config = cluster.get('outlierDetection') or cluster.get('outlier_detection') or {}
                 if outlier_detection_config:
                     outlier = OutlierDetection(
@@ -245,8 +317,15 @@ class CircuitBreakerParser(FunctionParser):
                         if subset not in model.subset_policies:
                             model.subset_policies[subset] = {}
                         model.subset_policies[subset]['outlier_detection'] = outlier.to_dict()
+
+            if model.connection_pool is None:
+                for policy in (model.subset_policies or {}).values():
+                    lifted = _pool_from_dict(policy.get('connection_pool'))
+                    if _connection_pool_is_declared(lifted):
+                        model.connection_pool = lifted
+                        break
             
-            if model.connection_pool or model.outlier_detection or model.subset_policies:
+            if model.has_declared_policy():
                 models.append(model)
         
         return models

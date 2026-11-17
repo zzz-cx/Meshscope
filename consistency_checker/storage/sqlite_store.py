@@ -244,6 +244,28 @@ class SqliteStore:
             return None
         return _loads(row["payload_json"])
 
+    def delete_report(self, report_id: str) -> Optional[Dict[str, Any]]:
+        """删除报告及其 findings / graphs / artifacts。返回被删行摘要，不存在则 None。"""
+        with self._lock:
+            conn = self._connect()
+            try:
+                row = conn.execute(
+                    "SELECT id, html_path FROM reports WHERE id = ?",
+                    (report_id,),
+                ).fetchone()
+                if not row:
+                    return None
+                html_path = row["html_path"]
+                conn.execute("DELETE FROM findings WHERE report_id = ?", (report_id,))
+                conn.execute("DELETE FROM graphs WHERE report_id = ?", (report_id,))
+                conn.execute("DELETE FROM artifacts WHERE report_id = ?", (report_id,))
+                conn.execute("DELETE FROM reports WHERE id = ?", (report_id,))
+                conn.commit()
+            finally:
+                conn.close()
+        logger.info("已删除报告 %s", report_id)
+        return {"id": report_id, "html_path": html_path}
+
     def save_graph(self, report_id: str, kind: str, payload: Dict[str, Any]) -> None:
         now = datetime.now().isoformat()
         with self._lock:

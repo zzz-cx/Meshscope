@@ -5,8 +5,30 @@ __pycache__/
 .understand-anything/
 web_endpoints.json
 *.db
+*.db-wal
+*.db-shm
+
+# 运行产物与实验
 results/
 evaluation/
+experiment_evaluation/
+experiment/
+*.log
+web.log
+istio_sidecar_monitor.log
+
+# 采集快照与生成模型
+istio_config_parser/istio_monitor/istio_sidecar_config/
+istio_config_parser/istio_monitor/istio_ingress_config/
+istio_config_parser/models_output/
+istio_Dynamic_Test/configs/output_matrix.json
+istio_Dynamic_Test/executors/*_vs_*.yaml
+istio_Dynamic_Test/internal/traffic/fault/*_vs_*.yaml
+consistency_checker/web/static/output_three_layer_graph.json
+
+node_modules/
+.idea/
+.vscode/
 docs/REMOTE_CLUSTER_SETUP.md
 results/meshscope.db
 results/meshscope.db-wal

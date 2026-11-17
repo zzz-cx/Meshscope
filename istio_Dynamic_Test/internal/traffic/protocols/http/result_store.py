@@ -47,6 +47,10 @@ def save_execution_result(
             "success_rate": result.success_rate,
             "avg_response_time": result.avg_response_time,
             "error_count": result.error_count,
+            "metadata": result.metadata or {},
+            "version_counts": (result.metadata or {}).get("version_counts") or {},
+            "version_percentages": (result.metadata or {}).get("version_percentages") or {},
+            "landed_services": (result.metadata or {}).get("landed_services") or {},
         },
     }
     with open(path, "w", encoding="utf-8") as f:

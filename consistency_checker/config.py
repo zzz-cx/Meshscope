@@ -6,6 +6,7 @@ import os
 import json
 from typing import Dict, Any, Optional
 from dataclasses import dataclass, field, asdict, fields
+from urllib.parse import urlparse
 
 
 @dataclass
@@ -110,6 +111,9 @@ class GlobalConfig:
         "fault_injection": True,
         "orthogonal_minimize": False,
     })
+    allow_load_test: bool = True
+    allow_fault_injection: bool = False
+    allow_rollout: bool = False
     config_file: Optional[str] = None
     
     def __post_init__(self):
@@ -141,6 +145,14 @@ class GlobalConfig:
             self.grafana_url = os.getenv("GRAFANA_URL") or None
         if not self.ingress_url:
             self.ingress_url = os.getenv("ISTIO_INGRESS_URL") or None
+        if self.ingress_url:
+            parsed_ing = urlparse(
+                self.ingress_url if "://" in self.ingress_url else "http://" + self.ingress_url
+            )
+            if parsed_ing.netloc:
+                self.ingress_url = f"{parsed_ing.scheme or 'http'}://{parsed_ing.netloc}"
+            if parsed_ing.port:
+                self.ingress_port = parsed_ing.port
         self.control_plane_config_dir = self._resolve_path(self.control_plane_config_dir)
         self.data_plane_config_dir = self._resolve_path(self.data_plane_config_dir)
         self.ingress_plane_config_dir = self._resolve_path(self.ingress_plane_config_dir)
@@ -158,15 +170,20 @@ class GlobalConfig:
             if getattr(self, name):
                 setattr(self, name, self._resolve_path(getattr(self, name)))
     
-    def get_ingress_url(self, host: Optional[str] = None, port: Optional[int] = None, path: str = "/productpage") -> Optional[str]:
-        """获取Ingress URL"""
-        if self.ingress_url and host is None and port is None:
-            return self.ingress_url
+    def get_ingress_url(self, host: Optional[str] = None, port: Optional[int] = None, path: str = "") -> Optional[str]:
+        """Ingress origin，不含 /productpage。业务 path 由测试用例拼接。"""
+        from istio_Dynamic_Test.internal.traffic.entry import normalize_ingress_base, resolve_ingress_base
+
+        if host is None and port is None:
+            return resolve_ingress_base(self.ingress_url) or None
         host = host or self.ssh_host or self.k8s_host
         port = port or self.ingress_port
         if not host:
             return None
-        return f"http://{host}:{port}{path}"
+        extra = path if path and path != "/" else ""
+        if extra and not extra.startswith("/"):
+            extra = "/" + extra
+        return normalize_ingress_base(f"http://{host}:{port}") + extra
 
     def sync_enabled_policies(self) -> None:
         """把一致性功能开关同步到动态测试 enabled_policies。"""
@@ -195,10 +212,13 @@ class GlobalConfig:
             return False
         if itype == "traffic_split_drift" and not self.check_traffic_split:
             return False
-        severity = getattr(finding, "severity", "info")
-        sev_name = severity.value if hasattr(severity, "value") else str(severity or "info")
-        if _SEVERITY_RANK.get(sev_name.lower(), 0) < _SEVERITY_RANK.get((self.min_severity or "info").lower(), 0):
-            return False
+        if itype in {"matched", "dynamic_passed", "dynamic_skipped"}:
+            pass
+        else:
+            severity = getattr(finding, "severity", "info")
+            sev_name = severity.value if hasattr(severity, "value") else str(severity or "info")
+            if _SEVERITY_RANK.get(sev_name.lower(), 0) < _SEVERITY_RANK.get((self.min_severity or "info").lower(), 0):
+                return False
         ftype = str(getattr(finding, "function_type", "") or "").lower()
         attr = _FUNCTION_CHECK_ATTR.get(ftype)
         if attr and not bool(getattr(self, attr, True)):
@@ -283,6 +303,9 @@ class GlobalConfig:
                 'compute_backend': self.compute_backend, 'compute_workers': self.compute_workers,
                 'traffic_workers': self.traffic_workers, 'capacity_budget': self.capacity_budget,
                 'go_binary': self._relpath(self.go_binary) if self.go_binary else None,
+                "allow_load_test": bool(self.allow_load_test),
+                "allow_fault_injection": bool(self.allow_fault_injection),
+                "allow_rollout": bool(self.allow_rollout),
             },
             "monitor": {
                 "interval": self.monitor_interval,
@@ -348,6 +371,7 @@ NESTED_SECTIONS = {
         "envoy_logs_dir", "http_results_dir", "verification_dir", "enabled_policies",
         'validation_engine', 'validation_output_dir', 'backend_control_url', 'activation_headers_file',
         'behavior_profiles_file', 'compute_backend', 'compute_workers', 'traffic_workers', 'capacity_budget', 'go_binary',
+        "allow_load_test", "allow_fault_injection", "allow_rollout",
     ),
 }
 
@@ -505,8 +529,8 @@ SETTINGS_GROUPS = [
             {"key": "zipkin_url", "env": "ZIPKIN_URL", "label": "Zipkin", "placeholder": "http://host:9411"},
             {"key": "kiali_url", "env": "KIALI_URL", "label": "Kiali", "placeholder": "http://host:20001"},
             {"key": "grafana_url", "env": "GRAFANA_URL", "label": "Grafana", "placeholder": "http://host:3000"},
-            {"key": "ingress_url", "env": "ISTIO_INGRESS_URL", "label": "Ingress 入口", "placeholder": "http://host:30476/productpage"},
-            {"key": "ingress_port", "env": "INGRESS_PORT", "label": "Ingress 端口", "placeholder": "30476"},
+            {"key": "ingress_url", "env": "ISTIO_INGRESS_URL", "label": "Ingress 入口", "placeholder": "http://host:32469"},
+            {"key": "ingress_port", "env": "INGRESS_PORT", "label": "Ingress 端口", "placeholder": "32469"},
         ],
     },
     {
@@ -647,6 +671,32 @@ SETTINGS_GROUPS = [
             },
         ],
     },
+    {
+        "id": "dynamic",
+        "title": "动态验证开关",
+        "wide": True,
+        "hint": "完整流水线第二阶段会真正打入探测流量。路由、分流和限流基线始终尽量打入；高压、故障注入、rollout 需单独打开。关闭后对应用例会跳过并写明原因。",
+        "fields": [
+            {
+                "key": "allow_load_test",
+                "type": "checkbox",
+                "label": "高压测试",
+                "hint": "关闭后跳过限流高压、连接池打满。限流基线仍会发少量请求。",
+            },
+            {
+                "key": "allow_fault_injection",
+                "type": "checkbox",
+                "label": "故障注入",
+                "hint": "关闭后不会改 VirtualService 注入 abort/delay。熔断（outlier）、超时、重试无法诱发异常，将跳过动态验证。",
+            },
+            {
+                "key": "allow_rollout",
+                "type": "checkbox",
+                "label": "允许 rollout",
+                "hint": "关闭后不会 patch Deployment / 重启 sidecar 来打开 Envoy access log。etcd 不稳时请保持关闭。",
+            },
+        ],
+    },
 ]
 
 ENDPOINT_ENV = {
@@ -696,7 +746,7 @@ def derived_endpoint_urls(host: str, ingress_port: int = 30476) -> Dict[str, str
         "zipkin_url": f"http://{host}:{DEFAULT_ZIPKIN_PORT}",
         "kiali_url": f"http://{host}:{DEFAULT_KIALI_PORT}",
         "grafana_url": f"http://{host}:{DEFAULT_GRAFANA_PORT}",
-        "ingress_url": f"http://{host}:{ingress_port}/productpage",
+        "ingress_url": f"http://{host}:{ingress_port}",
     }
 
 
@@ -815,6 +865,9 @@ def export_endpoints(cfg: GlobalConfig) -> Dict[str, Any]:
         "check_rate_limit": bool(cfg.check_rate_limit),
         "check_fault_injection": bool(cfg.check_fault_injection),
         "check_orthogonal_minimize": bool(cfg.check_orthogonal_minimize),
+        "allow_load_test": bool(cfg.allow_load_test),
+        "allow_fault_injection": bool(cfg.allow_fault_injection),
+        "allow_rollout": bool(cfg.allow_rollout),
     }
     return {
         "values": values,

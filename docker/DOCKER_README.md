@@ -330,8 +330,8 @@ RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
 ## 📚 更多信息
 
 - [主项目 README](README.md)
-- [架构文档](ARCHITECTURE.md)
-- [端到端验证文档](E2E_VALIDATOR_README.md)
+- [架构文档](../docs/ARCHITECTURE.md)
+- [端到端验证文档](../docs/E2E_VALIDATOR_README.md)
 
 ## 🤝 贡献
 

@@ -40,15 +40,29 @@ except ImportError:
 class Pipeline:
     """端到端一致性验证流水线"""
     
-    def __init__(self, namespace: Optional[str] = None):
+    def __init__(
+        self,
+        namespace: Optional[str] = None,
+        safety=None,
+        execute_dynamic: bool = False,
+    ):
         """
         初始化流水线
         
         Args:
             namespace: Kubernetes命名空间
+            safety: 动态验证安全开关（高压 / 故障注入 / rollout）
+            execute_dynamic: 是否真正打入探测流量。完整流水线为 True；
+                仅一致性判定时读已有结果。
         """
         self.config = get_config()
         self.namespace = namespace or self.config.namespace
+        self.execute_dynamic = execute_dynamic
+        try:
+            from istio_Dynamic_Test.internal.pipeline.guards import options_from_config
+            self.safety = safety or options_from_config()
+        except Exception:
+            self.safety = safety
         
         # 各模块实例
         self.static_analyzer: Optional[StaticAnalyzer] = None
@@ -83,10 +97,10 @@ class Pipeline:
         logger.info("-" * 80)
         self.static_result = self._run_static_analysis()
         
-        # 第二阶段：动态分析
+        # 第二阶段：动态分析（先打入探测流量，再读结果）
         logger.info("\n🔄 第二阶段：动态测试分析")
         logger.info("-" * 80)
-        self.dynamic_result = self._run_dynamic_analysis()
+        self.dynamic_result = self._run_dynamic_analysis(execute=True)
         
         # 第三阶段：一致性检查
         logger.info("\n✅ 第三阶段：一致性检查")
@@ -162,9 +176,8 @@ class Pipeline:
                         break
             
             if has_existing_config:
-                logger.info("  ✓ 发现现有配置，跳过配置获取")
+                logger.info("发现现有配置目录，仍从集群刷新，避免使用过期快照")
                 logger.info(f"    配置目录: {control_plane_dir}")
-                return True
             
             # 创建监控器
             # 注意：监控器会自动在output_dir的父目录创建control_plane_dir
@@ -239,8 +252,12 @@ class Pipeline:
         
         return result
     
-    def _run_dynamic_analysis(self) -> Dict[str, Any]:
-        """运行动态分析"""
+    def _run_dynamic_analysis(self, execute: Optional[bool] = None) -> Dict[str, Any]:
+        """运行动态分析。完整流水线会先按安全开关打入探测流量。"""
+        do_execute = self.execute_dynamic if execute is None else execute
+        if do_execute:
+            self._execute_dynamic_tests()
+
         self.dynamic_analyzer = DynamicAnalyzer(
             test_matrix_file=self.config.test_matrix_file,
             verification_dir=self.config.verification_dir,
@@ -258,6 +275,29 @@ class Pipeline:
         logger.info(f"  ✓ 验证率: {result['statistics']['verification_rate']:.2%}")
         
         return result
+
+    def _execute_dynamic_tests(self) -> None:
+        """从对齐模型生成矩阵并打入探测流量。"""
+        from istio_Dynamic_Test.internal.pipeline.guards import banner_text, options_from_config, warning_lines
+        from istio_Dynamic_Test.internal.pipeline.runner import run_aligned_dynamic_tests
+
+        options = self.safety or options_from_config()
+        self.safety = options
+        logger.info("动态验证开关:\n%s", banner_text(options))
+        for line in warning_lines(options):
+            logger.warning(line)
+        try:
+            results = run_aligned_dynamic_tests(
+                namespace=self.namespace,
+                options=options,
+            )
+            skipped = sum(
+                1 for r in results
+                if r.validation and r.validation.overall_status.value == "skipped"
+            )
+            logger.info("  ✓ 动态打流完成: %s 条结果，跳过 %s 条", len(results), skipped)
+        except Exception as exc:
+            logger.error("动态打流失败，将继续用已有结果做分析: %s", exc, exc_info=True)
     
     def _run_consistency_check(self) -> Any:
         """运行一致性检查"""

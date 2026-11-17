@@ -48,7 +48,10 @@
       "rate_limit": true,
       "fault_injection": true,
       "orthogonal_minimize": false
-    }
+    },
+    "allow_load_test": true,
+    "allow_fault_injection": false,
+    "allow_rollout": false
   },
   "monitor": {
     "interval": 1200,

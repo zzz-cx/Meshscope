@@ -269,6 +269,12 @@
             <div class="stat"><span>边</span><span id="edge-count">0</span></div>
             <div class="stat"><span>不一致</span><span id="bad-count">0</span></div>
             <div class="filter-group">
+                <label>命名空间</label>
+                <select id="ns-filter">
+                    <option value="all">全部</option>
+                </select>
+            </div>
+            <div class="filter-group">
                 <label>显示层级</label>
                 <select id="layer-filter">
                     <option value="all">全部</option>
@@ -383,6 +389,38 @@
             return RES_NAME[d.resource_type] || d.resource_type || d.node_type || d.layer || "-";
         }
 
+        let liveNamespaces = [];
+
+        async function loadLiveNamespaces() {
+            try {
+                const res = await fetch("/api/namespaces");
+                const data = await res.json();
+                liveNamespaces = data.namespaces || [];
+            } catch (e) {
+                liveNamespaces = [];
+            }
+            fillNamespaceFilter();
+        }
+
+        function fillNamespaceFilter() {
+            const sel = $("ns-filter");
+            if (!sel) return;
+            const fromUrl = new URLSearchParams(location.search).get("namespace");
+            const current = (fromUrl && fromUrl !== "all") ? fromUrl : (sel.value || "all");
+            const fromGraph = ((graphData && graphData.metadata) || {}).namespaces || [];
+            const live = new Set(liveNamespaces);
+            let names = fromGraph.length ? fromGraph.slice() : liveNamespaces.slice();
+            fromGraph.forEach(function (n) {
+                if (n && names.indexOf(n) < 0 && (!live.size || live.has(n))) names.push(n);
+            });
+            sel.innerHTML = '<option value="all">全部</option>' + names.map(function (n) {
+                return '<option value="' + escapeHtml(n) + '">' + escapeHtml(n) + "</option>";
+            }).join("");
+            if (fromUrl && (fromUrl === "all" || names.indexOf(fromUrl) >= 0)) sel.value = fromUrl;
+            else if (fromGraph.length === 1) sel.value = fromGraph[0];
+            else sel.value = (current === "all" || names.indexOf(current) >= 0) ? current : "all";
+        }
+
         document.getElementById("file-input").addEventListener("change", function (e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -426,6 +464,7 @@
             $("data-source").textContent = "未找到图数据。请先生成三层图，或在左侧加载 JSON。";
             renderInspector(null);
         }
+        loadLiveNamespaces();
         loadFromUrl();
 
         window.addEventListener("resize", function () {
@@ -445,6 +484,7 @@
                 $("data-source").textContent = "数据格式错误，需要 nodes 和 edges 数组";
                 return;
             }
+            fillNamespaceFilter();
 
             const elements = [];
             const nodeMap = {};
@@ -709,6 +749,7 @@
             bindCyEvents();
             $("layer-filter").onchange = onFilterChange;
             $("plane-filter").onchange = onFilterChange;
+            if ($("ns-filter")) $("ns-filter").onchange = onFilterChange;
             $("inconsistent-only").onchange = onFilterChange;
             $("config-only").onchange = onFilterChange;
             clearSelection();
@@ -1333,6 +1374,7 @@
             if (!cy) return;
             const layer = $("layer-filter").value;
             const plane = $("plane-filter").value;
+            const ns = $("ns-filter") ? $("ns-filter").value : "all";
             const onlyBad = $("inconsistent-only").checked;
             const configOnly = $("config-only") && $("config-only").checked;
             const cfg = configServiceSet();
@@ -1343,6 +1385,11 @@
                 if (nd.isParent || nd.layer === "box") return false;
                 if (layer !== "all" && nd.layer !== layer) return false;
                 if (plane !== "all" && nd.plane_type && nd.plane_type !== plane) return false;
+                if (ns !== "all") {
+                    if (["control_plane", "data_plane", "consistency_checker"].indexOf(nd.id) >= 0) return true;
+                    if (nd.namespace && nd.namespace !== ns) return false;
+                    if (!nd.namespace && nd.layer !== "layer1") return false;
+                }
                 if (onlyBad && !badNodes.contains(node) && !nd.has_issue) return false;
                 if (configOnly) {
                     if (["control_plane", "data_plane", "consistency_checker"].indexOf(nd.id) >= 0) return true;
@@ -1451,6 +1498,7 @@
         function resetView() {
             $("layer-filter").value = "all";
             $("plane-filter").value = "all";
+            if ($("ns-filter")) $("ns-filter").value = "all";
             $("inconsistent-only").checked = false;
             if ($("config-only")) $("config-only").checked = true;
             focusMode = false;

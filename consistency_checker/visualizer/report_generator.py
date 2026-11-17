@@ -118,6 +118,7 @@ class ComprehensiveReportGenerator:
             "total_test_cases": len(self.dynamic_result.get('dynamic_behaviors', [])),
             "verified_tests": self.dynamic_result.get('summary', {}).get('verified_tests', 0),
             "failed_tests": self.dynamic_result.get('summary', {}).get('failed_tests', 0),
+            "skipped_tests": self.dynamic_result.get('summary', {}).get('skipped_tests', 0),
             "verification_rate": self.dynamic_result.get('statistics', {}).get('verification_rate', 0.0),
             "tests_by_policy_type": self.dynamic_result.get('statistics', {}).get('by_policy_type', {})
         }
@@ -280,6 +281,15 @@ class ComprehensiveReportGenerator:
                 "unverified_policies": len(cr.unverified_policies),
                 "critical_issues": cr.summary.get("critical_issues", 0),
                 "high_issues": cr.summary.get("high_issues", 0),
+                "static_match_rate": cr.summary.get("static_match_rate"),
+                "dynamic_verify_rate": cr.summary.get("dynamic_verify_rate"),
+                "split_consistency_rate": cr.summary.get("split_consistency_rate"),
+                "declared_functions": cr.summary.get("declared_functions"),
+                "matched_functions": cr.summary.get("matched_functions"),
+                "dynamic_passed": cr.summary.get("dynamic_passed"),
+                "dynamic_failed": cr.summary.get("dynamic_failed"),
+                "dynamic_skipped": cr.summary.get("dynamic_skipped"),
+                "dynamic_total": cr.summary.get("dynamic_total"),
             },
             "by_layer": cr.summary.get("by_layer") or {},
             "by_type": cr.summary.get("by_type") or {},

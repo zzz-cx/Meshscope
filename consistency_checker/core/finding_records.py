@@ -31,6 +31,11 @@ LAYER_CATALOG = [
         ),
         "checks": [
             {
+                "type": "matched",
+                "name": "静态对齐一致",
+                "desc": "声明式 YAML 抽出的四元组与数据面 dump 对应四元组匹配（Sdecl ↔ Sdp）。",
+            },
+            {
                 "type": "control_only",
                 "name": "仅控制面",
                 "desc": "YAML 声明了策略，Envoy dump 中没有对应语义（Pilot 未下发或 sidecar 未同步）。",
@@ -65,6 +70,16 @@ LAYER_CATALOG = [
             "Srt 来自动态测试的实测行为；流量分割可同时对比期望权重与观测权重。"
         ),
         "checks": [
+            {
+                "type": "dynamic_passed",
+                "name": "动态验证通过",
+                "desc": "真实流量打入后，分流权重与落到的服务与模型一致（Srt ↔ Sdecl）。",
+            },
+            {
+                "type": "dynamic_skipped",
+                "name": "动态未观测",
+                "desc": "用例已执行，但 Prometheus 等观测没有增量，无法核对分流指标。",
+            },
             {
                 "type": "behavior_deviation",
                 "name": "运行时行为偏差",
@@ -259,14 +274,32 @@ def summarize_tuple(tup: Optional[Dict[str, Any]], plane: str = "") -> Optional[
     }
 
 
+def _weights_from(obj: Any) -> Dict[str, Any]:
+    if not isinstance(obj, dict):
+        return {}
+    if isinstance(obj.get("weights"), dict) and obj.get("weights"):
+        return dict(obj["weights"])
+    if isinstance(obj.get("distribution"), dict) and obj.get("distribution"):
+        return dict(obj["distribution"])
+    return {}
+
+
 def summarize_runtime(behavior: Optional[DynamicBehavior]) -> Optional[Dict[str, Any]]:
     if behavior is None:
         return None
     ftype = behavior.policy_type.value if isinstance(behavior.policy_type, PolicyType) else str(behavior.policy_type)
     expected = behavior.expected_behavior or {}
     actual = behavior.actual_behavior or {}
-    verified = bool(behavior.is_verified)
-    status = "通过" if verified else "未通过"
+    skipped = bool(getattr(behavior, "skipped", False))
+    verified = bool(behavior.is_verified) and not skipped
+    if skipped:
+        status = "未观测"
+    elif verified:
+        status = "通过"
+    else:
+        status = "未通过"
+    expected_w = _weights_from(expected)
+    actual_w = _weights_from(actual)
     summary = (
         f"用例 {behavior.test_case_id} {status} · "
         f"期望 { _compact(expected) or '{}' } · "
@@ -276,6 +309,9 @@ def summarize_runtime(behavior: Optional[DynamicBehavior]) -> Optional[Dict[str,
         (behavior.test_params or {}).get("subset")
         or (behavior.test_params or {}).get("version")
     )
+    constraint = dict(_compact(actual) or {})
+    if actual_w:
+        constraint["weights"] = actual_w
     return {
         "tuple_id": f"runtime.{behavior.test_case_id}",
         "function_type": ftype,
@@ -287,12 +323,13 @@ def summarize_runtime(behavior: Optional[DynamicBehavior]) -> Optional[Dict[str,
             "source": behavior.source_service,
             "subsets": [subset] if subset else [],
         }) or {},
-        "constraint": _compact(actual) or {},
+        "constraint": constraint,
         "summary": summary,
         "test_case_id": behavior.test_case_id,
-        "verified": verified,
-        "expected": _compact(expected) or {},
-        "actual": _compact(actual) or {},
+        "verified": None if skipped else verified,
+        "skipped": skipped,
+        "expected": _compact({"weights": expected_w, **expected} if expected_w else expected) or {},
+        "actual": _compact({"weights": actual_w, **actual} if actual_w else actual) or {},
     }
 
 
@@ -517,8 +554,17 @@ def matching_behaviors(
         wanted.add(_POLICY_TO_FUNCTION.get(policy_type, policy_type.value))
         wanted.add(policy_type.value)
     hits = []
+    svc = str(service or "").split(".")[0]
     for behavior in behaviors:
-        if behavior.target_service != service:
+        names = {
+            str(behavior.target_service or "").split(".")[0],
+            str(behavior.source_service or "").split(".")[0],
+            str((behavior.test_params or {}).get("host") or "").split(".")[0],
+        }
+        names.discard("")
+        names.discard("unknown")
+        names.discard("*")
+        if svc and svc not in names:
             continue
         btype = behavior.policy_type.value if isinstance(behavior.policy_type, PolicyType) else str(behavior.policy_type)
         mapped = _POLICY_TO_FUNCTION.get(behavior.policy_type, btype) if isinstance(behavior.policy_type, PolicyType) else btype
@@ -528,7 +574,7 @@ def matching_behaviors(
 
 
 def _alignment_type(status: str, diffs: List[Dict[str, Any]]) -> str:
-    if status in {"control_only", "data_only", "mismatched", "partial_matched"}:
+    if status in {"matched", "control_only", "data_only", "mismatched", "partial_matched"}:
         if status == "mismatched":
             kinds = {str(d.get("kind") or "") for d in diffs}
             if "timeout" in kinds or any("timeout" in str(d.get("description") or "").lower() for d in diffs):
@@ -540,12 +586,45 @@ def _alignment_type(status: str, diffs: List[Dict[str, Any]]) -> str:
     return "mismatched"
 
 
-def _alignment_severity(status: str, diffs: List[Dict[str, Any]]) -> SeverityLevel:
+def _alignment_severity(status: str, diffs: List[Dict[str, Any]], dynamic_status: str = "") -> SeverityLevel:
+    if dynamic_status == "failed":
+        return SeverityLevel.HIGH
+    if status == "matched":
+        return SeverityLevel.INFO
     if status in {"mismatched", "control_only", "data_only"}:
         return SeverityLevel.HIGH
     if any(d.get("kind") == "discrete" for d in diffs):
         return SeverityLevel.HIGH
     return SeverityLevel.MEDIUM
+
+
+def _dynamic_status(runtime: List[DynamicBehavior]) -> str:
+    judged = [b for b in runtime if b.verification_details]
+    if not judged:
+        return "untested"
+    if all(getattr(b, "skipped", False) for b in judged):
+        return "skipped"
+    if any((not b.is_verified) and not getattr(b, "skipped", False) for b in judged):
+        return "failed"
+    if any(b.is_verified for b in judged):
+        return "passed"
+    return "untested"
+
+
+def _guard_skip_reason(runtime: List[DynamicBehavior]) -> str:
+    tokens = ("未开启", "未允许", "安全开关")
+    for behavior in runtime or []:
+        details = getattr(behavior, "verification_details", None) or {}
+        actual = details.get("actual_behavior") if isinstance(details, dict) else {}
+        blobs = [
+            str((actual or {}).get("message") or ""),
+            str((details.get("overall_result") or {}).get("status") or "") if isinstance(details, dict) else "",
+            str(details) if details else "",
+        ]
+        text = " ".join(blobs)
+        if any(token in text for token in tokens):
+            return "动态用例已跳过（高压/故障注入/rollout 未打开，无法诱发异常或打满连接池）"
+    return ""
 
 
 def collect_alignment_findings(
@@ -558,7 +637,9 @@ def collect_alignment_findings(
         if not isinstance(pair, dict):
             continue
         status = str(pair.get("alignment_status") or "")
-        if status in {"matched", ""}:
+        if status in {"data_only", ""}:
+            continue
+        if not pair.get("control_tuples") and status != "control_only":
             continue
         diffs = [d for d in (pair.get("differences") or []) if isinstance(d, dict)]
         svc = pair.get("service_name") or ""
@@ -568,18 +649,45 @@ def collect_alignment_findings(
         s_decl = summarize_tuple(_first_tuple(pair.get("control_tuples")), plane="control_plane")
         s_dp = summarize_tuple(_first_tuple(pair.get("data_tuples")), plane="data_plane")
         runtime = matching_behaviors(behaviors, svc, function_type=ftype)
-        failed = [b for b in runtime if not b.is_verified]
-        s_rt = summarize_runtime(failed[0] if failed else (runtime[0] if runtime else None))
+        dyn = _dynamic_status(runtime)
+        preferred = None
+        if runtime:
+            preferred = next((b for b in runtime if not getattr(b, "skipped", False) and not b.is_verified), None)
+            preferred = preferred or next((b for b in runtime if b.is_verified), runtime[0])
+        s_rt = summarize_runtime(preferred)
         itype = _alignment_type(status, diffs)
-        desc = diffs[0].get("description") if diffs else ""
-        if not desc:
-            desc = f"服务 {svc} 的 {ftype} 对齐状态为 {status}"
+        layer = "layer1"
+        if status == "matched" and dyn == "failed":
+            itype = "traffic_split_drift" if ftype in {"traffic_shifting", "traffic_split"} else "behavior_deviation"
+            layer = "layer2"
+        elif status == "matched" and dyn == "passed":
+            itype = "matched"
+        elif status == "matched" and dyn == "skipped":
+            itype = "dynamic_skipped"
+            layer = "layer2"
+        desc_bits = [f"服务 {svc} 的 {ftype}"]
+        if status == "matched":
+            desc_bits.append("声明式与数据面四元组匹配（静态一致）")
+        else:
+            desc_bits.append(f"静态对齐状态为 {status}")
+        if dyn == "passed":
+            desc_bits.append("真实流量后分流/目标服务与模型一致（动态一致）")
+        elif dyn == "failed":
+            desc_bits.append("真实流量观测与模型不一致（动态不一致）")
+        elif dyn == "skipped":
+            guard_msg = _guard_skip_reason(runtime)
+            desc_bits.append(guard_msg or "流量已打入但未观测到分流指标（动态未验证）")
+        elif runtime:
+            desc_bits.append("动态未判定")
+        else:
+            desc_bits.append("尚未打入对应流量")
+        desc = diffs[0].get("description") if diffs and status != "matched" else "；".join(desc_bits)
         findings.append(build_finding(
             finding_id=f"inc_align_{idx}_{svc}_{ftype}",
             inconsistency_type=itype,
-            severity=_alignment_severity(status, diffs),
+            severity=_alignment_severity(status, diffs, dyn),
             description=desc,
-            layer="layer1",
+            layer=layer,
             affected_services=[svc] if svc else [],
             affected_subsets=subsets_from_pair(pair),
             resource_kind=kind,
@@ -590,14 +698,22 @@ def collect_alignment_findings(
             s_decl=s_decl,
             s_dp=s_dp,
             s_rt=s_rt,
-            root_cause=f"控制面 Sdecl 与数据面 Sdp 对齐状态为 {status}",
+            root_cause=(
+                "控制面 Sdecl 与数据面 Sdp 四元组匹配"
+                if status == "matched"
+                else f"控制面 Sdecl 与数据面 Sdp 对齐状态为 {status}"
+            ),
             suggestions=[
-                "对照 Sdecl 与 Sdp 的 predicate / action / constraint",
-                "确认 istiod 已将最新配置下发到 sidecar",
+                "对照 Sdecl / Sdp / Srt 的 predicate · action · scope · constraint",
+                "分流功能核对权重和落到的 subset/服务是否一致",
             ],
             static_expectation={"alignment_status": status, "control": diffs[0].get("control") if diffs else None},
-            dynamic_observation={"data": diffs[0].get("data") if diffs else None},
-            details={"differences": diffs, "pair_key": f"{ns}.{svc}.{ftype}"},
+            dynamic_observation={
+                "data": diffs[0].get("data") if diffs else None,
+                "dynamic_status": dyn,
+                "tests": [b.test_case_id for b in runtime],
+            },
+            details={"differences": diffs, "pair_key": f"{ns}.{svc}.{ftype}", "dynamic_status": dyn},
         ))
     return findings
 

@@ -7,8 +7,8 @@
     python -m configpilot web --port 8080
     python -m configpilot static --namespace default
     python -m configpilot dynamic --help
-    python -m configpilot collect --vm-host 192.168.92.100
-    python -m configpilot check --namespace default
+    python -m configpilot collect --vm-host HOST
+    python -m configpilot check --run-dir results/relational/RUN_ID
 
 底层模块入口仍然可用，本命令只做分发，避免多入口并列。
 """
@@ -58,7 +58,10 @@ def cmd_collect(args: argparse.Namespace) -> int:
         extra.extend(["--vm-user", args.vm_user])
     if args.vm_password:
         extra.extend(["--vm-password", args.vm_password])
-    extra.extend(["--namespace", args.namespace or "default", "--update-now"])
+    ns = args.namespace or "all"
+    if ns == "default":
+        ns = "all"
+    extra.extend(["--namespace", ns, "--update-now"])
     print("采集控制面/数据面快照...")
     return _run_module(
         "istio_config_parser.istio_monitor.istio_sidecar_monitor", extra
@@ -68,7 +71,10 @@ def cmd_collect(args: argparse.Namespace) -> int:
 def cmd_static(args: argparse.Namespace) -> int:
     from consistency_checker.config import fill_args_from_config
     fill_args_from_config(args, {"namespace": "namespace"})
-    extra = ["--namespace", args.namespace or "default"]
+    extra: List[str] = []
+    ns = args.namespace
+    if ns and ns != "default":
+        extra.extend(["--namespace", ns])
     if args.export:
         extra.append("--export")
     return _run_module("istio_config_parser.main_parser", extra)
@@ -156,10 +162,16 @@ def cmd_check(args: argparse.Namespace) -> int:
 def cmd_legacy_run(args: argparse.Namespace) -> int:
     from consistency_checker.config import fill_args_from_config
     from consistency_checker.main import run_full_pipeline, setup_logging
+    from istio_Dynamic_Test.internal.pipeline.guards import options_from_config
 
     fill_args_from_config(args, {"namespace": "namespace"})
     setup_logging(args.log_level)
-    run_full_pipeline(args.namespace or "default")
+    safety = options_from_config({
+        "allow_load_test": getattr(args, "allow_load_test", None),
+        "allow_fault_injection": getattr(args, "allow_fault_injection", None),
+        "allow_rollout": getattr(args, "allow_rollout", None),
+    })
+    run_full_pipeline(args.namespace or "default", safety=safety)
     return 0
 
 
@@ -173,6 +185,30 @@ def cmd_web(args: argparse.Namespace) -> int:
     return 0
 
 
+def _add_dynamic_guard_flags(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--load-test",
+        dest="allow_load_test",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="是否做高压测试（限流高压、连接池打满）。默认读 configpilot.json。",
+    )
+    parser.add_argument(
+        "--fault-injection",
+        dest="allow_fault_injection",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="是否改 VirtualService 注入 abort/delay。关闭时熔断、超时、重试无法动态验证。",
+    )
+    parser.add_argument(
+        "--rollout",
+        dest="allow_rollout",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="是否 patch Deployment 打开 Envoy access log。etcd 不稳时请关闭。",
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m configpilot",
@@ -180,6 +216,7 @@ def build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""常用命令:
   python -m configpilot run --namespace default
+  python -m configpilot legacy-run --namespace default --no-load-test --no-fault-injection --no-rollout
   python -m configpilot web --port 8080
   python -m configpilot static --namespace default --export
   python -m configpilot plan --aligned results/consistency/aligned_semantic.json
@@ -215,17 +252,18 @@ def build_parser() -> argparse.ArgumentParser:
 
     from configpilot.relational_cli import add_arguments
     for command in ('plan', 'dynamic', 'run', 'e2e', 'evaluate'):
-        relational = sub.add_parser(command, help='关系感知规划、受控执行和逐义务证据判定')
+        relational = sub.add_parser(command, help='验证规划、受控执行和逐义务证据判定')
         add_arguments(relational)
         relational.set_defaults(func=cmd_relational, action=command)
         if command in ('run', 'e2e'):
             relational.add_argument('--collect', action='store_true', help='显式采集集群快照')
             relational.add_argument('--parse-static', action='store_true', help='先生成新的静态参照产物')
-    legacy_dynamic = sub.add_parser('legacy-dynamic', help='显式运行旧矩阵兼容路径')
+    legacy_dynamic = sub.add_parser('legacy-dynamic', help='显式运行矩阵兼容路径')
     legacy_dynamic.add_argument('dynamic_args', nargs=argparse.REMAINDER)
     legacy_dynamic.set_defaults(func=cmd_legacy_dynamic)
-    legacy_run = sub.add_parser('legacy-run', help='显式运行旧聚合结果流水线')
+    legacy_run = sub.add_parser('legacy-run', help='显式运行聚合结果兼容流水线')
     legacy_run.add_argument('--namespace', default=None)
+    _add_dynamic_guard_flags(legacy_run)
     legacy_run.set_defaults(func=cmd_legacy_run)
     sub.add_parser('capabilities', help='支持范围和未实现项').set_defaults(func=cmd_capabilities)
     comparison = sub.add_parser('compare', help='在两侧见证上比较已投影的关系模型，不声称全域等价')
@@ -242,7 +280,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_check = sub.add_parser("check", help="复核冻结模型、计划和证据判定的一致性")
     p_check.add_argument("--run-dir", required=True)
     p_check.set_defaults(func=cmd_check)
-    legacy_check = sub.add_parser('legacy-check', help='旧聚合结果一致性检查')
+    legacy_check = sub.add_parser('legacy-check', help='聚合结果兼容检查')
     legacy_check.add_argument('--namespace', default=None)
     legacy_check.set_defaults(func=cmd_legacy_check)
 

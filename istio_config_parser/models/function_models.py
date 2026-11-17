@@ -161,17 +161,22 @@ class ConnectionPoolSettings:
     idle_timeout: Optional[str] = None
     
     def to_dict(self) -> Dict[str, Any]:
+        def _omit_unlimited(val):
+            if val is None or _is_unlimited_threshold(val):
+                return None
+            return val
+
         return {
             'tcp': {
-                'max_connections': self.max_connections,
+                'max_connections': _omit_unlimited(self.max_connections),
                 'connect_timeout': self.connect_timeout,
                 'tcp_keepalive': self.tcp_keepalive
             },
             'http': {
-                'http1_max_pending_requests': self.http1_max_pending_requests,
-                'http2_max_requests': self.http2_max_requests,
-                'max_requests_per_connection': self.max_requests_per_connection,
-                'max_retries': self.max_retries,
+                'http1_max_pending_requests': _omit_unlimited(self.http1_max_pending_requests),
+                'http2_max_requests': _omit_unlimited(self.http2_max_requests),
+                'max_requests_per_connection': _omit_unlimited(self.max_requests_per_connection),
+                'max_retries': _omit_unlimited(self.max_retries),
                 'idle_timeout': self.idle_timeout
             }
         }
@@ -198,6 +203,54 @@ class OutlierDetection:
         }
 
 
+_ENVOY_UNLIMITED = 4294967295  # Istio 未声明熔断时 Envoy 默认 max=uint32
+
+
+def _is_unlimited_threshold(val: Any) -> bool:
+    if val is None:
+        return True
+    try:
+        return int(val) >= _ENVOY_UNLIMITED
+    except (TypeError, ValueError):
+        return True
+
+
+def _connection_pool_is_declared(pool: Any) -> bool:
+    """只有显式收紧过的连接池才算熔断意图，忽略 Envoy 默认无限阈值。"""
+    if not pool:
+        return False
+    if isinstance(pool, ConnectionPoolSettings):
+        vals = [
+            pool.max_connections,
+            pool.http1_max_pending_requests,
+            pool.http2_max_requests,
+            pool.max_requests_per_connection,
+        ]
+    elif isinstance(pool, dict):
+        tcp = pool.get("tcp") if isinstance(pool.get("tcp"), dict) else pool
+        http = pool.get("http") if isinstance(pool.get("http"), dict) else pool
+        vals = [
+            tcp.get("max_connections") or tcp.get("maxConnections"),
+            http.get("http1_max_pending_requests") or http.get("http1MaxPendingRequests"),
+            http.get("http2_max_requests") or http.get("http2MaxRequests"),
+            http.get("max_requests_per_connection") or http.get("maxRequestsPerConnection"),
+            pool.get("max_connections"),
+            pool.get("http1_max_pending_requests"),
+        ]
+    else:
+        return False
+    return any(v is not None and not _is_unlimited_threshold(v) for v in vals)
+
+
+def _outlier_is_declared(outlier: Any) -> bool:
+    if not outlier:
+        return False
+    data = outlier.to_dict() if hasattr(outlier, "to_dict") else outlier
+    if not isinstance(data, dict):
+        return False
+    return any(v not in (None, "", [], {}) for v in data.values())
+
+
 @dataclass
 class CircuitBreakerFunctionModel(FunctionModel):
     """熔断功能模型"""
@@ -208,6 +261,19 @@ class CircuitBreakerFunctionModel(FunctionModel):
     # 子集级配置
     subset_policies: Dict[str, Dict[str, Any]] = field(default_factory=dict)
     # key: subset_name, value: {connection_pool, outlier_detection}
+
+    def has_declared_policy(self) -> bool:
+        """DestinationRule 是否真的写了 connectionPool / outlierDetection。"""
+        if _connection_pool_is_declared(self.connection_pool) or _outlier_is_declared(self.outlier_detection):
+            return True
+        for policy in (self.subset_policies or {}).values():
+            if not policy:
+                continue
+            if _connection_pool_is_declared(policy.get("connection_pool")):
+                return True
+            if _outlier_is_declared(policy.get("outlier_detection")):
+                return True
+        return False
     
     def to_dict(self) -> Dict[str, Any]:
         base = super().to_dict()

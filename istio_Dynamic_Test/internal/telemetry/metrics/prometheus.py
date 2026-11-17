@@ -155,29 +155,99 @@ def query_ratelimit_over_limit(
     return 0
 
 
+def _version_from_prom_metric(metric: Dict[str, Any]) -> str:
+    from istio_Dynamic_Test.internal.traffic.split_observe import version_from_workload
+
+    for key in (
+        "destination_canonical_revision",
+        "destination_version",
+        "destination_subset",
+    ):
+        val = str((metric or {}).get(key) or "").strip()
+        if val and val.lower() != "unknown":
+            return val
+    return version_from_workload(
+        str((metric or {}).get("destination_workload") or "")
+    )
+
+
+def _traffic_distribution_queries(service: str, namespace: str) -> List[str]:
+    svc = (service or "").split(".")[0]
+    ns = namespace or "default"
+    if not svc or svc == "*":
+        return []
+    fqdn = f"{svc}.{ns}.svc.cluster.local"
+    selectors = [
+        f'destination_service="{fqdn}",reporter="destination"',
+        f'destination_canonical_service="{svc}",destination_service_namespace="{ns}",reporter="destination"',
+        f'destination_service=~"{svc}\\\\..*",reporter="destination"',
+        f'destination_workload=~"{svc}-v.*",destination_service_namespace="{ns}",reporter="destination"',
+    ]
+    groupings = [
+        "destination_canonical_revision",
+        "destination_version",
+        "destination_workload",
+        "destination_canonical_revision,destination_version,destination_workload",
+    ]
+    return [f"sum(istio_requests_total{{{sel}}}) by ({grp})" for sel in selectors for grp in groupings]
+
+
+def _parse_distribution_result(result: List[Dict[str, Any]]) -> Dict[str, int]:
+    by_ver: Dict[str, int] = {}
+    for item in result or []:
+        ver = _version_from_prom_metric(item.get("metric") or {})
+        val = int(float(item.get("value", [0, 0])[1]))
+        by_ver[ver] = by_ver.get(ver, 0) + val
+    return by_ver
+
+
 def query_traffic_distribution(
     prometheus_url: str,
     service: str,
     versions: List[str],
     namespace: str = "default",
+    promql: Optional[str] = None,
 ) -> Dict[str, int]:
     """
     查询目标服务各版本的请求总数（用于流量分布验证）。
     返回 {version: count}，如 {"v1": 100, "v2": 400}。
+
+    Istio 1.5+ 常用 destination_canonical_revision；旧指标用 destination_version。
+    传入 promql 时固定该查询，保证打流前后快照可比。
     """
-    svc_fqdn = f"{service}.{namespace}.svc.cluster.local"
-    q = (
-        'sum(istio_requests_total{destination_service="%s"}) by (destination_version)'
-        % svc_fqdn
+    data, _ = query_traffic_distribution_ex(
+        prometheus_url, service, versions, namespace, promql=promql
     )
+    return data
+
+
+def query_traffic_distribution_ex(
+    prometheus_url: str,
+    service: str,
+    versions: List[str],
+    namespace: str = "default",
+    promql: Optional[str] = None,
+) -> tuple:
+    """返回 (counts, used_promql)。"""
+    from istio_Dynamic_Test.internal.traffic.split_observe import version_signal_usable
+
     client = PrometheusClient(prometheus_url)
-    result = client.query(q)
-    by_ver: Dict[str, int] = {}
-    for item in result:
-        ver = item.get("metric", {}).get("destination_version", "unknown")
-        val = int(float(item.get("value", [0, 0])[1]))
-        by_ver[ver] = by_ver.get(ver, 0) + val
-    return by_ver
+    queries = [promql] if promql else _traffic_distribution_queries(service, namespace)
+    best: Dict[str, int] = {}
+    used = promql or (queries[0] if queries else "")
+    for q in queries:
+        if not q:
+            continue
+        try:
+            by_ver = _parse_distribution_result(client.query(q))
+        except Exception:
+            continue
+        if version_signal_usable(by_ver, versions):
+            return by_ver, q
+        if by_ver and not best:
+            best = by_ver
+            used = q
+    return best, used
 
 
 class PrometheusClient:
@@ -189,7 +259,7 @@ class PrometheusClient:
         执行即时 PromQL 查询，返回结果列表。
         """
         url = f"{self.base_url}/api/v1/query"
-        resp = requests.get(url, params={"query": promql})
+        resp = requests.get(url, params={"query": promql}, timeout=8)
         resp.raise_for_status()
         data = resp.json()
         if data["status"] == "success":
@@ -210,7 +280,7 @@ class PrometheusClient:
             "end": end,
             "step": step
         }
-        resp = requests.get(url, params=params)
+        resp = requests.get(url, params=params, timeout=15)
         resp.raise_for_status()
         data = resp.json()
         if data["status"] == "success":
