@@ -17,35 +17,49 @@
 
 ## 2. 模块边界
 
+核心验证职责划分为采集、解析、规划、执行和判定五个模块。CLI、Web、配置管理及统一编排属于公共支撑；诊断与报告归入判定模块的结果解释能力。
+
+| 模块 | 职责与主要代码 |
+|---|---|
+| 采集 | 配置快照和运行证据获取；`istio_monitor/`、`internal/traffic/receipts.py` |
+| 解析 | 配置解析、统一语义模型和静态对齐；`main_parser.py`、`models/`、`parsers/` |
+| 规划 | 验证义务、候选探针、覆盖选择与计算接口；`internal/planning/` 的规划函数 |
+| 执行 | 资源调度、请求发送和受控响应；`internal/pipeline/scheduling/`、`internal/traffic/controlled.py`、`controlled_backend.py` |
+| 判定 | 静态结果解释、逐义务证据判定、诊断与报告；规划包中的判定函数、`configpilot/diagnostics.py` 及报告生成逻辑 |
+
+后端的响应生成和回执接口在同一服务中实现，分别承担执行与采集职责。逻辑模块不要求与 Python 包一一对应。
+
 ```text
-集群快照采集                     已保存的证据
+采集：配置快照                   已保存的证据
       ↓                              │
-parser：配置/数据面解析与对齐          │
+解析：配置/数据面解析与对齐            │
       ↓                              │
 aligned_semantic.json                │
   ├─ relational_model                │
   └─ 原 pairs/conflicts/graph_data    │
       ↓                              │
-planning.engine：定向闭包预计算        │
+规划：定向闭包预计算                  │
   ├─ serial / thread / process       │
   └─ 可选 Go 子进程                   │
       ↓                              │
 planning.relational / profiles       │
   → 全部义务 + 候选 + 覆盖 + 选择      │
       ↓                              │
-执行队列：配置读写 / 状态 / 容量        │
+执行：配置读写 / 状态 / 容量调度        │
       ↓                              │
 真实 Envoy 路径 → 受控后端             │
       ↓                              │
-共享回执收集 → 逐探针持久化            │
+采集：运行回执 → 逐探针持久化          │
       └──────────────────────────────┘
                      ↓
-             逐义务三值判定
+             判定：逐义务三值结论
                      ↓
             依赖图 / 诊断 / 报告
                      ↓
                 CLI / Web API
 ```
+
+采集在配置获取和运行观测两个时点参与。执行后的运行证据直接进入判定，不再次触发配置解析。
 
 - `istio_config_parser` 负责读取原始快照并输出模型；动态模块不重新解析 YAML。
 - `models/http_semantics.py` 提供模型层公共语义，parser 的有限比较和动态规划共同使用；parser 不反向依赖动态模块。
